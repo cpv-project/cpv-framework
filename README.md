@@ -1,11 +1,32 @@
-# TBD
+# C++ web framework based on seastar framework
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/129c54c558b24b9d883fcdc0e30da335)](https://www.codacy.com/app/303248153/cpv-framework?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cpv-project/cpv-framework&amp;utm_campaign=Badge_Grade)
 [![license](https://img.shields.io/github/license/cpv-project/cpv-manage-scripts.svg)]() 
+
+Basically seastar's httpd, plus convenient features.
+
+# Features
+
+TODO
+
+# Documents
+
+TODO
+
+# Running tests
+
+Here are the steps to run the unit tests, for now only ubuntu is supported.
+
+``` text
+git clone --recurse-submodules https://github.com/cpv-project/cpv-framework
+cd cpv-framework
+sh install-dependencies.sh
+cd tests
+sh run_tests.sh
+```
 
 # License
 
 LICENSE: MIT LICENSE<br/>
-Copyright © 2017-2018 303248153@github<br/>
+Copyright © 2018 303248153@github<br/>
 If you have any license issue please contact 303248153@qq.com.
 
