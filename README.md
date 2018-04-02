@@ -2,7 +2,9 @@
 
 [![license](https://img.shields.io/github/license/cpv-project/cpv-manage-scripts.svg)]() 
 
-Basically seastar's httpd, plus convenient features.
+Basically seastar's [httpd](https://github.com/scylladb/seastar/tree/master/http), plus some convenient features.<br/>
+For seastar framework please see [here](https://github.com/scylladb/seastar).<br/>
+It's written for the cpv project, you could just use seastar's httpd for simple purpose.
 
 # Features
 
