@@ -10,7 +10,8 @@ add_executable(${PROJECT_NAME} ${Files} ${PublicHeaders} ${InternalHeaders})
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 add_subdirectory(../3rd-party/googletest googletest EXCLUDE_FROM_ALL)
 include_directories(../src ../tests)
-target_link_libraries(${PROJECT_NAME} gtest_main ${CMAKE_SOURCE_DIR}/../bin/debug/libCPVFramework.a)
+get_filename_component(TOP_PATH ${CMAKE_SOURCE_DIR} PATH)
+target_link_libraries(${PROJECT_NAME} gtest_main ${TOP_PATH}/bin/debug/libCPVFramework.a)
 
 # add predefined macros
 add_definitions(-DDB_SIMPLE_IP="127.0.0.1")
@@ -21,7 +22,7 @@ add_definitions(-DDB_SSL_2_IP="localhost")
 add_definitions(-DDB_SSL_2_PORT=9045)
 
 # get flags from cpv framework pkgconfig
-set(CPVFRAMEWORK_PC_PATH ${CMAKE_SOURCE_DIR}/../bin/debug/cpvframework.pc)
+set(CPVFRAMEWORK_PC_PATH ${TOP_PATH}/bin/debug/cpvframework.pc)
 execute_process(COMMAND pkg-config --cflags ${CPVFRAMEWORK_PC_PATH} OUTPUT_VARIABLE CPVFRAMEWORK_CFLAGS)
 execute_process(COMMAND pkg-config --libs ${CPVFRAMEWORK_PC_PATH} OUTPUT_VARIABLE CPVFRAMEWORK_LDFLAGS)
 string(STRIP "${CPVFRAMEWORK_CFLAGS}" CPVFRAMEWORK_CFLAGS)
