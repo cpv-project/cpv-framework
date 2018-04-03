@@ -1,8 +1,10 @@
 #pragma once
+#include <cctype>
 #include <vector>
 #include <memory>
 #include <sstream>
 #include <type_traits>
+#include <string_view>
 
 namespace cpv {
 	/**
@@ -117,5 +119,8 @@ namespace cpv {
 		}
 		return start == end;
 	}
+
+	/** Compare two string case insensitive */
+	bool caseInsensitiveEquals(const std::string_view& a, const std::string_view& b);
 }
 

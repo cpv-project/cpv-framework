@@ -1,4 +1,4 @@
 #pragma once
-#include "./Imported/api_docs.hpp"
-#include "./Imported/json_path.hpp"
+#include "./Server/api_docs.hpp"
+#include "./Server/json_path.hpp"
 

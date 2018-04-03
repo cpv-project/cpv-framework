@@ -1,3 +1,5 @@
 #pragma once
-// TODO: add a http client class (and should support keep-alive)
+#include "./Client/HttpClient.hpp"
+#include "./Client/HttpClientRequest.hpp"
+#include "./Client/HttpClientResponse.hpp"
 

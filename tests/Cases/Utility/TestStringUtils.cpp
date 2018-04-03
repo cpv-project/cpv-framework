@@ -116,3 +116,10 @@ TEST(TestStringUtils, loadBytesFromHex) {
 	}
 }
 
+TEST(TestStringUtils, caseInsensitiveEquals) {
+	ASSERT_TRUE(cpv::caseInsensitiveEquals(std::string("abc"), std::string("Abc")));
+	ASSERT_TRUE(cpv::caseInsensitiveEquals(std::string("ABC012"), std::string("abc012")));
+	ASSERT_FALSE(cpv::caseInsensitiveEquals(std::string("ABC"), std::string("ab0")));
+	ASSERT_FALSE(cpv::caseInsensitiveEquals(std::string("ABC"), std::string("abd")));
+}
+

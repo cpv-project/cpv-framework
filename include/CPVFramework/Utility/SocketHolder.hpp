@@ -51,11 +51,11 @@ namespace cpv {
 		}
 
 		/** Move Constructor */
-		SocketHolder(SocketHolder&& socket) :
+		SocketHolder(SocketHolder&& socket) noexcept :
 			state_(std::move(socket.state_)) { }
 
 		/** Move assignment */
-		SocketHolder& operator=(SocketHolder&& socket) {
+		SocketHolder& operator=(SocketHolder&& socket) noexcept {
 			if (&socket != this) {
 				close();
 				state_ = std::move(socket.state_);
