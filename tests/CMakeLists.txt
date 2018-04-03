@@ -14,12 +14,8 @@ get_filename_component(TOP_PATH ${CMAKE_SOURCE_DIR} PATH)
 target_link_libraries(${PROJECT_NAME} gtest_main ${TOP_PATH}/bin/debug/libCPVFramework.a)
 
 # add predefined macros
-add_definitions(-DDB_SIMPLE_IP="127.0.0.1")
-add_definitions(-DDB_SIMPLE_PORT=9043)
-add_definitions(-DDB_SSL_1_IP="localhost")
-add_definitions(-DDB_SSL_1_PORT=9044)
-add_definitions(-DDB_SSL_2_IP="localhost")
-add_definitions(-DDB_SSL_2_PORT=9045)
+add_definitions(-DHTTPD_LISTEN_IP="127.0.0.1")
+add_definitions(-DHTTPD_LISTEN_PORT=9043)
 
 # get flags from cpv framework pkgconfig
 set(CPVFRAMEWORK_PC_PATH ${TOP_PATH}/bin/debug/cpvframework.pc)
