@@ -5,6 +5,7 @@
 #include <sstream>
 #include <type_traits>
 #include <string_view>
+#include <algorithm>
 
 namespace cpv {
 	/**
@@ -60,6 +61,25 @@ namespace cpv {
 		for (std::size_t i = 0, j = (hexLen-1)*4; i < hexLen; ++i, j-=4) {
 			str.append(digits + ((value>>j)&0xf), 1);
 		}
+	}
+
+	/**
+	 * Convert integer to decimal and write to string
+	 * IntType can be any of int??_t and uint??_t.
+	 */
+	template <class IntType, class StringType>
+	void dumpIntToDec(IntType value, StringType& str) {
+		static const char digits[11] = "0123456789";
+		if (value < 0) {
+			str.append("-");
+		}
+		std::size_t prevSize = str.size();
+		do {
+			auto rem = value % 10;
+			value /= 10;
+			str.append(1, digits[rem >= 0 ? rem : -rem]);
+		} while (value != 0);
+		std::reverse(str.begin() + prevSize, str.end());
 	}
 
 	/** Convert bytes to hex and write to string */

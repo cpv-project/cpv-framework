@@ -46,6 +46,24 @@ TEST(TestStringUtils, dumpIntToHex) {
 	}
 }
 
+TEST(TestStringUtils, dumpIntToDec) {
+	{
+		std::string str;
+		cpv::dumpIntToDec<std::uint8_t>(123, str);
+		ASSERT_EQ(str, "123");
+	}
+	{
+		std::string str;
+		cpv::dumpIntToDec<std::int8_t>(-128, str);
+		ASSERT_EQ(str, "-128");
+	}
+	{
+		std::string str;
+		cpv::dumpIntToDec<std::uint8_t>(0, str);
+		ASSERT_EQ(str, "0");
+	}
+}
+
 TEST(TestStringUtils, dumpBytesToHex) {
 	{
 		std::string str;

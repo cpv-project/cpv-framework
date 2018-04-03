@@ -65,7 +65,7 @@ namespace cpv {
 			hostHeader = hostname;
 			if (useSSL ? (port != 443) : (port != 80)) {
 				hostHeader.append(":");
-				hostHeader.append(std::to_string(port));
+				dumpIntToDec(port, hostHeader);
 			}
 			try {
 				seastar::net::inet_address inetAddress(hostname);
