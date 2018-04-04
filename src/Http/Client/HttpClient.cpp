@@ -2,6 +2,7 @@
 #include <core/reactor.hh>
 #include <core/shared_future.hh>
 #include <core/sleep.hh>
+#include <core/weak_ptr.hh>
 #include <net/inet_address.hh>
 #include <net/dns.hh>
 #include <net/tls.hh>
@@ -30,7 +31,8 @@ namespace cpv {
 
 	/** Defines members of HttpClient */
 	class HttpClientData :
-		public seastar::enable_shared_from_this<HttpClientData> {
+		public seastar::enable_shared_from_this<HttpClientData>,
+		public seastar::weakly_referencable<HttpClientData> {
 	public:
 		std::string hostname;
 		std::uint16_t port;
@@ -53,23 +55,29 @@ namespace cpv {
 				return;
 			}
 			dropIdleConnectionTimerIsRunning = true;
-			auto self = shared_from_this();
-			seastar::repeat([self] {
-				return seastar::sleep(CheckDropInterval).then([self] {
-					auto now = std::chrono::system_clock::now();
-					self->connections.erase(std::remove_if(
-						self->connections.begin(),
-						self->connections.end(),
-						[&now] (const auto& connection) {
-							return now - connection.second > KeepAliveTime;
-						}),
-						self->connections.end());
-					return self->connections.empty() ?
-						seastar::stop_iteration::yes :
-						seastar::stop_iteration::no;
+			seastar::do_with(weak_from_this(), [] (auto& self) {
+				return seastar::repeat([&self] {
+					return seastar::sleep(CheckDropInterval).then([&self] {
+						if (self.get() == nullptr) {
+							return seastar::stop_iteration::yes;
+						}
+						auto now = std::chrono::system_clock::now();
+						self->connections.erase(std::remove_if(
+							self->connections.begin(),
+							self->connections.end(),
+							[&now] (const auto& connection) {
+								return now - connection.second > KeepAliveTime;
+							}),
+							self->connections.end());
+						return self->connections.empty() ?
+							seastar::stop_iteration::yes :
+							seastar::stop_iteration::no;
+					});
+				}).finally([&self] {
+					if (self != nullptr) {
+						self->dropIdleConnectionTimerIsRunning = false;
+					}
 				});
-			}).finally([self] {
-				self->dropIdleConnectionTimerIsRunning = false;
 			});
 		}
 
