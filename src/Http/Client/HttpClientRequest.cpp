@@ -22,17 +22,28 @@ namespace cpv {
 		if (state_ != State::Initial) {
 			throw LogicException(CPV_CODEINFO, "can't set body twice");
 		}
-		str_.append("Content-Type: ").append(mimeType).append("\r\n");
-		str_.append("Content-Length: ");
-		dumpIntToDec(content.size(), str_);
-		str_.append("\r\n\r\n");
+		// TODO: support Accept-Encoding and gzip decompression
+		if (str_.find("User-Agent") == std::string::npos) {
+			str_.append("User-Agent: cpv-http-client\r\n");
+		}
+		if (!mimeType.empty() || !content.empty()) {
+			str_.append("Content-Type: ").append(mimeType).append("\r\n");
+			str_.append("Content-Length: ");
+			dumpIntToDec(content.size(), str_);
+			str_.append("\r\n\r\n");
+			str_.append(content);
+		} else {
+			str_.append("Content-Length: 0\r\n\r\n");
+		}
 		state_ = State::HeaderFinished;
-		str_.append(content);
 		return *this;
 	}
 
 	/** Send this http request */
 	seastar::future<HttpClientResponse> HttpClientRequest::send(HttpClient& client) {
+		if (state_ == State::Initial) {
+			setBody("", "");
+		}
 		return client.send(str_);
 	}
 

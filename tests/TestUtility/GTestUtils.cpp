@@ -14,8 +14,8 @@ namespace cpv {
 					return RUN_ALL_TESTS();
 				}).then([&returnValue] (int result) {
 					returnValue = result;
-					// wait 1s for cleanup
-					return seastar::sleep(std::chrono::seconds(1));
+					// wait 5s for cleanup TODO: reduce cleanup time (fix HttpClient)
+					return seastar::sleep(std::chrono::seconds(5));
 				});
 			});
 			return returnValue;
