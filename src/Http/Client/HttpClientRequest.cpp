@@ -7,26 +7,28 @@ namespace cpv {
 	/** Add a header */
 	HttpClientRequest& HttpClientRequest::addHeader(
 		const std::string_view& key,
-		const std::string_view& value) & {
-		if (headerFinished_) {
+		const std::string_view& value) {
+		if (state_ != State::Initial) {
 			throw LogicException(CPV_CODEINFO, "can't add header after body is set");
 		}
 		str_.append(key).append(": ").append(value).append("\r\n");
+		return *this;
 	}
 
 	/** Set the body of this request */
 	HttpClientRequest& HttpClientRequest::setBody(
 		const std::string_view& mimeType,
-		const std::string_view& content) & {
-		if (headerFinished_) {
+		const std::string_view& content) {
+		if (state_ != State::Initial) {
 			throw LogicException(CPV_CODEINFO, "can't set body twice");
 		}
 		str_.append("Content-Type: ").append(mimeType).append("\r\n");
 		str_.append("Content-Length: ");
 		dumpIntToDec(content.size(), str_);
 		str_.append("\r\n\r\n");
-		headerFinished_ = true;
+		state_ = State::HeaderFinished;
 		str_.append(content);
+		return *this;
 	}
 
 	/** Send this http request */
@@ -39,7 +41,7 @@ namespace cpv {
 		const std::string_view& method,
 		const std::string_view& path,
 		const std::string_view& host) :
-		headerFinished_(false),
+		state_(State::Initial),
 		str_() {
 		str_.append(method).append(" ").append(path).append(" ").append("HTTP/1.1\r\n");
 		addHeader("Host", host);

@@ -19,6 +19,10 @@ namespace cpv {
 		static const std::size_t HttpConnectionPoolSize = 20;
 		/** Dns resolve result cache time */
 		static const std::chrono::milliseconds DnsCacheTime(30000);
+		/** How long a connection can keep idle, the default timeout of apache 2.4 is 5s */
+		static const std::chrono::milliseconds KeepAliveTime(3000);
+		/** The interval of drop idle connection timer */
+		static const std::chrono::milliseconds CheckDropInterval(1000);
 		/** The initial size used to check connection is alive */
 		static const std::size_t CheckAliveBytes = 3;
 	}
@@ -48,6 +52,7 @@ namespace cpv {
 				return;
 			}
 			dropIdleConnectionTimerIsRunning = true;
+			// TODO
 		}
 
 		/** Update connection parameters */
@@ -157,6 +162,7 @@ namespace cpv {
 			}
 			if (connections.size() < HttpConnectionPoolSize) {
 				connections.emplace_back(std::move(connection), std::chrono::system_clock::now());
+				dropIdleConnectionTimer();
 			}
 		}
 
@@ -222,7 +228,7 @@ namespace cpv {
 					// receive response
 					return seastar::repeat([&connection, &response] {
 						return connection.in().read().then([&response] (auto buf) {
-							bool eof = response.appendReceived(std::move(buf));
+							bool eof = response.appendReceived({ buf.get(), buf.size() });
 							return eof ? seastar::stop_iteration::yes : seastar::stop_iteration::no;
 						});
 					}).then([&data, &connection, &response] {

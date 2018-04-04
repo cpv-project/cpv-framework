@@ -13,12 +13,12 @@ namespace cpv {
 		/** Add a header */
 		HttpClientRequest& addHeader(
 			const std::string_view& key,
-			const std::string_view& value) &;
+			const std::string_view& value);
 
 		/** Set the body of this request */
 		HttpClientRequest& setBody(
 			const std::string_view& mimeType,
-			const std::string_view& content) &;
+			const std::string_view& content);
 
 		/** Send this http request */
 		seastar::future<HttpClientResponse> send(HttpClient& client);
@@ -27,7 +27,6 @@ namespace cpv {
 		const std::string& str() const & { return str_; }
 		std::string& str() & { return str_; }
 
-	private:
 		/** Constructor */
 		HttpClientRequest(
 			const std::string_view& method,
@@ -35,7 +34,8 @@ namespace cpv {
 			const std::string_view& host);
 
 	private:
-		bool headerFinished_;
+		enum class State { Initial = 0, HeaderFinished = 1 };
+		State state_;
 		std::string str_;
 		friend HttpClient;
 	};
