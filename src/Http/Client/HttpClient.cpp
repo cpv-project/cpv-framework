@@ -1,9 +1,10 @@
 #include <chrono>
 #include <core/reactor.hh>
 #include <core/shared_future.hh>
+#include <core/sleep.hh>
 #include <net/inet_address.hh>
-#include <net/tls.hh>
 #include <net/dns.hh>
+#include <net/tls.hh>
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
@@ -52,7 +53,24 @@ namespace cpv {
 				return;
 			}
 			dropIdleConnectionTimerIsRunning = true;
-			// TODO
+			auto self = shared_from_this();
+			seastar::repeat([self] {
+				return seastar::sleep(CheckDropInterval).then([self] {
+					auto now = std::chrono::system_clock::now();
+					self->connections.erase(std::remove_if(
+						self->connections.begin(),
+						self->connections.end(),
+						[&now] (const auto& connection) {
+							return now - connection.second > KeepAliveTime;
+						}),
+						self->connections.end());
+					return self->connections.empty() ?
+						seastar::stop_iteration::yes :
+						seastar::stop_iteration::no;
+				});
+			}).finally([self] {
+				self->dropIdleConnectionTimerIsRunning = false;
+			});
 		}
 
 		/** Update connection parameters */
