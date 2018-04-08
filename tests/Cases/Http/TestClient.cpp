@@ -57,7 +57,7 @@ TEST_FUTURE(TestHttpClient, httpClient) {
 				"/hello",
 				new cpv::httpd::function_handler([] (cpv::httpd::const_req req) {
 					return "hello world";
-				}));
+				}, "txt"));
 		});
 	}).then([server] {
 		return server->listen({ HTTPD_LISTEN_IP, HTTPD_LISTEN_PORT });
@@ -74,7 +74,7 @@ TEST_FUTURE(TestHttpClient, httpClient) {
 					client.makeRequest("GET", "/hello").send(client).then([] (auto response) {
 						ASSERT_EQ(response.getStatus(), 200);
 						ASSERT_EQ(response.getHeader("Server"), "Seastar httpd");
-						ASSERT_EQ(response.getBody(), "\"hello world\"");
+						ASSERT_EQ(response.getBody(), "hello world");
 					}).finally([&gate, units = std::move(units)] {
 						gate.leave();
 					});
