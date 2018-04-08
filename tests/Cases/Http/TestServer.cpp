@@ -5,9 +5,7 @@
 
 TEST_FUTURE(TestHttpServer, simple) {
 	auto server = seastar::make_shared<cpv::httpd::http_server_control>();
-	std::cerr << "a" << std::endl;
 	return server->start().then([server] {
-		std::cerr << "started" << std::endl;
 		return server->set_routes([] (cpv::httpd::routes& r) {
 			r.put(
 				cpv::httpd::operation_type::GET,
@@ -17,10 +15,8 @@ TEST_FUTURE(TestHttpServer, simple) {
 				}));
 		});
 	}).then([server] {
-		std::cerr << "listen" << std::endl;
 		return server->listen({ HTTPD_LISTEN_IP, HTTPD_LISTEN_PORT });
 	}).finally([server] {
-		std::cerr << "stop" << std::endl;
 		return server->stop();
 	}).finally([server] { });
 }
