@@ -15,7 +15,7 @@ target_link_libraries(${PROJECT_NAME} gtest_main ${TOP_PATH}/bin/debug/libCPVFra
 
 # add predefined macros
 add_definitions(-DHTTPD_LISTEN_IP="127.0.0.1")
-add_definitions(-DHTTPD_LISTEN_PORT=9043)
+add_definitions(-DHTTPD_LISTEN_PORT=8080)
 
 # get flags from cpv framework pkgconfig
 set(CPVFRAMEWORK_PC_PATH ${TOP_PATH}/bin/debug/cpvframework.pc)

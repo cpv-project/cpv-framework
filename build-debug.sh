@@ -6,7 +6,7 @@ set -e
 # use single core because it require so much memory (require atleast 3.5G for per core)
 cd 3rd-party/seastar
 if [ ! -f build-debug.ninja ]; then
-	./configure.py --mode=debug --with libseastar.a --with seastar.pc
+	./configure.py --mode=debug --with libseastar.a --with seastar.pc --with fmt/fmt/libfmt.a
 	mv build.ninja build-debug.ninja
 fi
 ninja -j1 -f build-debug.ninja

@@ -45,8 +45,8 @@ TEST(TestHttpClient, parseResponse) {
 	ASSERT_EQ(response.getBody(), "<html></html>");
 }
 
-TEST_FUTURE(TestHttpClient, httpClient) {
-	// TODO: use local service
+/*TEST_FUTURE(TestHttpClient, httpClient) {
+	/ TODO: use local service
 	return seastar::do_with(
 		seastar::semaphore(20),
 		seastar::gate(),
@@ -58,10 +58,10 @@ TEST_FUTURE(TestHttpClient, httpClient) {
 				gate.enter();
 				client.makeRequest("GET", "/anything").send(client).then([] (auto response) {
 					std::cout << response.getStatus() << std::endl;
-					/* for (const auto& header : response.getHeaders()) {
+					for (const auto& header : response.getHeaders()) {
 						std::cout << header.first << ": " << header.second  << std::endl;
 					}
-					std::cout << response.getBody() << std::endl; */
+					std::cout << response.getBody() << std::endl;
 				}).finally([&gate, units = std::move(units)] {
 					gate.leave();
 				});
@@ -74,5 +74,5 @@ TEST_FUTURE(TestHttpClient, httpClient) {
 			return gate.close();
 		});;
 	});
-}
+}*/
 
