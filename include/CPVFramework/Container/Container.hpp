@@ -6,20 +6,17 @@
 #include "./ServiceTraits.hpp"
 
 namespace cpv {
-	/** Defines members of Container */
-	class ContainerData;
-
 	/**
-	 * Dependency injection container.
+	 * Interface of dependency injection container.
 	 * It can't use across cpu cores, please create a container for each cpu core.
 	 */
 	class Container {
 	public:
 		/** Add a service entry */
-		void add(const std::type_index& serviceType, ServiceEntryPtr&& serviceEntry);
+		virtual void add(const std::type_index& serviceType, ServiceEntryPtr&& serviceEntry) = 0;
 
 		/** Get entires of the service, may return an empty list */
-		const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const;
+		virtual const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const = 0;
 
 		/** Add a service entry by it's instance as singleton */
 		template <class TService>
@@ -105,11 +102,8 @@ namespace cpv {
 			}
 		}
 
-		/** Constructor */
-		Container();
-
-	private:
-		seastar::shared_ptr<ContainerData> data_;
+		/** Create a dependency injection container */
+		static seastar::shared_ptr<Container> create();
 	};
 }
 
