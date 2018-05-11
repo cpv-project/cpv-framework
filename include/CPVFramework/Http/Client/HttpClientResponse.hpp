@@ -6,38 +6,20 @@
 #include <vector>
 
 namespace cpv {
-	class HttpClient;
-
-	/** Http response content */
+	/** Interface of http response content */
 	class HttpClientResponse {
 	public:
 		/** Get the http status code */
-		std::size_t getStatus() const { return status_; }
+		virtual std::size_t getStatus() const = 0;
 
 		/** Get all headers */
-		const std::unordered_map<std::string_view, std::string_view>& getHeaders() const& { return headers_; }
+		virtual const std::unordered_map<std::string_view, std::string_view>& getHeaders() const& = 0;
 
 		/** Get a single header value by key, return empty if not exist */
-		const std::string_view getHeader(const std::string_view& key) const&;
+		virtual const std::string_view getHeader(const std::string_view& key) const& = 0;
 
 		/** Get the response body */
-		const std::string& getBody() const& { return bodyStr_; }
-
-		/** Append received data, return whether is all content received */
-		bool appendReceived(const std::string_view& buf);
-
-		/** Constructor */
-		HttpClientResponse();
-
-	private:
-		enum class State { Initial = 0, HeaderFinished = 1 };
-		State state_;
-		std::size_t status_;
-		std::size_t contentLength_;
-		std::unordered_map<std::string_view, std::string_view> headers_;
-		std::string headerStr_;
-		std::string bodyStr_;
-		friend HttpClient;
+		virtual const std::string_view getBody() const& = 0;
 	};
 }
 

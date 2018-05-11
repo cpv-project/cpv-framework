@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <CPVFramework/Exceptions/LogicException.hpp>
-#include <CPVFramework/Http/Client/HttpClientResponse.hpp>
-#include <CPVFramework/Http/Client/HttpClient.hpp>
+#include "HttpClientResponseImpl.hpp"
 
 namespace cpv {
 	namespace {
@@ -63,8 +62,32 @@ namespace cpv {
 		}
 	}
 
+	/** For Object */
+	void HttpClientResponseImpl::reset() {
+		state_ = State::Initial;
+		status_ = 0;
+		contentLength_ = 0;
+		headers_.clear();
+		headerStr_.resize(0);
+		bodyStr_.resize(0);
+	}
+
+	/** For Object */
+	void HttpClientResponseImpl::freeResources() { }
+
+	/** Get the http status code */
+	std::size_t HttpClientResponseImpl::getStatus() const {
+		return status_;
+	}
+
+	/** Get all headers */
+	const std::unordered_map<std::string_view, std::string_view>&
+		HttpClientResponseImpl::getHeaders() const& {
+		return headers_;
+	}
+
 	/** Get a single header value by key, return empty if not exist */
-	const std::string_view HttpClientResponse::getHeader(const std::string_view& key) const& {
+	const std::string_view HttpClientResponseImpl::getHeader(const std::string_view& key) const& {
 		auto it = headers_.find(key);
 		if (it == headers_.end()) {
 			return std::string_view();
@@ -72,8 +95,13 @@ namespace cpv {
 		return it->second;
 	}
 
+	/** Get the response body */
+	const std::string_view HttpClientResponseImpl::getBody() const& {
+		return bodyStr_;
+	}
+
 	/** Append received data, return whether is all content received */
-	bool HttpClientResponse::appendReceived(const std::string_view& buf) {
+	bool HttpClientResponseImpl::appendReceived(const std::string_view& buf) {
 		if (buf.size() == 0) {
 			// connection closed, maybe chunked response
 			return true;
@@ -101,7 +129,7 @@ namespace cpv {
 	}
 
 	/** Constructor */
-	HttpClientResponse::HttpClientResponse() :
+	HttpClientResponseImpl::HttpClientResponseImpl() :
 		state_(State::Initial),
 		status_(0),
 		contentLength_(0),

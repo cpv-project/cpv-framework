@@ -1,43 +1,23 @@
 #pragma once
 #include <string>
 #include <string_view>
-#include <core/future.hh>
 
 namespace cpv {
-	class HttpClient;
-	class HttpClientResponse;
-
-	/** Http request builder */
+	/** Interface of http request builder */
 	class HttpClientRequest {
 	public:
 		/** Add a header */
-		HttpClientRequest& addHeader(
+		virtual void addHeader(
 			const std::string_view& key,
-			const std::string_view& value);
+			const std::string_view& value) = 0;
 
 		/** Set the body of this request */
-		HttpClientRequest& setBody(
+		virtual void setBody(
 			const std::string_view& mimeType,
-			const std::string_view& content);
-
-		/** Send this http request */
-		seastar::future<HttpClientResponse> send(HttpClient& client);
+			const std::string_view& content) = 0;
 
 		/** Get the full content of this request */
-		const std::string& str() const & { return str_; }
-		std::string& str() & { return str_; }
-
-		/** Constructor */
-		HttpClientRequest(
-			const std::string_view& method,
-			const std::string_view& path,
-			const std::string_view& host);
-
-	private:
-		enum class State { Initial = 0, HeaderFinished = 1 };
-		State state_;
-		std::string str_;
-		friend HttpClient;
+		virtual const std::string_view str() const& = 0;
 	};
 }
 

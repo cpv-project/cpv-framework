@@ -46,3 +46,6 @@ file(APPEND ${PC_PATH} "Version: ${VERSION_NUMBER}\n")
 file(APPEND ${PC_PATH} "Cflags: ${CMAKE_CXX_FLAGS}\n")
 file(APPEND ${PC_PATH} "Libs: ${CMAKE_SHARED_LINKER_FLAGS} -L'${CMAKE_BINARY_DIR}' -lCPVFramework\n")
 
+# add predefined macros
+add_definitions(-DCPV_FRAMEWORK_VERSION_NUMBER="${VERSION_NUMBER}")
+

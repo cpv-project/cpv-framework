@@ -18,6 +18,9 @@ namespace cpv {
 		/** Get entires of the service, may return an empty list */
 		virtual const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const = 0;
 
+		/** Virtual destructor */
+		virtual ~Container() = default;
+
 		/** Add a service entry by it's instance as singleton */
 		template <class TService>
 		void add(const TService& instance) {
