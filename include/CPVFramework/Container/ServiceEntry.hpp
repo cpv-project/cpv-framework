@@ -35,10 +35,15 @@ namespace cpv {
 		TService getInstance(const Container& container) const {
 			try {
 				if (lifetime == Lifetime::Singleton) {
-					if (!instance.has_value()) {
-						instance = factory(container);
+					if constexpr (std::is_copy_constructible_v<TService>) {
+						if (!instance.has_value()) {
+							instance = factory(container);
+						}
+						return *instance;
+					} else {
+						throw ContainerException(CPV_CODEINFO,
+							"can't create singleton service that's not copy constructible");
 					}
-					return *instance;
 				}
 				return factory(container);
 			} catch (...) {

@@ -8,7 +8,7 @@ namespace {
 	};
 
 	struct Derived : public Base {
-		virtual std::size_t getValue() override { return 1; }
+		std::size_t getValue() override { return 1; }
 	};
 
 	struct TestSelfInject {
@@ -23,6 +23,25 @@ namespace {
 		seastar::shared_ptr<Base> instance;
 		TestExternInject(const seastar::shared_ptr<Base>& instanceVal) :
 			instance(instanceVal) { }
+	};
+
+	struct TestObjectBase {
+		virtual std::size_t getValue() = 0;
+	};
+
+	struct TestObjectDerived : public TestObjectBase {
+		static void reset() { }
+		static void freeResources() { }
+		std::size_t getValue() override { return 1; }
+	};
+
+	struct TestObjectInject : public TestObjectBase {
+		seastar::shared_ptr<Base> instance;
+		void reset(const cpv::Container& container) {
+			instance = container.get<seastar::shared_ptr<Base>>();
+		}
+		static void freeResources() { }
+		std::size_t getValue() override { return instance->getValue(); }
 	};
 }
 
@@ -74,6 +93,75 @@ TEST(TestContainer, addTypeSharedPtrContainerConstruct) {
 	container->add<seastar::shared_ptr<TestSelfInject>, seastar::shared_ptr<TestSelfInject>>();
 	auto instance = container->get<seastar::shared_ptr<TestSelfInject>>();
 	ASSERT_EQ(instance->instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeLwSharedPtrDefaultConstruct) {
+	auto container = cpv::Container::create();
+	container->add<seastar::lw_shared_ptr<Derived>, seastar::lw_shared_ptr<Derived>>();
+	auto instance = container->get<seastar::lw_shared_ptr<Derived>>();
+	ASSERT_EQ(instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeLwSharedPtrContainerConstruct) {
+	auto container = cpv::Container::create();
+	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
+	container->add<seastar::lw_shared_ptr<TestSelfInject>, seastar::lw_shared_ptr<TestSelfInject>>();
+	auto instance = container->get<seastar::lw_shared_ptr<TestSelfInject>>();
+	ASSERT_EQ(instance->instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeStdUniquePtrDefaultConstruct) {
+	auto container = cpv::Container::create();
+	container->add<std::unique_ptr<Derived>, std::unique_ptr<Derived>>();
+	auto instance = container->get<std::unique_ptr<Derived>>();
+	ASSERT_EQ(instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeStdUniquePtrContainerConstruct) {
+	auto container = cpv::Container::create();
+	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
+	container->add<std::unique_ptr<TestSelfInject>, std::unique_ptr<TestSelfInject>>();
+	auto instance = container->get<std::unique_ptr<TestSelfInject>>();
+	ASSERT_EQ(instance->instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeStdUniquePtrAsSingletonError) {
+	auto container = cpv::Container::create();
+	container->add<std::unique_ptr<Derived>, std::unique_ptr<Derived>>(cpv::Lifetime::Singleton);
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container->get<std::unique_ptr<Derived>>(),
+		"can't create singleton service that's not copy constructible");
+}
+
+TEST(TestContainer, addTypeStdSharedPtrDefaultConstruct) {
+	auto container = cpv::Container::create();
+	container->add<std::shared_ptr<Base>, std::shared_ptr<Derived>>();
+	auto instance = container->get<std::shared_ptr<Base>>();
+	ASSERT_EQ(instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeStdSharedPtrContainerConstruct) {
+	auto container = cpv::Container::create();
+	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
+	container->add<std::shared_ptr<TestSelfInject>, std::shared_ptr<TestSelfInject>>();
+	auto instance = container->get<std::shared_ptr<TestSelfInject>>();
+	ASSERT_EQ(instance->instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeObjectDefaultConstruct) {
+	auto container = cpv::Container::create();
+	container->add<cpv::Object<TestObjectBase>, cpv::Object<TestObjectDerived>>();
+	auto instance = container->get<cpv::Object<TestObjectBase>>();
+	ASSERT_EQ(instance->getValue(), 1);
+}
+
+TEST(TestContainer, addTypeObjectContainerConstruct) {
+	auto container = cpv::Container::create();
+	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
+	container->add<cpv::Object<TestObjectBase>, cpv::Object<TestObjectInject>>();
+	auto instance = container->get<cpv::Object<TestObjectBase>>();
+	ASSERT_EQ(instance->getValue(), 1);
 }
 
 TEST(TestContainer, addTypeExternInject) {

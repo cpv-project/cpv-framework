@@ -39,20 +39,24 @@ namespace cpv {
 				nullptr).toPtr());
 		}
 
-		/** Add a service entry by it's factory as transient */
+		/** Add a service entry by it's factory */
 		template <class TService>
-		void add(const std::function<TService(const Container&)>& factory) {
+		void add(
+			const std::function<TService(const Container&)>& factory,
+			Lifetime lifetime = Lifetime::Transient) {
 			add(typeid(TService), ServiceEntry<TService>(
-				Lifetime::Transient,
+				lifetime,
 				std::optional<TService>(),
 				factory).toPtr());
 		}
 
-		/** Add a service entry by it's factory as transient */
+		/** Add a service entry by it's factory */
 		template <class TService>
-		void add(std::function<TService(const Container&)>&& factory) {
+		void add(
+			std::function<TService(const Container&)>&& factory,
+			Lifetime lifetime = Lifetime::Transient) {
 			add(typeid(TService), ServiceEntry<TService>(
-				Lifetime::Transient,
+				lifetime,
 				std::optional<TService>(),
 				std::move(factory)).toPtr());
 		}
@@ -64,7 +68,7 @@ namespace cpv {
 				lifetime,
 				std::optional<TService>(),
 				[] (const Container& container) {
-					return ServiceFactoryTrait<TImplementation>()(container);
+					return ServiceFactoryTrait<TService, TImplementation>()(container);
 				}).toPtr());
 		}
 
