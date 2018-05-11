@@ -45,6 +45,9 @@ namespace cpv {
 		/** Constructor */
 		explicit Logger(LogLevel logLevel);
 
+		/** Virtual destructor */
+		virtual ~Logger() = default;
+
 		/** Create a console logger */
 		static seastar::shared_ptr<Logger> createConsole(LogLevel logLevel);
 
