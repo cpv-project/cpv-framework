@@ -15,6 +15,9 @@ namespace cpv {
 		/** Add a service entry */
 		virtual void add(const std::type_index& serviceType, ServiceEntryPtr&& serviceEntry) = 0;
 
+		/** Remove entries of the service, return how many entries removed */
+		virtual std::size_t remove(const std::type_index& serviceType) = 0;
+
 		/** Get entires of the service, may return an empty list */
 		virtual const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const = 0;
 
@@ -70,6 +73,12 @@ namespace cpv {
 				[] (const Container& container) {
 					return ServiceFactoryTrait<TService, TImplementation>()(container);
 				}).toPtr());
+		}
+
+		/** Remove entries of the service, return how many entries removed */
+		template <class TService>
+		std::size_t remove() {
+			return remove(typeid(TService));
 		}
 
 		/** Get service instance(s) */

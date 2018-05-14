@@ -172,6 +172,16 @@ TEST(TestContainer, addTypeExternInject) {
 	ASSERT_EQ(instance.instance->getValue(), 1);
 }
 
+TEST(TestContainer, removeType) {
+	auto container = cpv::Container::create();
+	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
+	ASSERT_EQ(container->remove<seastar::shared_ptr<Base>>(), 1);
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container->get<seastar::shared_ptr<Base>>(),
+		"no service entry found");
+}
+
 TEST(TestContainer, getSingleInstance) {
 	auto container = cpv::Container::create();
 	container->add<seastar::shared_ptr<Base>>(seastar::make_shared<Derived>());
