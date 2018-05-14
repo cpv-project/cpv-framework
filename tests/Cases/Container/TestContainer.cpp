@@ -175,7 +175,8 @@ TEST(TestContainer, addTypeExternInject) {
 TEST(TestContainer, removeType) {
 	auto container = cpv::Container::create();
 	container->add<seastar::shared_ptr<Base>, seastar::shared_ptr<Derived>>();
-	ASSERT_EQ(container->remove<seastar::shared_ptr<Base>>(), 1);
+	ASSERT_EQ(container->remove<seastar::shared_ptr<Derived>>().size(), 0);
+	ASSERT_EQ(container->remove<seastar::shared_ptr<Base>>().size(), 1);
 	ASSERT_THROWS_CONTAINS(
 		cpv::ContainerException,
 		container->get<seastar::shared_ptr<Base>>(),

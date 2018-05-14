@@ -15,11 +15,11 @@ namespace cpv {
 		/** Add a service entry */
 		virtual void add(const std::type_index& serviceType, ServiceEntryPtr&& serviceEntry) = 0;
 
-		/** Remove entries of the service, return how many entries removed */
-		virtual std::size_t remove(const std::type_index& serviceType) = 0;
+		/** Remove entries of the service, return removed entries */
+		virtual std::vector<ServiceEntryPtr> remove(const std::type_index& serviceType) = 0;
 
 		/** Get entires of the service, may return an empty list */
-		virtual const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const = 0;
+		virtual const std::vector<ServiceEntryPtr>& getEntries(const std::type_index& serviceType) const& = 0;
 
 		/** Virtual destructor */
 		virtual ~Container() = default;
@@ -75,9 +75,9 @@ namespace cpv {
 				}).toPtr());
 		}
 
-		/** Remove entries of the service, return how many entries removed */
+		/** Remove entries of the service, return removed entries */
 		template <class TService>
-		std::size_t remove() {
+		std::vector<ServiceEntryPtr> remove() {
 			return remove(typeid(TService));
 		}
 

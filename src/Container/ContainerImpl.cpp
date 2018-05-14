@@ -10,20 +10,20 @@ namespace cpv {
 		it->second.emplace_back(std::move(serviceEntry));
 	}
 
-	/** Remove entries of the service, return how many entries removed */
-	std::size_t ContainerImpl::remove(const std::type_index& serviceType) {
+	/** Remove entries of the service, return removed entries */
+	std::vector<ServiceEntryPtr> ContainerImpl::remove(const std::type_index& serviceType) {
 		auto it = entries_.find(serviceType);
 		if (it == entries_.end()) {
-			return 0;
+			return { };
 		}
-		std::size_t removed = it->second.size();
+		std::vector<ServiceEntryPtr> removed = std::move(it->second);
 		entries_.erase(it);
 		return removed;
 	}
 
 	/** Get entires of the service, may return an empty list */
 	const std::vector<ServiceEntryPtr>& ContainerImpl::getEntries(
-		const std::type_index& serviceType) const {
+		const std::type_index& serviceType) const& {
 		static thread_local std::vector<ServiceEntryPtr> empty;
 		auto it = entries_.find(serviceType);
 		if (it == entries_.end()) {
