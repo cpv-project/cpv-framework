@@ -10,7 +10,7 @@ TEST_FUTURE(TestHttpServer, simple) {
 			r.put(
 				cpv::httpd::operation_type::GET,
 				"/",
-				new cpv::httpd::function_handler([] (cpv::httpd::const_req req) {
+				new cpv::httpd::function_handler([] (cpv::httpd::const_req) {
 					return "hello world";
 				}));
 		});

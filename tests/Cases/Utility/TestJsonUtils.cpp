@@ -17,8 +17,8 @@ namespace {
 		}
 
 		void fromJson(const cpv::Json& json) {
-			name = json["name"];
-			age = json["age"];
+			name = json.at("name");
+			age = json.at("age");
 		}
 	};
 }
@@ -32,8 +32,8 @@ namespace cpv {
 		}
 
 		static void fromJson(const Json& json, A& value) {
-			value.name = json["name"];
-			value.age = json["age"];
+			value.name = json.at("name");
+			value.age = json.at("age");
 		}
 	};
 }
