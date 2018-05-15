@@ -4,6 +4,7 @@
 #include "Application.hpp"
 
 namespace cpv {
+	/** Used to create and manage application instances on multiple cores */
 	template <class TApplication>
 	class ApplicationControl {
 	public:

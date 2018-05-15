@@ -33,7 +33,9 @@ namespace {
 	struct ModuleB : public cpv::Module {
 		using Module::Module;
 
-		seastar::future<> registerRoutes(cpv::httpd::http_server& server) override {
+		seastar::future<> registerRoutes(
+			const seastar::shared_ptr<const cpv::Container>&,
+			cpv::httpd::http_server& server) override {
 			server._routes.put(
 				cpv::httpd::operation_type::GET,
 				"/module_b",

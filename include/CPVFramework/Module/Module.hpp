@@ -22,7 +22,9 @@ namespace cpv {
 		virtual seastar::future<> initializeServices(const Container& container);
 
 		/** Register http handlers for http server, do nothing by default */
-		virtual seastar::future<> registerRoutes(httpd::http_server& server);
+		virtual seastar::future<> registerRoutes(
+			const seastar::shared_ptr<const Container>& container,
+			httpd::http_server& server);
 
 		/** Constructor */
 		explicit Module(const seastar::shared_ptr<const Json>& configuration);

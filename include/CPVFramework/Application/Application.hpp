@@ -6,7 +6,7 @@ namespace cpv {
 	/**
 	 * The base class of applications.
 	 * Provide your own application class and implement registerModules.
-	 * Please use ApplicationControl to create and manage application instances for multiple cores.
+	 * Please use ApplicationControl to create and manage application instances on multiple cores.
 	 */
 	class Application {
 	public:

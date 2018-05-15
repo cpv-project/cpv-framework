@@ -30,7 +30,7 @@ namespace cpv {
 			});
 		}).then([this] {
 			return seastar::do_for_each(modules_.begin(), modules_.end(), [this] (auto& module) {
-				return module->registerRoutes(*server_);
+				return module->registerRoutes(container_, *server_);
 			});
 		}).then([this] {
 			auto hostname = configuration_->value<std::string>("httpd.listen_hostname", "127.0.0.1");
