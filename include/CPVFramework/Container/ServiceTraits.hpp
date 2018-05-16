@@ -21,7 +21,7 @@ namespace cpv {
 		}
 	};
 
-	/** Specific how to construct the instance */
+	/** Specific how to construct the instance of services */
 	template <class TService, class TImplementation, class = void>
 	struct ServiceFactoryTrait {
 		TService operator()(const Container& container) const {
@@ -134,6 +134,65 @@ namespace cpv {
 					"please provide a constructor takes 'const Container&'");
 			}
 		}
+	};
+
+	/** Specific how to access the instance of service, unwrap wrapper types */
+	template <class TService>
+	struct ServiceAccessorTrait {
+		using ServiceType = TService;
+
+		ServiceType& operator()(TService& instance) const { return instance; }
+		const ServiceType& operator()(const TService& instance) const { return instance; }
+	};
+
+	/** For seastar::shared_ptr */
+	template <class TServiceInner>
+	struct ServiceAccessorTrait<seastar::shared_ptr<TServiceInner>> {
+		using TService = seastar::shared_ptr<TServiceInner>;
+		using ServiceType = TServiceInner;
+
+		ServiceType& operator()(TService& instance) const { return *instance; }
+		const ServiceType& operator()(const TService& instance) const { return *instance; }
+	};
+
+	/** For seastar::lw_shared_ptr */
+	template <class TServiceInner>
+	struct ServiceAccessorTrait<seastar::lw_shared_ptr<TServiceInner>> {
+		using TService = seastar::lw_shared_ptr<TServiceInner>;
+		using ServiceType = TServiceInner;
+
+		ServiceType& operator()(TService& instance) const { return *instance; }
+		const ServiceType& operator()(const TService& instance) const { return *instance; }
+	};
+
+	/** For std::unique_ptr */
+	template <class TServiceInner>
+	struct ServiceAccessorTrait<std::unique_ptr<TServiceInner>> {
+		using TService = std::unique_ptr<TServiceInner>;
+		using ServiceType = TServiceInner;
+
+		ServiceType& operator()(TService& instance) const { return *instance; }
+		const ServiceType& operator()(const TService& instance) const { return *instance; }
+	};
+
+	/** For std::shared_ptr */
+	template <class TServiceInner>
+	struct ServiceAccessorTrait<std::shared_ptr<TServiceInner>> {
+		using TService = std::shared_ptr<TServiceInner>;
+		using ServiceType = TServiceInner;
+
+		ServiceType& operator()(TService& instance) const { return *instance; }
+		const ServiceType& operator()(const TService& instance) const { return *instance; }
+	};
+
+	/** For Object */
+	template <class TServiceInner>
+	struct ServiceAccessorTrait<Object<TServiceInner>> {
+		using TService = Object<TServiceInner>;
+		using ServiceType = TServiceInner;
+
+		ServiceType& operator()(TService& instance) const { return *instance; }
+		const ServiceType& operator()(const TService& instance) const { return *instance; }
 	};
 }
 
