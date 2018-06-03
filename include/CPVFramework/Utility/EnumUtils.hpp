@@ -3,6 +3,7 @@
 #include <vector>
 #include <utility>
 #include <type_traits>
+#include <string_view>
 
 namespace cpv {
 	/** Bitwise or operation, for enum types under cpv namespace and called by ADL */
@@ -100,5 +101,16 @@ namespace cpv {
 		}
 		return stream;
 	}
-}
 
+	/** Get the enum value from it's description string */
+	template <class T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+	T enumFromString(const std::string_view& str, T defaultValue = {}) {
+		auto& descriptions = EnumDescriptions<T>::get();
+		for (const auto& pair : descriptions) {
+			if (str == pair.second) {
+				return pair.first;
+			}
+		}
+		return defaultValue;
+	}
+}
