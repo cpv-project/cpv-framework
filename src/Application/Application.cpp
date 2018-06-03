@@ -1,6 +1,8 @@
 #include <core/sleep.hh>
 #include <core/prometheus.hh>
 #include <CPVFramework/Application/Application.hpp>
+#include <CPVFramework/Module/DefaultModule.hpp>
+#include <CPVFramework/Logging/Logger.hpp>
 #include <CPVFramework/Utility/FileUtils.hpp>
 #include <CPVFramework/Utility/JsonUtils.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
@@ -20,6 +22,7 @@ namespace cpv {
 			throw LogicException(CPV_CODEINFO, "application already started");
 		}
 		started_ = true;
+		registerModule<DefaultModule>();
 		return registerModules().then([this] {
 			return seastar::do_for_each(modules_.begin(), modules_.end(), [this] (auto& module) {
 				return module->registerServices(*container_);
@@ -35,6 +38,10 @@ namespace cpv {
 		}).then([this] {
 			auto hostname = configuration_->value<std::string>("httpd.listen_hostname", "127.0.0.1");
 			auto port = configuration_->value<std::uint16_t>("httpd.listen_port", 8000);
+			auto logger = container_->get<seastar::shared_ptr<Logger>>();
+			logger->log(LogLevel::Info,
+				"application started on core", seastar::engine().cpu_id(),
+				"and address", joinString(":", hostname, port));
 			return server_->listen({ hostname, port });
 		});
 	}

@@ -62,19 +62,24 @@ namespace {
 			});
 		}
 	};
+
+	static const inline std::string configuration(cpv::joinString("", "{",
+		"\"httpd.listen_hostname\": \"", HTTPD_LISTEN_IP, "\",",
+		"\"httpd.listen_port\": ", HTTPD_LISTEN_PORT, ",",
+		"\"logging.log_level\": \"Error\"",
+		"}"));
 }
 
 TEST_FUTURE(TestApplication, start) {
 	cpv::ApplicationControl<MyApplication> applicationControl;
-	return applicationControl.start(std::string("{ \"a\": 1 }"))
-	.then([applicationControl] {
+	return applicationControl.start(configuration).then([applicationControl] {
 		return applicationControl.stop();
 	});
 }
 
 TEST_FUTURE(TestApplication, invokeOnAll) {
 	cpv::ApplicationControl<MyApplication> applicationControl;
-	return applicationControl.start().then([applicationControl] {
+	return applicationControl.start(configuration).then([applicationControl] {
 		return applicationControl.invokeOnAll([] (MyApplication& application) {
 			return application.verify();
 		});
