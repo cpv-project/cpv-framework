@@ -7,11 +7,11 @@ namespace cpv {
 	/** Base class of ServiceHandler variants */
 	class ServiceHandlerBase : public httpd::handler_base {
 	public:
-		ServiceHandlerBase(const seastar::shared_ptr<Container>& container) :
+		ServiceHandlerBase(const seastar::shared_ptr<const Container>& container) :
 			container_(container) { }
 
 	protected:
-		seastar::shared_ptr<Container> container_;
+		seastar::shared_ptr<const Container> container_;
 	};
 
 	/** Resolve service from container and use it to handle http request */
