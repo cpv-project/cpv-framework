@@ -58,11 +58,13 @@ namespace cpv {
 							detectAlive = false;
 							return connection.out().write(
 								str.data() + checkAliveBytes, str.size() - checkAliveBytes);
-						}).then([&connection] {
+						}).then([&self, &connection] {
+							++self->metricsData_.request_sent;
 							return connection.out().flush();
 						});
 					} else {
-						return connection.out().write(str.data(), str.size()).then([&connection] {
+						return connection.out().write(str.data(), str.size()).then([&self, &connection] {
+							++self->metricsData_.request_sent;
 							return connection.out().flush();
 						});
 					}
@@ -121,6 +123,7 @@ namespace cpv {
 		checkDropInterval_(checkDropInterval),
 		checkAliveBytes_(checkAliveBytes),
 		hostHeader_(hostname),
+		metricsData_(hostHeader_),
 		ipAddress_(),
 		ipAddressIsResolved_(false),
 		ipAddressIsFixed_(false),

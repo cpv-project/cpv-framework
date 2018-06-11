@@ -10,6 +10,7 @@
 #include <CPVFramework/Http/Client/HttpClientRequest.hpp>
 #include <CPVFramework/Http/Client/HttpClientResponse.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
+#include "HttpClientMetricsData.hpp"
 
 namespace cpv {
 	/** Implementation of http client */
@@ -74,6 +75,8 @@ namespace cpv {
 		std::size_t checkAliveBytes_;
 		/** For request building */
 		std::string hostHeader_;
+		/** For metrics */
+		HttpClientMetricsData metricsData_;
 		seastar::socket_address ipAddress_;
 		bool ipAddressIsResolved_;
 		bool ipAddressIsFixed_;
