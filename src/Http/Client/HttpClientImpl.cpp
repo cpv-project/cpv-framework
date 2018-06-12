@@ -59,11 +59,13 @@ namespace cpv {
 							return connection.out().write(
 								str.data() + checkAliveBytes, str.size() - checkAliveBytes);
 						}).then([&self, &connection] {
+							// update metrics data
 							++self->metricsData_.request_sent;
 							return connection.out().flush();
 						});
 					} else {
 						return connection.out().write(str.data(), str.size()).then([&self, &connection] {
+							// update metrics data
 							++self->metricsData_.request_sent;
 							return connection.out().flush();
 						});
@@ -81,6 +83,8 @@ namespace cpv {
 						if (value.empty() || caseInsensitiveEquals(value, "Keep-Alive")) {
 							self->returnConnection(std::move(connection));
 						}
+						// update metrics data
+						++self->metricsData_.response_received;
 						return seastar::stop_iteration::yes;
 					});
 				}).handle_exception([&self, &reused, &detectAlive, &response] (std::exception_ptr ex) {
@@ -90,6 +94,8 @@ namespace cpv {
 						return seastar::make_ready_future<seastar::stop_iteration>(
 							seastar::stop_iteration::no);
 					}
+					// update metrics data
+					++self->metricsData_.error_occurred;
 					return seastar::make_exception_future<seastar::stop_iteration>(
 						NetworkException(CPV_CODEINFO, "send http request to",
 							self->hostHeader_, "failed:", ex));
@@ -186,6 +192,8 @@ namespace cpv {
 							return now - connection.second > self->keepAliveTime_;
 						}),
 						self->connections_.end());
+					// update metrics data
+					self->metricsData_.connections_current = self->connections_.size();
 					return self->connections_.empty() ?
 						seastar::stop_iteration::yes :
 						seastar::stop_iteration::no;
@@ -209,7 +217,10 @@ namespace cpv {
 			}
 			if (certificatesInitialized_.available() && !certificatesInitialized_.failed()) {
 				// fast path
-				return seastar::tls::connect(certificates_, ipAddress_, "").then([] (auto connected) {
+				auto self = shared_from_this();
+				return seastar::tls::connect(certificates_, ipAddress_, "").then([self] (auto connected) {
+					// update metrics data
+					++self->metricsData_.connections_total;
 					return SocketHolder(std::move(connected));
 				});
 			} else {
@@ -217,12 +228,17 @@ namespace cpv {
 				auto self = shared_from_this();
 				return certificatesInitialized_.get_future().then([self] {
 					return seastar::tls::connect(self->certificates_, self->ipAddress_, "");
-				}).then([] (auto connected) {
+				}).then([self] (auto connected) {
+					// update metrics data
+					++self->metricsData_.connections_total;
 					return SocketHolder(std::move(connected));
 				});
 			}
 		} else {
-			return seastar::engine().net().connect(ipAddress_).then([] (auto connected) {
+			auto self = shared_from_this();
+			return seastar::engine().net().connect(ipAddress_).then([self] (auto connected) {
+				// update metrics data
+				++self->metricsData_.connections_total;
 				return SocketHolder(std::move(connected));
 			});
 		}
@@ -264,6 +280,8 @@ namespace cpv {
 		}
 		if (connections_.size() < poolSize_) {
 			connections_.emplace_back(std::move(connection), std::chrono::system_clock::now());
+			// update metrics data
+			metricsData_.connections_current = connections_.size();
 			dropIdleConnectionTimer();
 		}
 	}

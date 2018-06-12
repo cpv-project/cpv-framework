@@ -11,7 +11,7 @@ namespace cpv {
 	public:
 		/** The total number of connection opened */
 		std::size_t connections_total;
-		/** The current number of open connections */
+		/** The current number of open connections (in pools) */
 		std::size_t connections_current;
 		/** The total number of request sent */
 		std::size_t request_sent;

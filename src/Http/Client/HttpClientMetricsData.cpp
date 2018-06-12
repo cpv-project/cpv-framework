@@ -25,7 +25,7 @@ namespace cpv {
 			seastar::metrics::make_gauge(
 				"connections_current",
 				[this] { return connections_current; },
-				seastar::metrics::description("The current number of open connections"),
+				seastar::metrics::description("The current number of open connections (in pools)"),
 				labels),
 			seastar::metrics::make_derive(
 				"request_sent",
