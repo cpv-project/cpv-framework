@@ -6,7 +6,7 @@ namespace cpv {
 	class HttpClientMetricsData {
 	public:
 		/** Constructor */
-		HttpClientMetricsData(const std::string& hostHeader);
+		explicit HttpClientMetricsData(const std::string& hostHeader);
 
 	public:
 		/** The total number of connection opened */
