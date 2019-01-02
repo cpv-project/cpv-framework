@@ -1,5 +1,5 @@
-#include <core/semaphore.hh>
-#include <core/gate.hh>
+#include <seastar/core/semaphore.hh>
+#include <seastar/core/gate.hh>
 #include <CPVFramework/Http/Client.hpp>
 #include <CPVFramework/Http/Server.hpp>
 #include <CPVFramework/Http/Route.hpp>

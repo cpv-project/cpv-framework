@@ -1,5 +1,5 @@
-#include <core/sleep.hh>
-#include <core/prometheus.hh>
+#include <seastar/core/sleep.hh>
+#include <seastar/core/prometheus.hh>
 #include <CPVFramework/Application/Application.hpp>
 #include <CPVFramework/Module/DefaultModule.hpp>
 #include <CPVFramework/Logging/Logger.hpp>

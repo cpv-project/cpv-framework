@@ -1,4 +1,4 @@
-#include <core/reactor.hh>
+#include <seastar/core/reactor.hh>
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include <TestUtility/GTestUtils.hpp>
 

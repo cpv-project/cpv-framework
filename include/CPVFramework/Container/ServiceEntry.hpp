@@ -2,7 +2,7 @@
 #include <memory>
 #include <optional>
 #include <functional>
-#include <util/log.hh>
+#include <seastar/util/log.hh>
 #include "../Exceptions/ContainerException.hpp"
 #include "./Lifetime.hpp"
 

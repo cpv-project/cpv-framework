@@ -1,5 +1,5 @@
-#include <core/app-template.hh>
-#include <core/sleep.hh>
+#include <seastar/core/app-template.hh>
+#include <seastar/core/sleep.hh>
 #include <CPVFramework/Application/ApplicationControl.hpp>
 #include <CPVFramework/Module/PrometheusModule.hpp>
 #include <CPVFramework/Container/Injector.hpp>

@@ -1,5 +1,5 @@
 #pragma once
-#include <core/shared_ptr.hh>
+#include <seastar/core/shared_ptr.hh>
 #include "../Utility/EnumUtils.hpp"
 #include "../Utility/StringUtils.hpp"
 

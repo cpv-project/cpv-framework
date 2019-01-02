@@ -1,4 +1,4 @@
-#include <core/prometheus.hh>
+#include <seastar/core/prometheus.hh>
 #include <CPVFramework/Module/PrometheusModule.hpp>
 #include <CPVFramework/Utility/JsonUtils.hpp>
 

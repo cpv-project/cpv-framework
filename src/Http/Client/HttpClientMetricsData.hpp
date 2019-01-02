@@ -1,5 +1,5 @@
 #pragma once
-#include <core/metrics_registration.hh>
+#include <seastar/core/metrics_registration.hh>
 
 namespace cpv {
 	/** Define metrics targets for http client */

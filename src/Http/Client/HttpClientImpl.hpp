@@ -1,11 +1,11 @@
 #pragma once
 #include <chrono>
-#include <core/reactor.hh>
-#include <core/shared_ptr.hh>
-#include <core/weak_ptr.hh>
-#include <core/shared_future.hh>
-#include <net/inet_address.hh>
-#include <net/tls.hh>
+#include <seastar/core/reactor.hh>
+#include <seastar/core/shared_ptr.hh>
+#include <seastar/core/weak_ptr.hh>
+#include <seastar/core/shared_future.hh>
+#include <seastar/net/inet_address.hh>
+#include <seastar/net/tls.hh>
 #include <CPVFramework/Http/Client/HttpClient.hpp>
 #include <CPVFramework/Http/Client/HttpClientRequest.hpp>
 #include <CPVFramework/Http/Client/HttpClientResponse.hpp>

@@ -1,7 +1,0 @@
-[submodule "3rd-party/seastar"]
-	path = 3rd-party/seastar
-	url = https://github.com/cpv-project/seastar
-[submodule "3rd-party/googletest"]
-	path = 3rd-party/googletest
-	url = https://github.com/cpv-project/googletest
-

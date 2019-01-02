@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <net/api.hh>
+#include <seastar/net/api.hh>
 #include "../Exceptions/LogicException.hpp"
 
 namespace cpv {

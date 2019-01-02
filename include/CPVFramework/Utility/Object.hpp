@@ -2,7 +2,7 @@
 #include <vector>
 #include <memory>
 #include <type_traits>
-#include <util/log.hh>
+#include <seastar/util/log.hh>
 #include "../Exceptions/LogicException.hpp"
 
 namespace cpv {

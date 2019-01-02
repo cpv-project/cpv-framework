@@ -1,0 +1,35 @@
+#!/usr/bin/make -f
+
+SRCDIR=$(shell realpath .)/src
+BUILDDIR=$(shell realpath .)/build/release
+BUILDDIR_DEBUG=$(shell realpath .)/build/debug
+ROOTDIR=$(shell realpath .)/debian/tmp
+ROOTDIR_DEBUG=$(shell realpath .)/debian/tmp_debug
+
+build-indep:
+build-arch:
+	cd $(SRCDIR); \
+		SRCDIR=$(SRCDIR) \
+		BUILDDIR=$(BUILDDIR) BUILDDIR_DEBUG=$(BUILDDIR_DEBUG) \
+		ROOTDIR=$(ROOTDIR) ROOTDIR_DEBUG=$(ROOTDIR_DEBUG) \
+		sh ../debian/scripts/build_cpvframework.sh
+build: build-indep build-arch
+
+binary-indep:
+binary-arch:
+	mkdir -p $(ROOTDIR)/DEBIAN
+	mkdir -p $(ROOTDIR_DEBUG)
+	cd $(ROOTDIR); \
+		SRCDIR=$(SRCDIR) \
+		BUILDDIR=$(BUILDDIR) BUILDDIR_DEBUG=$(BUILDDIR_DEBUG) \
+		ROOTDIR=$(ROOTDIR) ROOTDIR_DEBUG=$(ROOTDIR_DEBUG) \
+		sh ../scripts/install_cpvframework.sh
+	dpkg-gencontrol -pcpvframework
+	dpkg --build $(ROOTDIR) ..
+binary: binary-indep binary-arch
+
+clean:
+	rm -rf $(ROOTDIR)
+
+.PHONY: build-indep build-arch build binary-indep binary-arch binary clean
+

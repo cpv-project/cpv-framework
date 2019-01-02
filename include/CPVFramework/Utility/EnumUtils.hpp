@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <utility>
+#include <seastar/utility>
 #include <type_traits>
 #include <string_view>
 

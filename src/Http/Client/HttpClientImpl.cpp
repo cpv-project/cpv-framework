@@ -1,6 +1,6 @@
-#include <core/reactor.hh>
-#include <core/sleep.hh>
-#include <net/dns.hh>
+#include <seastar/core/reactor.hh>
+#include <seastar/core/sleep.hh>
+#include <seastar/net/dns.hh>
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>

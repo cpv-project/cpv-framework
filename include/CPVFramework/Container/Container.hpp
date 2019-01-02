@@ -1,7 +1,7 @@
 #pragma once
 #include <typeindex>
 #include <vector>
-#include <core/shared_ptr.hh>
+#include <seastar/core/shared_ptr.hh>
 #include "./ServiceEntry.hpp"
 #include "./ServiceTraits.hpp"
 

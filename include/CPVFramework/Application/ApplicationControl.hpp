@@ -1,6 +1,6 @@
 #pragma once
-#include <core/sleep.hh>
-#include <core/distributed.hh>
+#include <seastar/core/sleep.hh>
+#include <seastar/core/distributed.hh>
 #include "Application.hpp"
 
 namespace cpv {
