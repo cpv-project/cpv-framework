@@ -1,0 +1,12 @@
+language: cpp
+script: cd tests && sh travis_run_tests.sh
+os: linux
+dist: trusty
+sudo: required
+addons:
+  apt:
+    packages:
+      - realpath
+services:
+  - docker
+

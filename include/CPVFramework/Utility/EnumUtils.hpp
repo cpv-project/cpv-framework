@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <seastar/utility>
+#include <utility>
 #include <type_traits>
 #include <string_view>
 
@@ -74,7 +74,7 @@ namespace cpv {
 	};
 
 	/** Write text description of enum to stream */
-	template <class T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+	template <class T, std::enable_if_t<sizeof(EnumDescriptions<T>::get()), int> = 0>
 	std::ostream& operator<<(std::ostream& stream, T value) {
 		auto& descriptions = EnumDescriptions<T>::get();
 		// find the value exactly matched
@@ -103,7 +103,7 @@ namespace cpv {
 	}
 
 	/** Get the enum value from it's description string */
-	template <class T, std::enable_if_t<std::is_enum<T>::value, int> = 0>
+	template <class T, std::enable_if_t<sizeof(EnumDescriptions<T>::get()), int> = 0>
 	T enumFromString(const std::string_view& str, T defaultValue = {}) {
 		auto& descriptions = EnumDescriptions<T>::get();
 		for (const auto& pair : descriptions) {

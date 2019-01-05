@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
 set -e
 
-BUILDDIR=../build/cpvframework-tests
+BUILDDIR=../build/cqldriver-tmp
 
 mkdir -p ${BUILDDIR}
 cd ${BUILDDIR}
 cmake -DCMAKE_BUILD_TYPE=Debug \
-	-DGTEST_SOURCE_DIR=/usr/src/gtest \
-	../../tests
+	../../tmp
 make V=1
 
 ASAN_OPTIONS="detect_leaks=1" \
-	./CPVFrameworkTests --reactor-backend epoll
+	./CQLDriverTmp --reactor-backend epoll
 
 
