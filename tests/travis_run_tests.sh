@@ -32,5 +32,5 @@ docker run \
   bash -c "$Command"
 
 # cleanup
-docker rm -f $(docker ps -a -q)
+# docker rm -f $(docker ps -a -q)
 

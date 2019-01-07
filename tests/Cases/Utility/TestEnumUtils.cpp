@@ -27,34 +27,34 @@ namespace cpv {
 TEST(TestEnumUtils, operators) {
 	{
 		auto value = cpv::MyTestEnum::A | cpv::MyTestEnum::B;
-		ASSERT_EQ(static_cast<std::size_t>(value), 3);
+		ASSERT_EQ(static_cast<std::size_t>(value), 3U);
 	}
 	{
 		auto value = cpv::MyTestEnum::A;
 		value |= cpv::MyTestEnum::B;
-		ASSERT_EQ(static_cast<std::size_t>(value), 3);
+		ASSERT_EQ(static_cast<std::size_t>(value), 3U);
 	}
 	{
 		auto value = cpv::MyTestEnum::A & (cpv::MyTestEnum::A | cpv::MyTestEnum::B);
-		ASSERT_EQ(static_cast<std::size_t>(value), 1);
+		ASSERT_EQ(static_cast<std::size_t>(value), 1U);
 	}
 	{
 		auto value = cpv::MyTestEnum::A | cpv::MyTestEnum::B;
 		value &= cpv::MyTestEnum::A;
-		ASSERT_EQ(static_cast<std::size_t>(value), 1);
+		ASSERT_EQ(static_cast<std::size_t>(value), 1U);
 	}
 	{
 		auto value = ~cpv::MyTestEnum::A & (cpv::MyTestEnum::A | cpv::MyTestEnum::B);
-		ASSERT_EQ(static_cast<std::size_t>(value), 2);
+		ASSERT_EQ(static_cast<std::size_t>(value), 2U);
 	}
 	{
 		auto value = cpv::MyTestEnum::A | cpv::MyTestEnum::B;
 		value &= cpv::MyTestEnum::B;
-		ASSERT_EQ(static_cast<std::size_t>(value), 2);
+		ASSERT_EQ(static_cast<std::size_t>(value), 2U);
 	}
 	{
 		auto value = ~cpv::MyTestEnum::A;
-		ASSERT_EQ(static_cast<std::size_t>(value), ~1);
+		ASSERT_EQ(static_cast<std::size_t>(value), ~static_cast<std::size_t>(1));
 	}
 	{
 		auto value = cpv::MyTestEnum::A | cpv::MyTestEnum::B;

@@ -40,7 +40,7 @@ TEST(TestObject, Simple) {
 
 TEST(TestObject, UpCasting) {
 	auto record = seastar::make_shared<int>(0);
-	for (std::size_t i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
 			auto base = cpv::makeObject<Derived>(record).cast<Base>();
@@ -51,7 +51,7 @@ TEST(TestObject, UpCasting) {
 
 TEST(TestObject, DownCasting) {
 	auto record = seastar::make_shared<int>(0);
-	for (std::size_t i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
 			auto base = cpv::makeObject<Derived>(record).cast<Base>();
@@ -71,7 +71,7 @@ TEST(TestObject, InvalidCasting) {
 
 TEST(TestObject, moveAssignment) {
 	auto record = seastar::make_shared<int>(0);
-	for (std::size_t i = 0; i < 3; ++i) {
+	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
 			auto a = cpv::makeObject<Derived>(record);

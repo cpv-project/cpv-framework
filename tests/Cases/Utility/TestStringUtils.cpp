@@ -11,7 +11,7 @@ TEST(TestStringUtils, split) {
 			++countRecord;
 			results.emplace_back(str, startIndex, endIndex - startIndex);
 		});
-	ASSERT_EQ(results.size(), 5);
+	ASSERT_EQ(results.size(), 5U);
 	ASSERT_EQ(results.at(0), "aaa");
 	ASSERT_EQ(results.at(1), "b");
 	ASSERT_EQ(results.at(2), "c");

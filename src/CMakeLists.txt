@@ -22,6 +22,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ../include)
 target_compile_options(${PROJECT_NAME} PRIVATE
 	-Wall -Wextra
 	-Wno-unused-variable -Wno-unused-function)
+target_link_libraries(${PROJECT_NAME} PRIVATE http_parser)
 
 # set compile options dependent on build type
 if (CMAKE_BUILD_TYPE MATCHES Release OR
