@@ -6,7 +6,7 @@
 #include "HttpServerRequestHandler.hpp"
 
 namespace cpv {
-	/** Defines members of HttpServer */
+	/** Members of HttpServer */
 	class HttpServerData;
 	
 	/**
@@ -20,7 +20,8 @@ namespace cpv {
 		 * Rules about handler list:
 		 *	The first handler should be an error handler. (e.g. HttpServerRequestErrorHandler)
 		 *	The last handler should be a 404 handler. (e.g. HttpServerRequest404Handler)
-		 *	The last handler must not access the next handler because it's invalid pointer.
+		 *	The last handler must not call the next handler, there is a real last handler
+		 *		but only returns exception future.
 		 */
 		HttpServer(
 			const HttpServerConfiguration& configuration,
