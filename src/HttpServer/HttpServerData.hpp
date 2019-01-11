@@ -11,8 +11,8 @@ namespace cpv {
 	public:
 		/** Constructor */
 		HttpServerData(
-			const HttpServerConfiguration& configuration,
-			const std::vector<std::unique_ptr<HttpServerRequestHandler>>& handlers);
+			const HttpServerConfiguration& configurationVal,
+			const std::vector<std::unique_ptr<HttpServerRequestHandler>>& handlersVal);
 		
 	public:
 		seastar::lw_shared_ptr<const HttpServerConfiguration> configuration;

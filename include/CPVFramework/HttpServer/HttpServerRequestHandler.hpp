@@ -2,8 +2,8 @@
 #include <vector>
 #include <memory>
 #include <seastar/core/future.hh>
-#include "HttpServerRequest.hpp"
-#include "HttpServerResponse.hpp"
+#include "../Http/HttpRequest.hpp"
+#include "../Http/HttpResponse.hpp"
 
 namespace cpv {
 	/** The iterator type of HttpServerRequestHandler */
@@ -23,8 +23,8 @@ namespace cpv {
 		 *	(*next)->handle(request, response, next + 1);
 		 */
 		virtual seastar::future<> handle(
-			HttpServerRequest& request,
-			HttpServerResponse& response,
+			HttpRequest& request,
+			HttpResponse& response,
 			HttpServerRequestHandlerIterator next) const = 0;
 	};
 }

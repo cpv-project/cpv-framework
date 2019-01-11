@@ -23,6 +23,8 @@ namespace cpv {
 		seastar::lw_shared_ptr<const std::vector<std::unique_ptr<HttpServerRequestHandler>>> handlers;
 		SocketHolder socket_;
 		Http11ServerConnectionState state_;
+		HttpRequest request_;
+		HttpResponse response_;
 	};
 }
 
