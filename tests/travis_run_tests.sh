@@ -17,7 +17,7 @@ Command=$(cat <<"EOF"
   apt-get install -y ca-certificates software-properties-common && \
   add-apt-repository -y ppa:compiv/cpv-project
   apt-get update
-  apt-get install -y seastar libgtest-dev
+  apt-get install -y seastar libgtest-dev libhttp-parser-dev
   cd /project/tests && \
   sh run_tests.sh
 EOF

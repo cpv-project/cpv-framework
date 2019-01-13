@@ -1,4 +1,5 @@
 #include <CPVFramework/Stream/StringOutputStream.hpp>
+#include <CPVFramework/Utility/Macros.hpp>
 
 namespace cpv {
 	/** Write data to stream */
