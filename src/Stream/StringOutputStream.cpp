@@ -2,8 +2,8 @@
 
 namespace cpv {
 	/** Write data to stream */
-	seastar::future<> StringOutputStream::write(char* buf, std::size_t size) {
-		if (str_.get() != nullptr) {
+	seastar::future<> StringOutputStream::write(const char* buf, std::size_t size) {
+		if (CPV_LIKELY(str_.get() != nullptr)) {
 			str_->append(buf, size);
 		}
 		return seastar::make_ready_future<>();

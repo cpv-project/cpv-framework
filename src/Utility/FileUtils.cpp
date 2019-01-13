@@ -2,6 +2,7 @@
 #include <streambuf>
 #include <cstring>
 #include <CPVFramework/Utility/FileUtils.hpp>
+#include <CPVFramework/Utility/Macros.hpp>
 #include <CPVFramework/Exceptions/FileSystemException.hpp>
 
 namespace cpv {
@@ -10,7 +11,7 @@ namespace cpv {
 		std::ifstream file(
 			std::string(filename), // replace to std::filesystem::u8path?
 			std::ios::in | std::ios::binary);
-		if (!file.is_open()) {
+		if (CPV_UNLIKELY(!file.is_open())) {
 			throw FileSystemException(CPV_CODEINFO,
 				"open file", filename, "failed:", std::strerror(errno));
 		} else {
@@ -28,12 +29,12 @@ namespace cpv {
 		std::ofstream file(
 			std::string(filename), // replace to std::filesystem::u8path?
 			std::ios::out | std::ios::binary);
-		if (!file.is_open()) {
+		if (CPV_UNLIKELY(!file.is_open())) {
 			throw FileSystemException(CPV_CODEINFO,
 				"open file", filename, "failed:", std::strerror(errno));
 		} else {
 			file.write(contents.data(), contents.size());
-			if (!file) {
+			if (CPV_UNLIKELY(!file)) {
 				throw FileSystemException(CPV_CODEINFO,
 					"write file", filename, "failed:", std::strerror(errno));
 			}

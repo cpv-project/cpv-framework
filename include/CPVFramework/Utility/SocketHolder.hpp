@@ -2,6 +2,7 @@
 #include <memory>
 #include <seastar/net/api.hh>
 #include "../Exceptions/LogicException.hpp"
+#include "./Macros.hpp"
 
 namespace cpv {
 	/**
@@ -17,7 +18,7 @@ namespace cpv {
 
 		/** Get the socket */
 		seastar::connected_socket& socket() {
-			if (state_ == nullptr) {
+			if (CPV_UNLIKELY(state_ == nullptr)) {
 				throw LogicException(CPV_CODEINFO, "socket is not connected");
 			}
 			return state_->socket;
@@ -25,7 +26,7 @@ namespace cpv {
 
 		/** Get the input stream of the socket */
 		seastar::input_stream<char>& in() {
-			if (state_ == nullptr) {
+			if (CPV_UNLIKELY(state_ == nullptr)) {
 				throw LogicException(CPV_CODEINFO, "socket is not connected");
 			}
 			return state_->in;
@@ -33,7 +34,7 @@ namespace cpv {
 
 		/** Get the output stream of the socket */
 		seastar::output_stream<char>& out() {
-			if (state_ == nullptr) {
+			if (CPV_UNLIKELY(state_ == nullptr)) {
 				throw LogicException(CPV_CODEINFO, "socket is not connected");
 			}
 			return state_->out;
@@ -75,7 +76,7 @@ namespace cpv {
 	private:
 		/** Close this socket */
 		void close() {
-			if (state_ == nullptr) {
+			if (CPV_UNLIKELY(state_ == nullptr)) {
 				return;
 			}
 			seastar::do_with(std::move(state_), [] (auto& state) {

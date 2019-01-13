@@ -22,14 +22,14 @@ namespace cpv {
 			method(),
 			version(),
 			headers(),
-			bodyStream(makeObject<StringInputStream>(std::string()).cast<InputStreamBase>()) { }
+			bodyStream() { }
 		
 		void freeResources() {
 			method = {};
 			url = {};
 			version = {};
 			headers.clear();
-			bodyStream = makeObject<StringInputStream>(std::string()).cast<InputStreamBase>();
+			bodyStream = Object<InputStreamBase>();
 			underlyingBuffers.clear();
 		}
 		

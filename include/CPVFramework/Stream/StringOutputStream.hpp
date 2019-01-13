@@ -7,7 +7,7 @@ namespace cpv {
 	class StringOutputStream : public OutputStreamBase {
 	public:
 		/** Write data to stream, the buffer must live until future resolved */
-		seastar::future<> write(char* buf, std::size_t size) override;
+		seastar::future<> write(const char* buf, std::size_t size) override;
 		
 		/** For Object<> */
 		void freeResources();

@@ -21,6 +21,8 @@ namespace cpv {
 	 * Cast Object<Derived> to Object<Base> is supported (polymorphism is supported).
 	 * Cast Object<Base> to Object<Derived> is also supported (use it carefully).
 	 * Incomplete type is supported (however it require the complete definition on construct).
+	 * Warning: Don't keep other Object<> live after freeResources, it may cause segment fault.
+	 * - For example: A in freeList -> A refs B -> deallocate freeList B -> deallocate freeList A
 	 */
 	template <class T>
 	class Object {
@@ -72,7 +74,8 @@ namespace cpv {
 			std::is_base_of<T, U>::value ||
 			std::is_base_of<U, T>::value, int> = 0>
 		Object<U> cast() && {
-			if (static_cast<U*>(reinterpret_cast<T*>(1)) != reinterpret_cast<U*>(1)) {
+			if (CPV_UNLIKELY(reinterpret_cast<U*>(ptr_) !=
+				static_cast<U*>(reinterpret_cast<T*>(ptr_)))) {
 				// store the original pointer would solve this problem
 				// but that will make Object to be 3 pointer size
 				throw cpv::LogicException(CPV_CODEINFO,

@@ -23,14 +23,14 @@ namespace cpv {
 			statusCode(),
 			statusMessage(),
 			headers(),
-			bodyStream(makeObject<StringOutputStream>(nullptr).cast<OutputStreamBase>()) { }
+			bodyStream() { }
 		
 		void freeResources() {
 			version = {};
 			statusCode = {};
 			statusMessage = {};
 			headers.clear();
-			bodyStream = makeObject<StringOutputStream>(nullptr).cast<OutputStreamBase>();
+			bodyStream = Object<OutputStreamBase>();
 			underlyingBuffers.clear();
 		}
 		

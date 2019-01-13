@@ -48,8 +48,8 @@ namespace cpv {
 		/** Add underlying buffer that owns the storage of string views */
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
-		/** Get response body output stream */
-		Object<OutputStreamBase>& getBodyStream() &;
+		/** Get response body output stream, must check whether is null before access */
+		const Object<OutputStreamBase>& getBodyStream() const&;
 		
 		/** Set response body output stream */
 		void setBodyStream(Object<OutputStreamBase>&& bodyStream);

@@ -53,7 +53,7 @@ namespace cpv {
 	}
 	
 	/** Get response body output stream */
-	Object<OutputStreamBase>& HttpResponse::getBodyStream() & {
+	const Object<OutputStreamBase>& HttpResponse::getBodyStream() const& {
 		return data_->bodyStream;
 	}
 	
