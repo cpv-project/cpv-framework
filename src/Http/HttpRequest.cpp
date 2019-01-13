@@ -1,5 +1,5 @@
 #include <CPVFramework/Http/HttpRequest.hpp>
-#include "HttpRequestData.hpp"
+#include "./HttpRequestData.hpp"
 
 namespace cpv {
 	/** Get the request method */
@@ -53,12 +53,12 @@ namespace cpv {
 	}
 	
 	/** Get request body input stream */
-	Object<InputStream>& HttpRequest::getBodyStream() & {
+	Object<InputStreamBase>& HttpRequest::getBodyStream() & {
 		return data_->bodyStream;
 	}
 	
 	/** Set request body input stream */
-	void HttpRequest::setBodyStream(Object<InputStream>&& bodyStream) {
+	void HttpRequest::setBodyStream(Object<InputStreamBase>&& bodyStream) {
 		data_->bodyStream = std::move(bodyStream);
 	}
 	

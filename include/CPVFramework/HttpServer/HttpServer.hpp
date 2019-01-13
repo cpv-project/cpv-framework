@@ -3,7 +3,7 @@
 #include <vector>
 #include <seastar/core/future.hh>
 #include "./HttpServerConfiguration.hpp"
-#include "./HttpServerRequestHandler.hpp"
+#include "./Handlers/HttpServerRequestHandlerBase.hpp"
 
 namespace cpv {
 	/** Members of HttpServer */
@@ -25,7 +25,7 @@ namespace cpv {
 		 */
 		HttpServer(
 			const HttpServerConfiguration& configuration,
-			const std::vector<std::unique_ptr<HttpServerRequestHandler>>& handlers);
+			const std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>& handlers);
 		
 		/** Start the processing loop */
 		seastar::future<> start();

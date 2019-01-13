@@ -2,15 +2,15 @@
 
 namespace cpv {
 	/** Read data from stream */
-	seastar::future<InputStream::ReadResult> StringInputStream::read(char* buf, std::size_t size) {
+	seastar::future<InputStreamReadResult> StringInputStream::read(char* buf, std::size_t size) {
 		if (position_ >= str_.size()) {
-			return seastar::make_ready_future<InputStream::ReadResult>();
+			return seastar::make_ready_future<InputStreamReadResult>();
 		}
 		std::size_t copy_max = str_.size() - position_;
 		std::size_t copy_n = std::min(copy_max, size);
 		std::memcpy(buf, str_.data() + position_, copy_n);
-		return seastar::make_ready_future<InputStream::ReadResult>(
-			InputStream::ReadResult(copy_n, copy_n == copy_max));
+		return seastar::make_ready_future<InputStreamReadResult>(
+			InputStreamReadResult(copy_n, copy_n == copy_max));
 	}
 	
 	/** For Object<> */

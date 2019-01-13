@@ -15,7 +15,7 @@ namespace cpv {
 		std::string_view statusCode;
 		std::string_view statusMessage;
 		std::unordered_map<std::string_view, std::string_view> headers;
-		Object<OutputStream> bodyStream;
+		Object<OutputStreamBase> bodyStream;
 		
 		HttpResponseData() :
 			underlyingBuffers(),
@@ -23,14 +23,14 @@ namespace cpv {
 			statusCode(),
 			statusMessage(),
 			headers(),
-			bodyStream(makeObject<StringOutputStream>(nullptr).cast<OutputStream>()) { }
+			bodyStream(makeObject<StringOutputStream>(nullptr).cast<OutputStreamBase>()) { }
 		
 		void freeResources() {
 			version = {};
 			statusCode = {};
 			statusMessage = {};
 			headers.clear();
-			bodyStream = makeObject<StringOutputStream>(nullptr).cast<OutputStream>();
+			bodyStream = makeObject<StringOutputStream>(nullptr).cast<OutputStreamBase>();
 			underlyingBuffers.clear();
 		}
 		

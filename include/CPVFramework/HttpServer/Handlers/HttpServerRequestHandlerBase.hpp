@@ -2,20 +2,20 @@
 #include <vector>
 #include <memory>
 #include <seastar/core/future.hh>
-#include "../Http/HttpRequest.hpp"
-#include "../Http/HttpResponse.hpp"
+#include "../../Http/HttpRequest.hpp"
+#include "../../Http/HttpResponse.hpp"
 
 namespace cpv {
 	/** The iterator type of HttpServerRequestHandler */
-	class HttpServerRequestHandler;
+	class HttpServerRequestHandlerBase;
 	using HttpServerRequestHandlerIterator =
-		std::vector<std::unique_ptr<HttpServerRequestHandler>>::const_iterator;
+		std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>::const_iterator;
 	
 	/** The interface of a http server request handler */
-	class HttpServerRequestHandler {
+	class HttpServerRequestHandlerBase {
 	public:
 		/** Virtual destructor */
-		virtual ~HttpServerRequestHandler() = default;
+		virtual ~HttpServerRequestHandlerBase() = default;
 		
 		/**
 		 * Handle a http server request.

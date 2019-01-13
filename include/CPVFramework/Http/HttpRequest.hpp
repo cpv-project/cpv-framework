@@ -2,7 +2,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <seastar/core/temporary_buffer.hh>
-#include "../Stream/InputStream.hpp"
+#include "../Stream/InputStreamBase.hpp"
 #include "../Utility/Object.hpp"
 
 namespace cpv {
@@ -44,10 +44,10 @@ namespace cpv {
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
 		/** Get request body input stream */
-		Object<InputStream>& getBodyStream() &;
+		Object<InputStreamBase>& getBodyStream() &;
 		
 		/** Set request body input stream */
-		void setBodyStream(Object<InputStream>&& bodyStream);
+		void setBodyStream(Object<InputStreamBase>&& bodyStream);
 		
 		/** Constructor */
 		HttpRequest();

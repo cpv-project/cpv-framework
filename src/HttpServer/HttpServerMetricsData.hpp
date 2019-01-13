@@ -18,7 +18,7 @@ namespace cpv {
 		/** The total number of errors while reading from client */
 		std::uint64_t read_errors;
 		/** The total number of errors while writing to client */
-		std::uint64_t respond_errors;
+		std::uint64_t write_errors;
 		
 	private:
 		seastar::metrics::metric_groups groups_;

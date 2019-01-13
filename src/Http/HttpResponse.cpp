@@ -1,5 +1,5 @@
 #include <CPVFramework/Http/HttpResponse.hpp>
-#include "HttpResponseData.hpp"
+#include "./HttpResponseData.hpp"
 
 namespace cpv {
 	/** Get the http version string */
@@ -53,12 +53,12 @@ namespace cpv {
 	}
 	
 	/** Get response body output stream */
-	Object<OutputStream>& HttpResponse::getBodyStream() & {
+	Object<OutputStreamBase>& HttpResponse::getBodyStream() & {
 		return data_->bodyStream;
 	}
 	
 	/** Set response body output stream */
-	void HttpResponse::setBodyStream(Object<OutputStream>&& bodyStream) {
+	void HttpResponse::setBodyStream(Object<OutputStreamBase>&& bodyStream) {
 		data_->bodyStream = std::move(bodyStream);
 	}
 	

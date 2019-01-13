@@ -1,10 +1,10 @@
 #pragma once
 #include <seastar/core/shared_ptr.hh>
-#include "./OutputStream.hpp"
+#include "./OutputStreamBase.hpp"
 
 namespace cpv {
 	/** Output stream that use given string as data destination */
-	class StringOutputStream : public OutputStream {
+	class StringOutputStream : public OutputStreamBase {
 	public:
 		/** Write data to stream, the buffer must live until future resolved */
 		seastar::future<> write(char* buf, std::size_t size) override;

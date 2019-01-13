@@ -1,12 +1,12 @@
 #pragma once
-#include "./InputStream.hpp"
+#include "./InputStreamBase.hpp"
 
 namespace cpv {
 	/** Input stream that use given string as data source */
-	class StringInputStream : public InputStream {
+	class StringInputStream : public InputStreamBase {
 	public:
 		/** Read data from stream, the buffer must live until future resolved */
-		seastar::future<ReadResult> read(char* buf, std::size_t size) override;
+		seastar::future<InputStreamReadResult> read(char* buf, std::size_t size) override;
 		
 		/** For Object<> */
 		void freeResources();
