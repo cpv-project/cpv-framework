@@ -9,6 +9,7 @@ namespace cpv {
 		std::size_t copy_max = str_.size() - position_;
 		std::size_t copy_n = std::min(copy_max, size);
 		std::memcpy(buf, str_.data() + position_, copy_n);
+		position_ += copy_n;
 		return seastar::make_ready_future<InputStreamReadResult>(
 			InputStreamReadResult(copy_n, copy_n == copy_max));
 	}
