@@ -20,7 +20,7 @@ namespace cpv {
 			throw FormatException(CPV_CODEINFO, "invalid listen ip address:", address);
 		}
 		if (CPV_UNLIKELY(inetAddress.in_family() != seastar::net::inet_address::family::INET)) {
-			// seastar's socket_address only support ipv4 now so throw a exception for ipv6
+			// seastar's socket_address only support ipv4 now so throw an exception for ipv6
 			throw NotImplementedException(CPV_CODEINFO, "ipv6 address isn't supported yet");
 		}
 		char* endptr = nullptr;
