@@ -3,7 +3,7 @@
 
 namespace cpv {
 	/**
-	 * The feature has not yet implemented
+	 * Error means feature has not yet implemented.
 	 * Example: throw NotImplementedException(CPV_CODEINFO, "some error");
 	 */
 	class NotImplementedException : public Exception {

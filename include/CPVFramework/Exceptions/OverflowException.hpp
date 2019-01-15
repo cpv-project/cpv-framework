@@ -3,7 +3,7 @@
 
 namespace cpv {
 	/**
-	 * Error for arithmetic overflow or underflow
+	 * Arithmetic overflow or underflow exception.
 	 * Example: throw OverflowException(CPV_CODEINFO, "some error");
 	 */
 	class OverflowException : public Exception {

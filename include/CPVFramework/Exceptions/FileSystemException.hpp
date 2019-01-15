@@ -3,7 +3,7 @@
 
 namespace cpv {
 	/**
-	 * File system related exception like open file error
+	 * File system related exception like open file error.
 	 * Example: throw FileSystemException(CPV_CODEINFO, "some error");
 	 */
 	class FileSystemException : public Exception {
