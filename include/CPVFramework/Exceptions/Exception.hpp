@@ -13,7 +13,11 @@ namespace cpv {
 		/** Constructor */
 		template <class... Args>
 		Exception(CodeInfo&& codeInfo, Args&&... args) :
-			runtime_error(joinString(" ", std::move(codeInfo).str(), std::forward<Args>(args)...)) { }
+			Exception(std::move(codeInfo).str(), joinString(" ", std::forward<Args>(args)...)) { }
+		
+	protected:
+		/** Constructor */
+		Exception(std::string&& codeInfoStr, std::string&& message);
 	};
 }
 
