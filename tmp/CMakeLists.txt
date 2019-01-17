@@ -1,10 +1,10 @@
 cmake_minimum_required (VERSION 3.8)
-project (CQLDriverTmp)
+project (CPVFrameworkTmp)
 
 include(FindPkgConfig)
 
 # add subdirectory
-add_subdirectory(../src CQLDriver)
+add_subdirectory(../src CPVFramework)
 
 # add target and source files
 FILE(GLOB_RECURSE Files ./*.cpp)
@@ -33,11 +33,11 @@ if (CMAKE_BUILD_TYPE MATCHES Release OR
 	target_compile_options(${PROJECT_NAME} PRIVATE
 		${SEASTAR_CFLAGS})
 	target_link_libraries(${PROJECT_NAME} PRIVATE
-		${SEASTAR_LDFLAGS} CQLDriver)
+		${SEASTAR_LDFLAGS} CPVFramework)
 elseif (CMAKE_BUILD_TYPE MATCHES Debug)
 	target_compile_options(${PROJECT_NAME} PRIVATE
 		${SEASTAR_DEBUG_CFLAGS})
 	target_link_libraries(${PROJECT_NAME} PRIVATE
-		asan ubsan ${SEASTAR_DEBUG_LDFLAGS} CQLDriver)
+		asan ubsan ${SEASTAR_DEBUG_LDFLAGS} CPVFramework)
 endif()
 

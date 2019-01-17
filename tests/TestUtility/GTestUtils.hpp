@@ -15,12 +15,19 @@
 		catch (const exception& ex) { \
 			std::string message(ex.what()); \
 			if (message.find(contains) == std::string::npos) { \
-				FAIL() << "exception message didn't contains excepted words: " << message; \
+				FAIL() << "exception message didn't contains expected  words: " << message; \
 			} \
 			break; \
 		} \
 		catch (...) { throw; } \
 		FAIL() << "No exception throws"; \
+	} while (0)
+
+#define ASSERT_CONTAINS(str, pattern) \
+	do { \
+		if ((str).find(pattern) == std::string::npos) { \
+			FAIL() << "string didn't contains expected words: " << str; \
+		} \
 	} while (0)
 
 #define ASSERT_THROWS(exception, expression) ASSERT_THROWS_CONTAINS(exception, expression, "")
