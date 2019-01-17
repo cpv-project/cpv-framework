@@ -8,7 +8,6 @@
 set -e
 
 # get absolute paths
-TESTS_DIR=$(realpath .)
 PROJECT_DIR=$(realpath ../)
 
 # start test container

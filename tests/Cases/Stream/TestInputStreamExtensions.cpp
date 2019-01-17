@@ -9,8 +9,8 @@ TEST_FUTURE(TestInputStreamExtensions, readAll) {
 		cpv::StringInputStream(),
 		std::string(),
 		[] (auto& stream, auto& source) {
-		for (std::size_t i; i < 9000; ++i) {
-			source.append(static_cast<char>(i), 1);
+		for (std::size_t i = 0; i < 9000; ++i) {
+			source.append(1, static_cast<char>(i));
 		}
 		stream.reset(std::string(source));
 		return cpv::extensions::readAll(stream).then([&source] (auto&& str) {

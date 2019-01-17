@@ -8,7 +8,7 @@ namespace cpv {
 	seastar::future<> HttpServerRequest500Handler::handle(
 		HttpRequest& request,
 		HttpResponse& response,
-		HttpServerRequestHandlerIterator next) const {
+		const HttpServerRequestHandlerIterator& next) const {
 		return (*next)->handle(request, response, next + 1)
 			.handle_exception([&response, this] (std::exception_ptr ex) {
 			// generate a time uuid as error id

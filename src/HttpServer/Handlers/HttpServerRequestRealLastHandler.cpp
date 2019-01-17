@@ -6,7 +6,7 @@ namespace cpv {
 	seastar::future<> HttpServerRequestRealLastHandler::handle(
 		cpv::HttpRequest&,
 		cpv::HttpResponse&,
-		cpv::HttpServerRequestHandlerIterator) const {
+		const cpv::HttpServerRequestHandlerIterator&) const {
 		return seastar::make_exception_future<>(LogicException(CPV_CODEINFO,
 			"The last handler in handler list should not invoke next handler"));
 	}

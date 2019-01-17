@@ -11,7 +11,7 @@ namespace {
 		seastar::future<> handle(
 			cpv::HttpRequest&,
 			cpv::HttpResponse&,
-			cpv::HttpServerRequestHandlerIterator) const override {
+			const cpv::HttpServerRequestHandlerIterator&) const override {
 			return seastar::make_exception_future<>(cpv::FormatException(
 				CPV_CODEINFO, "test exception"));
 		}

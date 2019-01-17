@@ -14,10 +14,10 @@ namespace cpv {
 		seastar::future<> handle(
 			HttpRequest& request,
 			HttpResponse& response,
-			HttpServerRequestHandlerIterator next) const override;
+			const HttpServerRequestHandlerIterator& next) const override;
 		
 		/** Constructor */
-		HttpServerRequest500Handler(const seastar::shared_ptr<cpv::Logger> logger);
+		explicit HttpServerRequest500Handler(const seastar::shared_ptr<cpv::Logger> logger);
 		
 	private:
 		seastar::shared_ptr<cpv::Logger> logger_;

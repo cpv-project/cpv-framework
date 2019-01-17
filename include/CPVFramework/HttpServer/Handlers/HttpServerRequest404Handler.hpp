@@ -9,7 +9,7 @@ namespace cpv {
 		seastar::future<> handle(
 			HttpRequest&,
 			HttpResponse& response,
-			HttpServerRequestHandlerIterator) const override;
+			const HttpServerRequestHandlerIterator&) const override;
 	};
 }
 

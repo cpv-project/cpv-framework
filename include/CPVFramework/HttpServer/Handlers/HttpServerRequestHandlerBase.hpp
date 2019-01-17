@@ -25,7 +25,7 @@ namespace cpv {
 		virtual seastar::future<> handle(
 			HttpRequest& request,
 			HttpResponse& response,
-			HttpServerRequestHandlerIterator next) const = 0;
+			const HttpServerRequestHandlerIterator& next) const = 0;
 	};
 }
 
