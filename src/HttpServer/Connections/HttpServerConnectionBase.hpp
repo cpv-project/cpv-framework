@@ -7,8 +7,8 @@ namespace cpv {
 		/** Virtual destructor */
 		virtual ~HttpServerConnectionBase() = default;
 		
-		/** Close this connection */
-		virtual seastar::future<> close() = 0;
+		/** Stop the connection immediately */
+		virtual seastar::future<> stop() = 0;
 	};
 }
 

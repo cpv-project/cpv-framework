@@ -3,22 +3,14 @@
 namespace cpv {
 	/** Constructor */
 	HttpServerData::HttpServerData(
-		const HttpServerConfiguration& configurationVal,
-		const std::vector<seastar::shared_ptr<HttpServerRequestHandlerBase>>& handlersVal) :
-		configuration(seastar::make_lw_shared<HttpServerConfiguration>(configurationVal)),
-		handlers(),
-		connections(seastar::make_lw_shared<
-			std::unordered_set<seastar::shared_ptr<HttpServerConnectionBase>>>()),
-		metricsData(),
+		const HttpServerConfiguration& configuration,
+		const seastar::shared_ptr<Logger>& logger,
+		std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers) :
+		connectionsWrapper(seastar::make_lw_shared<HttpServerConnectionsWrapper>()),
+		sharedData(seastar::make_lw_shared<HttpServerSharedData>(
+			configuration, logger, std::move(handlers), connectionsWrapper->weak_from_this())),
 		listeners(),
 		listenerStoppedFutures(),
-		stopping(false),
-		stoppedPromise(),
-		stoppedFuture(stoppedPromise.get_future()) {
-		// TODO: add internal real last handler
-		auto handlersCopy = handlersVal;
-		handlers = seastar::make_lw_shared<
-			std::vector<seastar::shared_ptr<HttpServerRequestHandlerBase>>>(handlersCopy);
-	}
+		stopping(false) { }
 }
 

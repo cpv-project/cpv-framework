@@ -1,33 +1,29 @@
 #pragma once
-#include <unordered_set>
+#include <utility>
 #include <seastar/core/shared_future.hh>
 #include <seastar/net/api.hh>
-#include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
-#include <CPVFramework/HttpServer/Handlers/HttpServerRequestHandlerBase.hpp>
-#include "./Connections/HttpServerConnectionBase.hpp"
-#include "./HttpServerMetricsData.hpp"
+#include "./HttpServerSharedData.hpp"
 
 namespace cpv {
+	/** Declare types */
+	class HttpServerConnectionBase;
+	
 	/** Members of HttpServer */
 	class HttpServerData {
 	public:
 		/** Constructor */
 		HttpServerData(
-			const HttpServerConfiguration& configurationVal,
-			const std::vector<seastar::shared_ptr<HttpServerRequestHandlerBase>>& handlersVal);
+			const HttpServerConfiguration& configuration,
+			const seastar::shared_ptr<Logger>& logger,
+			std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers);
 		
 	public:
-		seastar::lw_shared_ptr<const HttpServerConfiguration> configuration;
-		seastar::lw_shared_ptr<const std::vector<
-			seastar::shared_ptr<HttpServerRequestHandlerBase>>> handlers;
-		seastar::lw_shared_ptr<std::unordered_set<
-			seastar::shared_ptr<HttpServerConnectionBase>>> connections;
-		HttpServerMetricsData metricsData;
-		std::vector<seastar::server_socket> listeners;
+		seastar::lw_shared_ptr<HttpServerConnectionsWrapper> connectionsWrapper;
+		seastar::lw_shared_ptr<HttpServerSharedData> sharedData;
+		std::vector<seastar::lw_shared_ptr<
+			std::pair<seastar::server_socket, seastar::socket_address>>> listeners;
 		std::vector<seastar::future<>> listenerStoppedFutures;
 		bool stopping;
-		seastar::promise<> stoppedPromise;
-		seastar::shared_future<> stoppedFuture;
 	};
 }
 

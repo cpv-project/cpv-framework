@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <seastar/core/future.hh>
+#include "../Logging/Logger.hpp"
 #include "./HttpServerConfiguration.hpp"
 #include "./Handlers/HttpServerRequestHandlerBase.hpp"
 
@@ -15,23 +16,24 @@ namespace cpv {
 	 */
 	class HttpServer {
 	public:
+		/** Start accept http connections */
+		seastar::future<> start();
+		
+		/** Stop accept http connection and close all exists connections  */
+		seastar::future<> stop();
+		
 		/**
 		 * Constructor.
 		 * Rules about handler list:
-		 *	The first handler should be an error handler. (e.g. HttpServerRequestErrorHandler)
+		 *	The first handler should be a 500 handler. (e.g. HttpServerRequest500Handler)
 		 *	The last handler should be a 404 handler. (e.g. HttpServerRequest404Handler)
 		 *	The last handler must not call the next handler, there is a real last handler
 		 *		but only returns exception future.
 		 */
 		HttpServer(
 			const HttpServerConfiguration& configuration,
-			const std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>& handlers);
-		
-		/** Start the processing loop */
-		seastar::future<> start();
-		
-		/** Make a started http server quit it's loop */
-		seastar::future<> stop();
+			const seastar::shared_ptr<Logger>& logger,
+			std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers);
 		
 	private:
 		std::unique_ptr<HttpServerData> data_;
