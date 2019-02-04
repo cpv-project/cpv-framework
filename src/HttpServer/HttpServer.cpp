@@ -14,6 +14,8 @@ namespace cpv {
 			return seastar::make_exception_future(LogicException(
 				CPV_CODEINFO, "can't start http server while stopping"));
 		}
+		data_->sharedData->logger->log(LogLevel::Info,
+			"starting http server on core", seastar::engine().cpu_id());
 		// cleanup (if last time this function interrupt by exception)
 		for (auto& listener : data_->listeners) {
 			listener->first.abort_accept();
@@ -52,11 +54,15 @@ namespace cpv {
 					"stop listen http connections from:", listener->second, "because", ex);
 			}));
 		}
+		data_->sharedData->logger->log(LogLevel::Info,
+			"http server started on core", seastar::engine().cpu_id());
 		return seastar::make_ready_future<>();
 	}
 	
 	/** Stop accept http connection and close all exists connections  */
 	seastar::future<> HttpServer::stop() {
+		data_->sharedData->logger->log(LogLevel::Info,
+			"stopping http server on core", seastar::engine().cpu_id());
 		// abort all listeners
 		for (const auto& listener : data_->listeners) {
 			listener->first.abort_accept();
@@ -68,17 +74,18 @@ namespace cpv {
 			data_->listeners.clear();
 			data_->listenerStoppedFutures.clear();
 			// close all connections
-			auto futures = std::make_unique<std::vector<seastar::future<>>>();
+			auto futures = std::vector<seastar::future<>>();
 			auto connectionsCopy = data_->connectionsWrapper->value;
 			for (const auto& connection : connectionsCopy) {
 				// connections may remove themself from collection while iterating
 				// so iterate a copied collection
-				futures->emplace_back(connection->stop());
+				futures.emplace_back(connection->stop());
 			}
-			return seastar::when_all(futures->begin(), futures->end())
-				.then([this, futures=std::move(futures)] (auto&&) {
+			return seastar::when_all(futures.begin(), futures.end()).then([this] (auto&&) {
 				// clean all connections
 				data_->connectionsWrapper->value.clear();
+				data_->sharedData->logger->log(LogLevel::Info,
+					"http server stopped on core", seastar::engine().cpu_id());
 			});
 		});
 	}
@@ -89,6 +96,11 @@ namespace cpv {
 		const seastar::shared_ptr<Logger>& logger,
 		std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers) :
 		data_(std::make_unique<HttpServerData>(configuration, logger, std::move(handlers))) { }
+	
+	/** Move constructor (for incomplete member type) */
+	HttpServer::HttpServer(HttpServer&&) = default;
+	
+	/** Destructor (for incomplete type HttpServerData) */
+	HttpServer::~HttpServer() = default;
 }
-
 

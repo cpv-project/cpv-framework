@@ -35,6 +35,12 @@ namespace cpv {
 			const seastar::shared_ptr<Logger>& logger,
 			std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers);
 		
+		/** Move constructor (for incomplete member type) */
+		HttpServer(HttpServer&&);
+		
+		/** Destructor (for incomplete member type) */
+		~HttpServer();
+		
 	private:
 		std::unique_ptr<HttpServerData> data_;
 	};
