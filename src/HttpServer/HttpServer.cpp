@@ -10,7 +10,7 @@ namespace cpv {
 	/** Start accept http connections */
 	seastar::future<> HttpServer::start() {
 		// check state
-		if (data_->stopping) {
+		if (CPV_UNLIKELY(data_->stopping)) {
 			return seastar::make_exception_future(LogicException(
 				CPV_CODEINFO, "can't start http server while stopping"));
 		}
@@ -41,17 +41,18 @@ namespace cpv {
 				return listener->first.accept().then(
 					[connectionsWrapper, sharedData]
 					(seastar::connected_socket fd, seastar::socket_address addr) {
-					sharedData->logger->log(LogLevel::Info,
-						"accepted http connection from:", addr);
 					// currently only support http 1.0/1.1
 					auto connection = seastar::make_shared<Http11ServerConnection>(
-						sharedData, std::move(fd));
+						sharedData, std::move(fd), std::move(addr));
 					connection->start();
 					connectionsWrapper->value.emplace(std::move(connection));
+					sharedData->logger->log(LogLevel::Info,
+						"accepted http connection from:", addr,
+						"(count:", connectionsWrapper->value.size(), ")");
 				});
 			}).handle_exception([listener, sharedData=data_->sharedData] (std::exception_ptr ex) {
 				sharedData->logger->log(LogLevel::Info,
-					"stop listen http connections from:", listener->second, "because", ex);
+					"stop listen http connections from:", listener->second, "because of", ex);
 			}));
 		}
 		data_->sharedData->logger->log(LogLevel::Info,

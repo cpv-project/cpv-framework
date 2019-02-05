@@ -13,6 +13,7 @@ namespace {
 	
 	seastar::future<> service_loop() {
 		cpv::HttpServerConfiguration configuration;
+		configuration.setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
 		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Debug);
 		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>> handlers;
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
@@ -40,6 +41,9 @@ int main(int argc, char** argv) {
 		return seastar::parallel_for_each(boost::irange<unsigned>(0, seastar::smp::count),
 			[] (unsigned c) {
 				return seastar::smp::submit_to(c, service_loop);
+		}).then([] {
+			// wait for internal cleanup to make leak sanitizer happy
+			return seastar::sleep(std::chrono::seconds(1));
 		});
 	});
 	return 0;
