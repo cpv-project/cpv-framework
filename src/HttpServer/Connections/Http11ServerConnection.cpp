@@ -1,10 +1,15 @@
 #include <seastar/core/sleep.hh>
 #include <CPVFramework/Exceptions/FormatException.hpp>
+#include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
 #include "Http11ServerConnection.hpp"
 
 namespace cpv {
+	namespace {
+		
+	}
+	
 	/** Start receive requests and send responses */
 	void Http11ServerConnection::start() {
 		// check state
@@ -17,12 +22,39 @@ namespace cpv {
 		seastar::do_until(
 			[self] { return self->state_ == Http11ServerConnectionState::Closing; },
 			[self] {
-			// TODO
+			// TODO: check state
 			return self->socket_.in().read().then(
 				[self] (seastar::temporary_buffer<char> buf) {
-				std::size_t parsed = ::http_parser_execute(
-					&self->parser_, &self->parserSettings_, buf.get(), buf.size());
-				if (parsed != buf.size()) {
+				// check bytes limitation of initial request data
+				// no overflow check of receivedBytes because the buffer size should be small
+				// if receivedBytes + buffer size cause overflow that mean the limitation is too large
+				self->parserTemporaryData_.receivedBytes += buf.size();
+				if (CPV_UNLIKELY(self->parserTemporaryData_.receivedBytes >
+					self->sharedData_->configuration.getMaxInitialRequestBytes())) {
+					// TODO: reply error response
+					return seastar::make_exception_future<>(LengthException(
+						CPV_CODEINFO, "http request length error:",
+						"reached bytes limitation of initial request data"));
+				}
+				// check limitation of received packets, to avoid small packet attack
+				self->parserTemporaryData_.receivedPackets += 1;
+				if (CPV_UNLIKELY(self->parserTemporaryData_.receivedPackets >
+					self->sharedData_->configuration.getMaxInitialRequestPackets())) {
+					// TODO: reply error response
+					return seastar::make_exception_future<>(LengthException(
+						CPV_CODEINFO, "http request length error:",
+						"reached packets limitation of initial request data"));
+				}
+				// hold buffer in request, so callbacks can make string views based on argument
+				std::string_view bufView = self->request_.addUnderlyingBuffer(std::move(buf));
+				// execute http parser
+				std::size_t parsedSize = ::http_parser_execute(
+					&self->parser_,
+					&self->parserSettings_,
+					bufView.data(),
+					bufView.size());
+				if (parsedSize != bufView.size()) {
+					// TODO: reply error response
 					return seastar::make_exception_future<>(FormatException(
 						CPV_CODEINFO, "http request format error:",
 						::http_errno_description(HTTP_PARSER_ERRNO(&self->parser_))));
@@ -74,11 +106,12 @@ namespace cpv {
 		sharedData_(sharedData),
 		socket_(std::move(fd)),
 		clientAddress_(std::move(addr)),
-		parserSettings_(),
-		parser_(),
 		state_(Http11ServerConnectionState::Initial),
 		request_(),
-		response_() {
+		response_(),
+		parserSettings_(),
+		parser_(),
+		parserTemporaryData_() {
 		// setup http parser
 		::http_parser_settings_init(&parserSettings_);
 		::http_parser_init(&parser_, HTTP_REQUEST);
@@ -89,67 +122,63 @@ namespace cpv {
 		parserSettings_.on_headers_complete = onHeadersComplete;
 		parserSettings_.on_body = onBody;
 		parserSettings_.on_message_complete = onMessageComplete;
-		parserSettings_.on_chunk_header = onChunkHeader;
-		parserSettings_.on_chunk_complete = onChunkComplete;
 		parser_.data = this;
 	}
 	
 	int Http11ServerConnection::onMessageBegin(::http_parser* parser) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
-		std::cout << "message begin" << std::endl;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
 		return 0;
 	}
 	
 	int Http11ServerConnection::onUrl(::http_parser* parser, const char* data, std::size_t size) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-		std::cout << "url: " << std::string(data, size) << std::endl;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		if (self->state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
+			// first time received url
+			self->state_ = Http11ServerConnectionState::ReceiveRequestUrl;
+			self->parserTemporaryData_.urlView = std::string_view(data, size);
+		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
+			// not first time received url, merge into a new buffer
+			// TODO
+		} else {
+			// state error
+			return -1;
+		}
 		return 0;
 	}
 	
 	int Http11ServerConnection::onHeaderField(::http_parser* parser, const char* data, std::size_t size) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
 		std::cout << "header field: " << std::string(data, size) << std::endl;
 		return 0;
 	}
 	
 	int Http11ServerConnection::onHeaderValue(::http_parser* parser, const char* data, std::size_t size) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
 		std::cout << "header value: " << std::string(data, size) << std::endl;
 		return 0;
 	}
 	
 	int Http11ServerConnection::onHeadersComplete(::http_parser* parser) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
 		std::cout << "headers complete" << std::endl;
 		return 0;
 	}
 	
 	int Http11ServerConnection::onBody(::http_parser* parser, const char* data, std::size_t size) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestBody;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
 		std::cout << "body: " << std::string(data, size) << std::endl;
 		return 0;
 	}
 	
 	int Http11ServerConnection::onMessageComplete(::http_parser* parser) {
-		auto* connection = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		connection->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
+		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
+		self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
 		std::cout << "message complete" << std::endl;
-		return 0;
-	}
-	
-	int Http11ServerConnection::onChunkHeader(::http_parser* parser) {
-		std::cout << "chunk header" << std::endl;
-		return 0;
-	}
-	
-	int Http11ServerConnection::onChunkComplete(::http_parser* parser) {
-		std::cout << "chunk complete" << std::endl;
 		return 0;
 	}
 }

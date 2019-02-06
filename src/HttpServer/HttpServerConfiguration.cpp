@@ -12,6 +12,26 @@ namespace cpv {
 		data_->listenAddresses = listenAddresses;
 	}
 	
+	/** Get bytes limitation of initial request data */
+	std::size_t HttpServerConfiguration::getMaxInitialRequestBytes() const {
+		return data_->maxInitialRequestBytes;
+	}
+	
+	/** Set bytes limitation of initial request data */
+	void HttpServerConfiguration::setMaxInitialRequestBytes(std::size_t maxInitialRequestBytes) {
+		data_->maxInitialRequestBytes = maxInitialRequestBytes;
+	}
+	
+	/** Get packets limitation of initial request data */
+	std::size_t HttpServerConfiguration::getMaxInitialRequestPackets() const {
+		return data_->maxInitialRequestPackets;
+	}
+	
+	/** Set packets limitation of initial request data */
+	void HttpServerConfiguration::setMaxInitialRequestPackets(std::size_t maxInitialRequestPackets) {
+		data_->maxInitialRequestPackets = maxInitialRequestPackets;
+	}
+	
 	/** Constructor */
 	HttpServerConfiguration::HttpServerConfiguration() :
 		data_(std::make_unique<HttpServerConfigurationData>()) { }

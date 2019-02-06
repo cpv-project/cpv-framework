@@ -10,9 +10,9 @@ TEST_FUTURE(TestHttpResponse, all) {
 	response.setStatusCode("404");
 	response.setStatusMessage("Not Found");
 	seastar::temporary_buffer buf("abc asd", 7);
-	std::string_view key(buf.get(), 3);
-	std::string_view value(buf.get() + 4, 3);
-	response.addUnderlyingBuffer(std::move(buf));
+	std::string_view bufView = response.addUnderlyingBuffer(std::move(buf));
+	std::string_view key = bufView.substr(0, 3);
+	std::string_view value = bufView.substr(4, 3);
 	response.setHeader(key, value);
 	auto str = seastar::make_lw_shared<std::string>();
 	response.setBodyStream(cpv::makeObject<cpv::StringOutputStream>(str).cast<cpv::OutputStreamBase>());

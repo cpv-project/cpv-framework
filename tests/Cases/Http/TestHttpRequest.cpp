@@ -10,9 +10,9 @@ TEST_FUTURE(TestHttpRequest, all) {
 	request.setUrl("/test");
 	request.setVersion("HTTP/1.1");
 	seastar::temporary_buffer buf("abc asd", 7);
-	std::string_view key(buf.get(), 3);
-	std::string_view value(buf.get() + 4, 3);
-	request.addUnderlyingBuffer(std::move(buf));
+	std::string_view bufView = request.addUnderlyingBuffer(std::move(buf));
+	std::string_view key = bufView.substr(0, 3);
+	std::string_view value = bufView.substr(4, 3);
 	request.setHeader(key, value);
 	request.setBodyStream(
 		cpv::makeObject<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>());

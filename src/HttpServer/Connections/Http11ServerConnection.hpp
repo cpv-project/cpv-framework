@@ -55,11 +55,22 @@ namespace cpv {
 		seastar::lw_shared_ptr<HttpServerSharedData> sharedData_;
 		SocketHolder socket_;
 		seastar::socket_address clientAddress_;
-		::http_parser_settings parserSettings_;
-		::http_parser parser_;
 		Http11ServerConnectionState state_;
 		HttpRequest request_;
 		HttpResponse response_;
+		::http_parser_settings parserSettings_;
+		::http_parser parser_;
+		struct {
+			std::size_t receivedBytes = 0;
+			std::size_t receivedPackets = 0;
+			seastar::temporary_buffer<char> urlMerged;
+			std::string_view urlView;
+			seastar::temporary_buffer<char> headerFieldMerged;
+			std::string_view headerFieldView;
+			seastar::temporary_buffer<char> headerValueMerged;
+			std::string_view headerValueView;
+			std::string_view initialBodyView;
+		} parserTemporaryData_;
 	};
 }
 

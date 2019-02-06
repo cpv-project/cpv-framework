@@ -40,8 +40,11 @@ namespace cpv {
 		/** Set request header, must add underlying buffer first unless it's static string */
 		void setHeader(std::string_view key, std::string_view value);
 		
-		/** Add underlying buffer that owns the storage of string views */
-		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
+		/**
+		 * Add underlying buffer that owns the storage of string views,
+		 *	return a string view of the buffer.
+		 */
+		std::string_view addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
 		/** Get request body input stream, must check whether is null before access */
 		const Object<InputStreamBase>& getBodyStream() const&;

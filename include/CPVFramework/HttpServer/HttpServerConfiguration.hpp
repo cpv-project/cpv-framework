@@ -16,6 +16,25 @@ namespace cpv {
 		/** Set listen address */
 		void setListenAddresses(std::vector<std::string>&& listenAddresses);
 		
+		/** Get bytes limitation of initial request data, the default value is 524288 (512KB). */
+		std::size_t getMaxInitialRequestBytes() const;
+		
+		/**
+		 * Set bytes limitation of initial request data, including headers and initial body.
+		 * This is a security setting for protection of out of memory attack.
+		 */
+		void setMaxInitialRequestBytes(std::size_t maxInitialRequestBytes);
+		
+		/** Get packets limitation of initial request data, the default value is 512 */
+		std::size_t getMaxInitialRequestPackets() const;
+		
+		/**
+		 * Set packets limitation of initial request data,
+		 * should be maxInitialRequestBytes / MTU + someSmallConstant.
+		 * This is a security setting for protection of out of memory attack.
+		 */
+		void setMaxInitialRequestPackets(std::size_t maxRequestPackets);
+		
 		/** Constructor */
 		HttpServerConfiguration();
 		
