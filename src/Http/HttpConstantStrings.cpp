@@ -4,6 +4,7 @@ namespace cpv::constants {
 	// protocols
 	const std::string Http10("HTTP/1.0");
 	const std::string Http11("HTTP/1.1");
+	const std::string Http12("HTTP/1.2");
 	
 	// status codes
 	const std::string _100("100");

@@ -5,6 +5,7 @@ namespace cpv::constants {
 	// protocols
 	extern const std::string Http10;
 	extern const std::string Http11;
+	extern const std::string Http12;
 	
 	// status codes
 	extern const std::string _100;
