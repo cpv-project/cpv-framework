@@ -1,3 +1,4 @@
+#include <seastar/core/reactor.hh>
 #include <CPVFramework/Logging/Logger.hpp>
 #include "./ConsoleLogger.hpp"
 #include "./NoopLogger.hpp"
@@ -30,6 +31,11 @@ namespace cpv {
 	/** Create a noop logger */
 	seastar::shared_ptr<Logger> Logger::createNoop() {
 		return seastar::make_shared<NoopLogger>();
+	}
+	
+	/** Get thread id for logging */
+	std::size_t Logger::getThreadId() {
+		return seastar::engine().cpu_id();
 	}
 }
 

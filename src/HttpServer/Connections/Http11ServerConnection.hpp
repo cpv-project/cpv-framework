@@ -11,6 +11,7 @@ namespace cpv {
 	enum class Http11ServerConnectionState {
 		Initial,
 		Started,
+		ReceiveRequestInitial,
 		ReceiveRequestMessageBegin,
 		ReceiveRequestUrl,
 		ReceiveRequestHeaderField,
@@ -38,6 +39,13 @@ namespace cpv {
 			const seastar::lw_shared_ptr<HttpServerSharedData>& sharedData,
 			seastar::connected_socket&& fd,
 			seastar::socket_address&& addr);
+	
+	private:
+		/** Receive headers from single request, the body may not completely received */
+		seastar::future<> receiveSingleRequest();
+		
+		/** Reply single response and ensure the request body is completely received */
+		seastar::future<> replySingleResponse();
 	
 	private:
 		/** Parser callbacks */

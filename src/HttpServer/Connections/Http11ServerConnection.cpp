@@ -1,14 +1,61 @@
 #include <seastar/core/sleep.hh>
+#include <seastar/core/scattered_message.hh>
+#include <seastar/net/packet.hh>
 #include <CPVFramework/Exceptions/FormatException.hpp>
 #include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
+#include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
 #include "Http11ServerConnection.hpp"
 
 namespace cpv {
 	namespace {
+		/** Static response strings */
+		namespace {
+			static const std::string ReachedBytesLimitationOfInitialRequestData(
+				"HTTP/1.0 400 Bad Request\r\n"
+				"Content-Type: text/plain;charset=utf-8\r\n"
+				"Content-Length: 58\r\n"
+				"Connection: close\r\n\r\n"
+				"Error: reached bytes limitation of initial request data.\r\n");
+			
+			static const std::string ReachedPacketsLimitationOfInitialRequestData(
+				"HTTP/1.0 400 Bad Request\r\n"
+				"Content-Type: text/plain;charset=utf-8\r\n"
+				"Content-Length: 60\r\n"
+				"Connection: close\r\n\r\n"
+				"Error: reached packets limitation of initial request data.\r\n");
+			
+			static const std::string InvalidHttpRequestFormat(
+				"HTTP/1.0 400 Bad Request\r\n"
+				"Content-Type: text/plain;charset=utf-8\r\n"
+				"Content-Length: 37\r\n"
+				"Connection: close\r\n\r\n"
+				"Error: invalid http request format.\r\n");
+			
+			static const std::string InvalidStateAfterReceivedSingleRequest(
+				"HTTP/1.0 500 Internal Server Error\r\n"
+				"Content-Type: text/plain;charset=utf-8\r\n"
+				"Content-Length: 53\r\n"
+				"Connection: close\r\n\r\n"
+				"Error: invalid state after received single request.\r\n");
+			
+			static const std::string TestResponse(
+				"HTTP/1.1 200 OK\r\n"
+				"Content-Type: text/plain;charset=utf-8\r\n"
+				"Content-Length: 14\r\n\r\n"
+				"Hello World!\r\n");
+		}
+		
+		/** Reply static response string and flush the output stream */
+		static seastar::future<> replyStaticResponse(SocketHolder& s, const std::string_view& str) {
+			return s.out().write(seastar::net::packet::from_static_data(str.data(), str.size()))
+				.then([&s] { s.out().flush(); });
+		}
+		
+		/** Move temporary buffer to request and update string view if necessary */
 		static inline void flushMergedTemporaryBuffer(
 			HttpRequest& request,
 			seastar::temporary_buffer<char>& buffer,
@@ -19,6 +66,7 @@ namespace cpv {
 			}
 		}
 		
+		/** Get http version string from parser, return empty for version not supported */
 		static inline std::string_view getHttpVersionString(const ::http_parser& parser) {
 			if (CPV_LIKELY(parser.http_major == 1)) {
 				if (CPV_LIKELY(parser.http_minor == 1)) {
@@ -40,50 +88,16 @@ namespace cpv {
 			throw LogicException(
 				CPV_CODEINFO, "can't start http connection not at initial state");
 		}
-		// start receive requests
+		state_ = Http11ServerConnectionState::Started;
+		// handle requests
 		auto self = shared_from_this();
 		seastar::do_until(
 			[self] { return self->state_ == Http11ServerConnectionState::Closing; },
 			[self] {
-			// TODO: check state
-			return self->socket_.in().read().then(
-				[self] (seastar::temporary_buffer<char> buf) {
-				// check bytes limitation of initial request data
-				// no overflow check of receivedBytes because the buffer size should be small
-				// if receivedBytes + buffer size cause overflow that mean the limitation is too large
-				self->parserTemporaryData_.receivedBytes += buf.size();
-				if (CPV_UNLIKELY(self->parserTemporaryData_.receivedBytes >
-					self->sharedData_->configuration.getMaxInitialRequestBytes())) {
-					// TODO: reply error response
-					return seastar::make_exception_future<>(LengthException(
-						CPV_CODEINFO, "http request length error:",
-						"reached bytes limitation of initial request data"));
-				}
-				// check limitation of received packets, to avoid small packet attack
-				self->parserTemporaryData_.receivedPackets += 1;
-				if (CPV_UNLIKELY(self->parserTemporaryData_.receivedPackets >
-					self->sharedData_->configuration.getMaxInitialRequestPackets())) {
-					// TODO: reply error response
-					return seastar::make_exception_future<>(LengthException(
-						CPV_CODEINFO, "http request length error:",
-						"reached packets limitation of initial request data"));
-				}
-				// hold buffer in request, so callbacks can make string views based on argument
-				std::string_view bufView = self->request_.addUnderlyingBuffer(std::move(buf));
-				// execute http parser
-				std::size_t parsedSize = ::http_parser_execute(
-					&self->parser_,
-					&self->parserSettings_,
-					bufView.data(),
-					bufView.size());
-				if (parsedSize != bufView.size()) {
-					// TODO: reply error response
-					return seastar::make_exception_future<>(FormatException(
-						CPV_CODEINFO, "http request format error:",
-						::http_errno_name(static_cast<enum ::http_errno>(self->parser_.http_errno)),
-						::http_errno_description(static_cast<enum ::http_errno>(self->parser_.http_errno))));
-				}
-				return seastar::make_ready_future<>();
+			// handle single request
+			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			return self->receiveSingleRequest().then([self] {
+				return self->replySingleResponse();
 			});
 		}).handle_exception([self] (std::exception_ptr ex) {
 			self->sharedData_->logger->log(LogLevel::Info,
@@ -149,9 +163,97 @@ namespace cpv {
 		parser_.data = this;
 	}
 	
+	/** Receive headers from single request, the body may not completely received */
+	seastar::future<> Http11ServerConnection::receiveSingleRequest() {
+		if (state_ >= Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
+			// either headers completed or connection closing
+			return seastar::make_ready_future<>();
+		}
+		// receive request headers
+		return socket_.in().read().then(
+			[this] (seastar::temporary_buffer<char> buf) {
+			// check whether connection closed from remote
+			if (buf.size() == 0) {
+				state_ = Http11ServerConnectionState::Closing;
+				return seastar::make_ready_future<>();
+			}
+			// check bytes limitation of initial request data
+			// no overflow check of receivedBytes because the buffer size should be small (up to 8192)
+			// if receivedBytes + buffer size cause overflow that mean the limitation is too large
+			parserTemporaryData_.receivedBytes += buf.size();
+			if (CPV_UNLIKELY(parserTemporaryData_.receivedBytes >
+				sharedData_->configuration.getMaxInitialRequestBytes())) {
+				return replyStaticResponse(socket_, ReachedBytesLimitationOfInitialRequestData).then([] {
+					return seastar::make_exception_future<>(LengthException(
+						CPV_CODEINFO, "http request length error:",
+						"reached bytes limitation of initial request data"));
+				});
+			}
+			// check limitation of received packets, to avoid small packet attack
+			parserTemporaryData_.receivedPackets += 1;
+			if (CPV_UNLIKELY(parserTemporaryData_.receivedPackets >
+				sharedData_->configuration.getMaxInitialRequestPackets())) {
+				return replyStaticResponse(socket_, ReachedPacketsLimitationOfInitialRequestData).then([] {
+					return seastar::make_exception_future<>(LengthException(
+						CPV_CODEINFO, "http request length error:",
+						"reached packets limitation of initial request data"));
+				});
+			}
+			// hold buffer in request, so callbacks can make string views based on argument
+			std::string_view bufView = request_.addUnderlyingBuffer(std::move(buf));
+			// execute http parser
+			std::size_t parsedSize = ::http_parser_execute(
+				&parser_,
+				&parserSettings_,
+				bufView.data(),
+				bufView.size());
+			if (parsedSize != bufView.size()) {
+				// TODO: check http_errno and state for pipeline support
+				return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
+					return seastar::make_exception_future<>(FormatException(
+						CPV_CODEINFO, "http request format error:",
+						::http_errno_name(static_cast<enum ::http_errno>(parser_.http_errno)),
+						::http_errno_description(static_cast<enum ::http_errno>(parser_.http_errno))));
+				});
+			}
+			// continue receiving
+			return receiveSingleRequest();
+		});
+	}
+	
+	/** Reply single response and ensure the request body is completely received */
+	seastar::future<> Http11ServerConnection::replySingleResponse() {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
+			// headers completed, contains body but no initial body received
+			// TODO
+			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			return replyStaticResponse(socket_, TestResponse);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+			// headers completed and initial body received
+			// TODO
+			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			return replyStaticResponse(socket_, TestResponse);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
+			// headers completed, either no body or full body received
+			// TODO
+			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			return replyStaticResponse(socket_, TestResponse);
+		} else if (state_ == Http11ServerConnectionState::Closing) {
+			// connection closing
+			return seastar::make_ready_future<>();
+		} else {
+			// state error
+			return replyStaticResponse(socket_, InvalidStateAfterReceivedSingleRequest).then([this] {
+				return seastar::make_exception_future<>(LogicException(
+					CPV_CODEINFO, "invalid state after received single request:", enumValue(state_)));
+			});
+		}
+	}
+	
 	int Http11ServerConnection::onMessageBegin(::http_parser* parser) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
 		self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
+		// TODO: check is reply in progress for pipeline support
 		return 0;
 	}
 	
@@ -192,16 +294,8 @@ namespace cpv {
 				self->parserTemporaryData_.headerValueView);
 			self->parserTemporaryData_.headerFieldView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// the first time received the first header field, flush method, url and version
+			// the first time received the first header field
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.urlMerged,
-				self->parserTemporaryData_.urlView);
-			self->request_.setMethod(::http_method_str(
-				static_cast<enum ::http_method>(self->parser_.method)));
-			self->request_.setUrl(self->parserTemporaryData_.urlView);
-			self->request_.setVersion(getHttpVersionString(self->parser_));
 			self->parserTemporaryData_.headerFieldView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// header field splited in multiple packets, merge them to a temporary buffer
@@ -252,20 +346,21 @@ namespace cpv {
 				self->parserTemporaryData_.headerFieldView,
 				self->parserTemporaryData_.headerValueView);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// no headers but url, flush method, url and version
+			// no headers but url
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.urlMerged,
-				self->parserTemporaryData_.urlView);
-			self->request_.setMethod(::http_method_str(
-				static_cast<enum ::http_method>(self->parser_.method)));
-			self->request_.setUrl(self->parserTemporaryData_.urlView);
-			self->request_.setVersion(getHttpVersionString(self->parser_));
 		} else {
 			// state error
 			return -1;
 		}
+		// flush method, url and version
+		flushMergedTemporaryBuffer(
+			self->request_,
+			self->parserTemporaryData_.urlMerged,
+			self->parserTemporaryData_.urlView);
+		self->request_.setMethod(::http_method_str(
+			static_cast<enum ::http_method>(self->parser_.method)));
+		self->request_.setUrl(self->parserTemporaryData_.urlView);
+		self->request_.setVersion(getHttpVersionString(self->parser_));
 		return 0;
 	}
 	

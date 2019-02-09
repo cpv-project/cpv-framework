@@ -39,7 +39,8 @@ namespace cpv {
 		void log(LogLevel logLevel, const Args&... args) {
 			if (CPV_UNLIKELY(isEnabled(logLevel))) {
 				logImpl(logLevel, joinString("",
-					"<CPV:", logLevel, "> ", joinString(" ", args...), '\n'));
+					"<CPV:", logLevel, ":", getThreadId(), "> ",
+					joinString(" ", args...), '\n'));
 			}
 		}
 
@@ -58,6 +59,9 @@ namespace cpv {
 	protected:
 		/** The implmentation of log, may write to console or database */
 		virtual void logImpl(LogLevel logLevel, const std::string& message) = 0;
+		
+		/** Get thread id for logging */
+		std::size_t getThreadId();
 
 	private:
 		LogLevel logLevel_;
