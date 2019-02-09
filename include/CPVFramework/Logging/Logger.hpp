@@ -59,7 +59,7 @@ namespace cpv {
 	protected:
 		/** The implmentation of log, may write to console or database */
 		virtual void logImpl(LogLevel logLevel, const std::string& message) = 0;
-		
+
 		/** Get thread id for logging */
 		std::size_t getThreadId();
 

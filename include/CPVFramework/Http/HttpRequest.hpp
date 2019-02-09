@@ -40,6 +40,10 @@ namespace cpv {
 		/** Set request header, must add underlying buffer first unless it's static string */
 		void setHeader(std::string_view key, std::string_view value);
 		
+		/** Get underlying buffers */
+		std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() &;
+		const std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() const&;
+		
 		/**
 		 * Add underlying buffer that owns the storage of string views,
 		 *	return a string view of the buffer.

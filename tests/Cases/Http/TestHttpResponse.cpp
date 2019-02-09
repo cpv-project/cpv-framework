@@ -24,6 +24,10 @@ TEST_FUTURE(TestHttpResponse, all) {
 			ASSERT_EQ(response.getStatusMessage(), "Not Found");
 			ASSERT_EQ(response.getHeaders().size(), 1U);
 			ASSERT_EQ(response.getHeaders().at("abc"), "asd");
+			ASSERT_EQ(response.getUnderlyingBuffers().size(), 1U);
+			ASSERT_EQ(std::string(
+				response.getUnderlyingBuffers().at(0).get(),
+				response.getUnderlyingBuffers().at(0).size()), "abc asd");
 			ASSERT_EQ(*str, "test body");
 		});
 	});

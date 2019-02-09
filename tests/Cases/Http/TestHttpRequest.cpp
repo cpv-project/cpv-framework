@@ -23,6 +23,10 @@ TEST_FUTURE(TestHttpRequest, all) {
 			ASSERT_EQ(request.getVersion(), "HTTP/1.1");
 			ASSERT_EQ(request.getHeaders().size(), 1U);
 			ASSERT_EQ(request.getHeaders().at("abc"), "asd");
+			ASSERT_EQ(request.getUnderlyingBuffers().size(), 1U);
+			ASSERT_EQ(std::string(
+				request.getUnderlyingBuffers().at(0).get(),
+				request.getUnderlyingBuffers().at(0).size()), "abc asd");
 			ASSERT_EQ(str, "test body");
 		});
 	});

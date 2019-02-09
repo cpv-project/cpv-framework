@@ -55,7 +55,7 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 			std::size_t index = str->find("ID: ");
 			std::string id = str->substr(index);
 			ASSERT_EQ(id.size(), 40U); // length of uuid is 36
-			ASSERT_CONTAINS(logger->content, "<CPV:Error> Http server request error, ID: ");
+			ASSERT_CONTAINS(logger->content, "Http server request error, ID: ");
 			ASSERT_CONTAINS(logger->content, "test exception");
 			ASSERT_CONTAINS(logger->content, id);
 		});

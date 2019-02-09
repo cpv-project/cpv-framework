@@ -5,8 +5,8 @@
 namespace cpv {
 	/**
 	 * Request handler that capture exceptions from next handlers and return 500.
-	 * The exception will log to given logger with a unique uuid,
-	 * and the uuid will display on the error page for finding associated error log.
+	 * The exception will associate with an unique uuid and log with 'Error' level,
+	 * and the uuid will display inside the response body.
 	 */
 	class HttpServerRequest500Handler : public HttpServerRequestHandlerBase {
 	public:
