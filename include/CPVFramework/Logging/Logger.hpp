@@ -61,7 +61,7 @@ namespace cpv {
 		virtual void logImpl(LogLevel logLevel, const std::string& message) = 0;
 
 		/** Get thread id for logging */
-		std::size_t getThreadId();
+		static std::size_t getThreadId();
 
 	private:
 		LogLevel logLevel_;
