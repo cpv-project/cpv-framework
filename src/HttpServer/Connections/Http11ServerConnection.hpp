@@ -1,5 +1,6 @@
 #pragma once
 #include <http_parser.h>
+#include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequestHandlerBase.hpp>
@@ -19,8 +20,15 @@ namespace cpv {
 		ReceiveRequestHeadersComplete,
 		ReceiveRequestBody,
 		ReceiveRequestMessageComplete,
+		ReplyResponse,
 		Closing,
 		Closed
+	};
+	
+	/** Enum descriptions of Http11ServerConnectionState */
+	template <>
+	struct EnumDescriptions<Http11ServerConnectionState> {
+		static const std::vector<std::pair<Http11ServerConnectionState, const char*>>& get();
 	};
 	
 	/** Connection accepted from http client uses http 1.0/1.1 protocol */
@@ -81,10 +89,14 @@ namespace cpv {
 			// for header value splited in multiple packets
 			seastar::temporary_buffer<char> headerValueMerged;
 			std::string_view headerValueView;
-			// for initial body, may contains many parts if encoding is chunked
-			std::string_view initialBodyView;
-			std::vector<std::string_view> moreInitialBodyViews;
+			// for body, may splited as multiple parts if encoding is chunked
+			std::string_view bodyView;
+			std::vector<std::string_view> moreBodyViews;
+			// is message completed (no body or all body received)
+			bool messageCompleted = false;
 		} parserTemporaryData_;
+		// the rest of buffer for next request received from pipeline
+		seastar::temporary_buffer<char> nextRequestBuffer_;
 	};
 }
 

@@ -58,11 +58,9 @@ namespace cpv {
 		/** Move temporary buffer to request and update string view if necessary */
 		static inline void flushMergedTemporaryBuffer(
 			HttpRequest& request,
-			seastar::temporary_buffer<char>& buffer,
-			std::string_view& view) {
+			seastar::temporary_buffer<char>& buffer) {
 			if (CPV_UNLIKELY(buffer.size() > 0)) {
-				auto bufView = request.addUnderlyingBuffer(std::move(buffer));
-				view = bufView.substr(0, view.size());
+				request.addUnderlyingBuffer(std::move(buffer));
 			}
 		}
 		
@@ -81,6 +79,27 @@ namespace cpv {
 		}
 	}
 	
+	/** Enum descriptions of Http11ServerConnectionState */
+	const std::vector<std::pair<Http11ServerConnectionState, const char*>>&
+		EnumDescriptions<Http11ServerConnectionState>::get() {
+		static std::vector<std::pair<Http11ServerConnectionState, const char*>> staticNames({
+			{ Http11ServerConnectionState::Initial, "Initial" },
+			{ Http11ServerConnectionState::Started, "Started" },
+			{ Http11ServerConnectionState::ReceiveRequestInitial, "ReceiveRequestInitial" },
+			{ Http11ServerConnectionState::ReceiveRequestMessageBegin, "ReceiveRequestMessageBegin" },
+			{ Http11ServerConnectionState::ReceiveRequestUrl, "ReceiveRequestUrl" },
+			{ Http11ServerConnectionState::ReceiveRequestHeaderField, "ReceiveRequestHeaderField" },
+			{ Http11ServerConnectionState::ReceiveRequestHeaderValue, "ReceiveRequestHeaderValue" },
+			{ Http11ServerConnectionState::ReceiveRequestHeadersComplete, "ReceiveRequestHeadersComplete" },
+			{ Http11ServerConnectionState::ReceiveRequestBody, "ReceiveRequestBody" },
+			{ Http11ServerConnectionState::ReceiveRequestMessageComplete, "ReceiveRequestMessageComplete" },
+			{ Http11ServerConnectionState::ReplyResponse, "ReplyResponse" },
+			{ Http11ServerConnectionState::Closing, "Closing" },
+			{ Http11ServerConnectionState::Closed, "Closed" },
+		});
+		return staticNames;
+	}
+	
 	/** Start receive requests and send responses */
 	void Http11ServerConnection::start() {
 		// check state
@@ -96,6 +115,12 @@ namespace cpv {
 			[self] {
 			// handle single request
 			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			if (self->parserTemporaryData_.messageCompleted) {
+				// reset members if it's not the first request
+				self->request_ = {};
+				self->response_ = {};
+				self->parserTemporaryData_ = {};
+			}
 			return self->receiveSingleRequest().then([self] {
 				return self->replySingleResponse();
 			});
@@ -149,7 +174,8 @@ namespace cpv {
 		response_(),
 		parserSettings_(),
 		parser_(),
-		parserTemporaryData_() {
+		parserTemporaryData_(),
+		nextRequestBuffer_() {
 		// setup http parser
 		::http_parser_settings_init(&parserSettings_);
 		::http_parser_init(&parser_, HTTP_REQUEST);
@@ -170,8 +196,10 @@ namespace cpv {
 			return seastar::make_ready_future<>();
 		}
 		// receive request headers
-		return socket_.in().read().then(
-			[this] (seastar::temporary_buffer<char> buf) {
+		seastar::future f = (nextRequestBuffer_.size() == 0 ?
+			socket_.in().read() :
+			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
+		return std::move(f).then([this] (seastar::temporary_buffer<char> buf) {
 			// check whether connection closed from remote
 			if (buf.size() == 0) {
 				state_ = Http11ServerConnectionState::Closing;
@@ -199,23 +227,31 @@ namespace cpv {
 						"reached packets limitation of initial request data"));
 				});
 			}
-			// hold buffer in request, so callbacks can make string views based on argument
-			std::string_view bufView = request_.addUnderlyingBuffer(std::move(buf));
 			// execute http parser
 			std::size_t parsedSize = ::http_parser_execute(
 				&parser_,
 				&parserSettings_,
-				bufView.data(),
-				bufView.size());
-			if (parsedSize != bufView.size()) {
-				// TODO: check http_errno and state for pipeline support
-				return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
-					return seastar::make_exception_future<>(FormatException(
-						CPV_CODEINFO, "http request format error:",
-						::http_errno_name(static_cast<enum ::http_errno>(parser_.http_errno)),
-						::http_errno_description(static_cast<enum ::http_errno>(parser_.http_errno))));
-				});
+				buf.get(),
+				buf.size());
+			if (parsedSize != buf.size()) {
+				auto err = static_cast<enum ::http_errno>(parser_.http_errno);
+				if (err == ::http_errno::HPE_CB_message_begin &&
+					parserTemporaryData_.messageCompleted) {
+					// received next request from pipeline
+					nextRequestBuffer_ = buf.share();
+					nextRequestBuffer_.trim_front(parsedSize);
+				} else {
+					// parse error
+					return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this, err] {
+						return seastar::make_exception_future<>(FormatException(
+							CPV_CODEINFO, "http request format error:",
+							::http_errno_name(err), ::http_errno_description(err),
+							", state:", state_));
+					});
+				}
 			}
+			// hold underlying buffer in request
+			request_.addUnderlyingBuffer(std::move(buf));
 			// continue receiving
 			return receiveSingleRequest();
 		});
@@ -223,21 +259,14 @@ namespace cpv {
 	
 	/** Reply single response and ensure the request body is completely received */
 	seastar::future<> Http11ServerConnection::replySingleResponse() {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
-			// headers completed, contains body but no initial body received
-			// TODO
-			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
+			state_ == Http11ServerConnectionState::ReceiveRequestBody ||
+			state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
+			// atleast all headers received, start replying response
+			state_ = Http11ServerConnectionState::ReplyResponse;
+			// TODO: use handlers
 			return replyStaticResponse(socket_, TestResponse);
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// headers completed and initial body received
-			// TODO
-			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
-			return replyStaticResponse(socket_, TestResponse);
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
-			// headers completed, either no body or full body received
-			// TODO
-			state_ = Http11ServerConnectionState::ReceiveRequestInitial;
-			return replyStaticResponse(socket_, TestResponse);
+			// TODO: receive and discard all body until message completed
 		} else if (state_ == Http11ServerConnectionState::Closing) {
 			// connection closing
 			return seastar::make_ready_future<>();
@@ -245,7 +274,7 @@ namespace cpv {
 			// state error
 			return replyStaticResponse(socket_, InvalidStateAfterReceivedSingleRequest).then([this] {
 				return seastar::make_exception_future<>(LogicException(
-					CPV_CODEINFO, "invalid state after received single request:", enumValue(state_)));
+					CPV_CODEINFO, "invalid state after received single request:", state_));
 			});
 		}
 	}
@@ -256,8 +285,8 @@ namespace cpv {
 			// normal begin
 			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
 		} else {
-			// state error
-			// TODO: check whether is reply in progress for pipeline support
+			// state error, maybe the next request from pipeline,
+			// the caller should check parser.http_errno and remember rest of the buffer
 			return -1;
 		}
 		return 0;
@@ -287,14 +316,8 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// the first time received a new header field, flush last header field and value
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.headerFieldMerged,
-				self->parserTemporaryData_.headerFieldView);
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.headerValueMerged,
-				self->parserTemporaryData_.headerValueView);
+			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerValueMerged);
 			self->request_.setHeader(
 				self->parserTemporaryData_.headerFieldView,
 				self->parserTemporaryData_.headerValueView);
@@ -340,14 +363,8 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// all headers received, flush last header field and value
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.headerFieldMerged,
-				self->parserTemporaryData_.headerFieldView);
-			flushMergedTemporaryBuffer(
-				self->request_,
-				self->parserTemporaryData_.headerValueMerged,
-				self->parserTemporaryData_.headerValueView);
+			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerValueMerged);
 			self->request_.setHeader(
 				self->parserTemporaryData_.headerFieldView,
 				self->parserTemporaryData_.headerValueView);
@@ -359,10 +376,7 @@ namespace cpv {
 			return -1;
 		}
 		// flush method, url and version
-		flushMergedTemporaryBuffer(
-			self->request_,
-			self->parserTemporaryData_.urlMerged,
-			self->parserTemporaryData_.urlView);
+		flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.urlMerged);
 		self->request_.setMethod(::http_method_str(
 			static_cast<enum ::http_method>(self->parser_.method)));
 		self->request_.setUrl(self->parserTemporaryData_.urlView);
@@ -375,13 +389,19 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
 			// received initial body
 			self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			self->parserTemporaryData_.initialBodyView = std::string_view(data, size);
+			self->parserTemporaryData_.bodyView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// received initial chunked body
-			self->parserTemporaryData_.moreInitialBodyViews.emplace_back(data, size);
+			self->parserTemporaryData_.moreBodyViews.emplace_back(data, size);
+		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
+			// receive body when replying response (called from request stream)
+			if (self->parserTemporaryData_.bodyView.empty()) {
+				self->parserTemporaryData_.bodyView = std::string_view(data, size);
+			} else {
+				self->parserTemporaryData_.moreBodyViews.emplace_back(data, size);
+			}
 		} else {
 			// state error
-			// TODO: check whether is call from requrst stream
 			return -1;
 		}
 		return 0;
@@ -391,11 +411,14 @@ namespace cpv {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
 			self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// no body or all body is received as initial body
+			// no body or all body is received before reply
 			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
+			self->parserTemporaryData_.messageCompleted = true;
+		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
+			// all body received when replying response (called from request stream)
+			self->parserTemporaryData_.messageCompleted = true;
 		} else {
 			// state error
-			// TODO: check whether is call from requrst stream
 			return -1;
 		}
 		return 0;

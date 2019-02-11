@@ -58,9 +58,8 @@ namespace cpv {
 	}
 	
 	/** Add underlying buffer that owns the storage of string views */
-	std::string_view HttpResponse::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
-		auto& bufRef = data_->underlyingBuffers.emplace_back(std::move(buf));
-		return std::string_view(bufRef.get(), bufRef.size());
+	void HttpResponse::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+		data_->underlyingBuffers.emplace_back(std::move(buf));
 	}
 	
 	/** Get response body output stream */
