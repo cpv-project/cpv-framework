@@ -19,26 +19,26 @@ namespace cpv {
 		std::string_view getMethod() const&;
 		
 		/* Set the request method, must add underlying buffer first unless it's static string */
-		void setMethod(std::string_view method);
+		void setMethod(const std::string_view& method);
 		
 		/** Get the request url, e.g. "/test" */
 		std::string_view getUrl() const&;
 		
 		/** Set the request url, must add underlying buffer first unless it's static string */
-		void setUrl(std::string_view url);
+		void setUrl(const std::string_view& url);
 		
 		/** Get the http version string, e.g. "HTTP/1.1" */
 		std::string_view getVersion() const&;
 		
 		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(std::string_view version);
+		void setVersion(const std::string_view& version);
 		
 		/** Get request headers */
 		std::unordered_map<std::string_view, std::string_view>& getHeaders() &;
 		const std::unordered_map<std::string_view, std::string_view>& getHeaders() const&;
 		
 		/** Set request header, must add underlying buffer first unless it's static string */
-		void setHeader(std::string_view key, std::string_view value);
+		void setHeader(const std::string_view& key, const std::string_view& value);
 		
 		/** Get underlying buffers */
 		std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() &;

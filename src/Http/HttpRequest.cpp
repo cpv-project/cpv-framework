@@ -8,7 +8,7 @@ namespace cpv {
 	}
 	
 	/* Set the request method */
-	void HttpRequest::setMethod(std::string_view method) {
+	void HttpRequest::setMethod(const std::string_view& method) {
 		data_->method = method;
 	}
 	
@@ -18,7 +18,7 @@ namespace cpv {
 	}
 	
 	/** Set the request url */
-	void HttpRequest::setUrl(std::string_view url) {
+	void HttpRequest::setUrl(const std::string_view& url) {
 		data_->url = url;
 	}
 	
@@ -28,7 +28,7 @@ namespace cpv {
 	}
 	
 	/** Set the http version string */
-	void HttpRequest::setVersion(std::string_view version) {
+	void HttpRequest::setVersion(const std::string_view& version) {
 		data_->version = version;
 	}
 	
@@ -43,7 +43,7 @@ namespace cpv {
 	}
 	
 	/** Set request header */
-	void HttpRequest::setHeader(std::string_view key, std::string_view value) {
+	void HttpRequest::setHeader(const std::string_view& key, const std::string_view& value) {
 		data_->headers.insert_or_assign(key, value);
 	}
 	

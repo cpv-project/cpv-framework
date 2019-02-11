@@ -21,13 +21,13 @@ namespace cpv {
 		std::string_view getVersion() const&;
 		
 		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(std::string_view version);
+		void setVersion(const std::string_view& version);
 		
 		/** Get the status code, e.g. "404" */
 		std::string_view getStatusCode() const&;
 		
 		/** Set the status code, must add underlying buffer first unless it's static string */
-		void setStatusCode(std::string_view statusCode);
+		void setStatusCode(const std::string_view& statusCode);
 		
 		/** Get the reason message of status code, e.g. "Not Found" */
 		std::string_view getStatusMessage() const&;
@@ -36,14 +36,14 @@ namespace cpv {
 		 * Set the reason message of status code,
 		 *	must add underlying buffer first unless it's static string.
 		 */
-		void setStatusMessage(std::string_view statusMessage);
+		void setStatusMessage(const std::string_view& statusMessage);
 		
 		/** Get response headers */
 		std::unordered_map<std::string_view, std::string_view>& getHeaders() &;
 		const std::unordered_map<std::string_view, std::string_view>& getHeaders() const&;
 		
 		/** Set response header, must add underlying buffer first unless it's static string */
-		void setHeader(std::string_view key, std::string_view value);
+		void setHeader(const std::string_view& key, const std::string_view& value);
 		
 		/** Get underlying buffers */
 		std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() &;
