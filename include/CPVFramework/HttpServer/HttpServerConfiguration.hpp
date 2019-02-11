@@ -33,7 +33,7 @@ namespace cpv {
 		 * should be maxInitialRequestBytes / MTU + someSmallConstant.
 		 * This is a security setting for protection of out of memory attack.
 		 */
-		void setMaxInitialRequestPackets(std::size_t maxRequestPackets);
+		void setMaxInitialRequestPackets(std::size_t maxInitialRequestPackets);
 		
 		/** Constructor */
 		HttpServerConfiguration();
