@@ -54,8 +54,10 @@ namespace cpv {
 		
 		/** Reply single response and ensure the request body is completely received */
 		seastar::future<> replySingleResponse();
-	
-	private:
+		
+		/** Reply error response for invalid http request format, then return exception future */
+		seastar::future<> replyErrorResponseForInvalidFormat();
+		
 		/** Parser callbacks */
 		static int onMessageBegin(::http_parser* parser);
 		static int onUrl(::http_parser* parser, const char* data, std::size_t size);
@@ -66,6 +68,10 @@ namespace cpv {
 		static int onMessageComplete(::http_parser* parser);
 		static int onChunkHeader(::http_parser* parser);
 		static int onChunkComplete(::http_parser* parser);
+		
+		/** Friends **/
+		friend class Http11ServerConnectionRequestStream;
+		friend class Http11ServerConnectionResponseStream;
 	
 	private:
 		seastar::lw_shared_ptr<HttpServerSharedData> sharedData_;

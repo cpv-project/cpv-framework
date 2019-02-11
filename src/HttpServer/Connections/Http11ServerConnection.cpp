@@ -4,7 +4,6 @@
 #include <CPVFramework/Exceptions/FormatException.hpp>
 #include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
-#include <CPVFramework/Exceptions/NotImplementedException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
@@ -200,7 +199,7 @@ namespace cpv {
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
 		return std::move(f).then([this] (seastar::temporary_buffer<char> buf) {
-			// check whether connection closed from remote
+			// check whether connection is closed from remote
 			if (buf.size() == 0) {
 				state_ = Http11ServerConnectionState::Closing;
 				return seastar::make_ready_future<>();
@@ -242,12 +241,7 @@ namespace cpv {
 					nextRequestBuffer_.trim_front(parsedSize);
 				} else {
 					// parse error
-					return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this, err] {
-						return seastar::make_exception_future<>(FormatException(
-							CPV_CODEINFO, "http request format error:",
-							::http_errno_name(err), ::http_errno_description(err),
-							", state:", state_));
-					});
+					return replyErrorResponseForInvalidFormat();
 				}
 			}
 			// hold underlying buffer in request
@@ -279,6 +273,17 @@ namespace cpv {
 		}
 	}
 	
+	/** Reply error response for invalid http request format, then return exception future */
+	seastar::future<> Http11ServerConnection::replyErrorResponseForInvalidFormat() {
+		return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
+			auto err = static_cast<enum ::http_errno>(parser_.http_errno);
+			return seastar::make_exception_future<>(FormatException(
+				CPV_CODEINFO, "http request format error:",
+				::http_errno_name(err), ::http_errno_description(err),
+				", state:", state_));
+		});
+	}
+	
 	int Http11ServerConnection::onMessageBegin(::http_parser* parser) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestInitial) {
@@ -286,7 +291,7 @@ namespace cpv {
 			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
 		} else {
 			// state error, maybe the next request from pipeline,
-			// the caller should check parser.http_errno and remember rest of the buffer
+			// the caller should check parser_.http_errno and remember rest of the buffer
 			return -1;
 		}
 		return 0;
