@@ -4,6 +4,23 @@
 #include "./OutputStreamBase.hpp"
 
 namespace cpv::extensions {
+	/** Write packet to stream, must keep stream live until future resolved */
+	static inline seastar::future<> writeAll(
+		OutputStreamBase& stream, seastar::net::packet&& data) {
+		return stream.write(std::move(data));
+	}
+	
+	/** Write packet to stream, must keep stream live until future resolved */
+	template <class T, std::enable_if_t<std::is_same_v<
+		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
+	seastar::future<> writeAll(T& stream, seastar::net::packet&& data) {
+		if (CPV_UNLIKELY(stream.get() == nullptr)) {
+			return seastar::make_exception_future<>(LogicException(
+				CPV_CODEINFO, "write to null stream"));
+		}
+		return stream->write(std::move(data));
+	}
+	
 	/** Write string (rvalue) to stream, must keep stream live until future resolved */
 	seastar::future<> writeAll(OutputStreamBase& stream, std::string&& str);
 	
@@ -33,15 +50,18 @@ namespace cpv::extensions {
 	}
 	
 	/** Write constant c string to stream, must keep stream live until future resolved */
-	static inline seastar::future<> writeAll(OutputStreamBase& stream, const char* str) {
-		return writeAll(stream, std::string_view(str));
+	template <std::size_t Size>
+	static inline seastar::future<> writeAll(OutputStreamBase& stream, const char(&str)[Size]) {
+		static_assert(Size > 0, "size of c string should not be 0");
+		return writeAll(stream, std::string_view(str, Size-1));
 	}
 	
 	/** Write constant c string to stream, must keep stream live until future resolved */
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <std::size_t Size, class T, std::enable_if_t<std::is_same_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
-	seastar::future<> writeAll(T& stream, const char* str) {
-		return writeAll(stream, std::string_view(str));
+	seastar::future<> writeAll(T& stream, const char(&str)[Size]) {
+		static_assert(Size > 0, "size of c string should not be 0");
+		return writeAll(stream, std::string_view(str, Size-1));
 	}
 }
 

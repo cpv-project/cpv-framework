@@ -10,16 +10,9 @@ namespace cpv::extensions {
 	/** Read all data from stream and append to given string */
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str) {
 		return seastar::repeat([&stream, &str] {
-			std::size_t oldSize = str.size();
-			if (CPV_UNLIKELY(str.max_size() - ReadBufferSize < oldSize)) {
-				return seastar::make_exception_future<seastar::stop_iteration>(
-					OverflowException(CPV_CODEINFO, "string size overflow"));
-			}
-			str.resize(oldSize + ReadBufferSize);
-			return stream.read(str.data() + oldSize, ReadBufferSize)
-				.then([&str] (auto&& result) {
-				str.resize(str.size() - ReadBufferSize + result.size);
-				return result.eof ?
+			return stream.read().then([&str] (auto&& result) {
+				str.append(result.data);
+				return result.isEnd ?
 					seastar::stop_iteration::yes :
 					seastar::stop_iteration::no;
 			});

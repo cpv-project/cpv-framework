@@ -2,16 +2,14 @@
 
 namespace cpv {
 	/** Read data from stream */
-	seastar::future<InputStreamReadResult> StringViewInputStream::read(char* buf, std::size_t size) {
-		if (position_ >= str_.size()) {
+	seastar::future<InputStreamReadResult> StringViewInputStream::read() {
+		if (isEnd_) {
 			return seastar::make_ready_future<InputStreamReadResult>();
+		} else {
+			isEnd_ = true;
+			return seastar::make_ready_future<InputStreamReadResult>(
+				InputStreamReadResult(str_, true));
 		}
-		std::size_t copy_max = str_.size() - position_;
-		std::size_t copy_n = std::min(copy_max, size);
-		std::memcpy(buf, str_.data() + position_, copy_n);
-		position_ += copy_n;
-		return seastar::make_ready_future<InputStreamReadResult>(
-			InputStreamReadResult(copy_n, copy_n == copy_max));
 	}
 	
 	/** For Object<> */
@@ -22,12 +20,12 @@ namespace cpv {
 	/** For Object<> */
 	void StringViewInputStream::reset(const std::string_view& str) {
 		str_ = str;
-		position_ = 0;
+		isEnd_ = false;
 	}
 	
 	/** Constructor */
 	StringViewInputStream::StringViewInputStream() :
 		str_(),
-		position_() { }
+		isEnd_() { }
 }
 

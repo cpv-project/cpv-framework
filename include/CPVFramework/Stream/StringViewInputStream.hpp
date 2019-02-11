@@ -6,8 +6,8 @@ namespace cpv {
 	/** Input stream that use given string view as data source */
 	class StringViewInputStream : public InputStreamBase {
 	public:
-		/** Read data from stream, the buffer must live until future resolved */
-		seastar::future<InputStreamReadResult> read(char* buf, std::size_t size) override;
+		/** Read data from stream */
+		seastar::future<InputStreamReadResult> read() override;
 		
 		/** For Object<> */
 		void freeResources();
@@ -20,7 +20,7 @@ namespace cpv {
 		
 	private:
 		std::string_view str_;
-		std::size_t position_;
+		bool isEnd_;
 	};
 }
 

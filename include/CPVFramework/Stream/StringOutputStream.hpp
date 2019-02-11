@@ -6,8 +6,8 @@ namespace cpv {
 	/** Output stream that use given string as data destination */
 	class StringOutputStream : public OutputStreamBase {
 	public:
-		/** Write data to stream, the buffer must live until future resolved */
-		seastar::future<> write(const char* buf, std::size_t size) override;
+		/** Write data to stream */
+		seastar::future<> write(seastar::net::packet&& data) override;
 		
 		/** For Object<> */
 		void freeResources();

@@ -1,5 +1,6 @@
 #pragma once
 #include <seastar/core/future.hh>
+#include <seastar/net/packet.hh>
 
 namespace cpv {
 	/** Interface of simple output stream */
@@ -8,8 +9,8 @@ namespace cpv {
 		/** Virtual destructor */
 		virtual ~OutputStreamBase() = default;
 		
-		/** Write data to stream, the buffer must live until future resolved */
-		virtual seastar::future<> write(const char* buf, std::size_t size) = 0;
+		/** Write data to stream */
+		virtual seastar::future<> write(seastar::net::packet&& data) = 0;
 	};
 }
 
