@@ -69,15 +69,21 @@ namespace cpv {
 		::http_parser_settings parserSettings_;
 		::http_parser parser_;
 		struct {
+			// for initial request size check
 			std::size_t receivedBytes = 0;
 			std::size_t receivedPackets = 0;
+			// for url splited in multiple packets
 			seastar::temporary_buffer<char> urlMerged;
 			std::string_view urlView;
+			// for header field splited in multiple packets
 			seastar::temporary_buffer<char> headerFieldMerged;
 			std::string_view headerFieldView;
+			// for header value splited in multiple packets
 			seastar::temporary_buffer<char> headerValueMerged;
 			std::string_view headerValueView;
+			// for initial body, may contains many parts if encoding is chunked
 			std::string_view initialBodyView;
+			std::vector<std::string_view> moreInitialBodyViews;
 		} parserTemporaryData_;
 	};
 }

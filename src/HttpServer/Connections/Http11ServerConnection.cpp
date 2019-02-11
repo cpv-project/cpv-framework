@@ -252,8 +252,14 @@ namespace cpv {
 	
 	int Http11ServerConnection::onMessageBegin(::http_parser* parser) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
-		// TODO: check is reply in progress for pipeline support
+		if (self->state_ == Http11ServerConnectionState::ReceiveRequestInitial) {
+			// normal begin
+			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
+		} else {
+			// state error
+			// TODO: check whether is reply in progress for pipeline support
+			return -1;
+		}
 		return 0;
 	}
 	
@@ -366,15 +372,32 @@ namespace cpv {
 	
 	int Http11ServerConnection::onBody(::http_parser* parser, const char* data, std::size_t size) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
-		std::cout << "body: " << std::string(data, size) << std::endl;
+		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
+			// received initial body
+			self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
+			self->parserTemporaryData_.initialBodyView = std::string_view(data, size);
+		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+			// received initial chunked body
+			self->parserTemporaryData_.moreInitialBodyViews.emplace_back(data, size);
+		} else {
+			// state error
+			// TODO: check whether is call from requrst stream
+			return -1;
+		}
 		return 0;
 	}
 	
 	int Http11ServerConnection::onMessageComplete(::http_parser* parser) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
-		std::cout << "message complete" << std::endl;
+		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
+			self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+			// no body or all body is received as initial body
+			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
+		} else {
+			// state error
+			// TODO: check whether is call from requrst stream
+			return -1;
+		}
 		return 0;
 	}
 }
