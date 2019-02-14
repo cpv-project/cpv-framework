@@ -40,12 +40,6 @@ namespace cpv {
 				"Content-Length: 53\r\n"
 				"Connection: close\r\n\r\n"
 				"Error: invalid state after received single request.\r\n");
-			
-			static const std::string TestResponse(
-				"HTTP/1.1 200 OK\r\n"
-				"Content-Type: text/plain;charset=utf-8\r\n"
-				"Content-Length: 14\r\n\r\n"
-				"Hello World!\r\n");
 		}
 		
 		/** Reply static response string and flush the output stream */
@@ -258,9 +252,17 @@ namespace cpv {
 			state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
 			// atleast all headers received, start replying response
 			state_ = Http11ServerConnectionState::ReplyResponse;
-			// TODO: use handlers
-			return replyStaticResponse(socket_, TestResponse);
-			// TODO: receive and discard all body until message completed
+			// call the first handler
+			return sharedData_->handlers.front()->handle(
+				request_, response_, sharedData_->handlers.begin() + 1).then([this] {
+				// flush response headers
+				// for response contains body, headers will flush from response stream
+				// TODO
+				// detect version and header to decide whether should keepalive or not
+				// TODO
+				// discard remain body from request
+				// TODO
+			});
 		} else if (state_ == Http11ServerConnectionState::Closing) {
 			// connection closing
 			return seastar::make_ready_future<>();
