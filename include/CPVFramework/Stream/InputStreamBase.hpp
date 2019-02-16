@@ -6,24 +6,28 @@
 namespace cpv {
 	/** Contains data read from stream */
 	struct InputStreamReadResult {
-		/** The storage of data, if it's empty that mean the storage is inside stream */
-		seastar::temporary_buffer<char> underlyingBuffer;
 		/** Data read from stream */
-		std::string_view data;
+		seastar::temporary_buffer<char> data;
 		/** Whether data is the last part of stream */
 		bool isEnd;
 		
-		InputStreamReadResult(
-			seastar::temporary_buffer<char>&& underlyingBufferVal,
-			const std::string_view& dataVal,
-			bool isEndVal) :
-			underlyingBuffer(std::move(underlyingBufferVal)), data(dataVal), isEnd(isEndVal) { }
-		InputStreamReadResult(const std::string_view& dataVal, bool isEndVal) :
-			InputStreamReadResult({}, dataVal, isEndVal) { }
-		InputStreamReadResult() : InputStreamReadResult({}, {}, true) { }
+		/** Get string view of the data read from stream */
+		std::string_view view() const { return std::string_view(data.get(), data.size()); }
+		
+		/** Constructor */
+		InputStreamReadResult(seastar::temporary_buffer<char>&& dataVal, bool isEndVal) :
+			data(std::move(dataVal)), isEnd(isEndVal) { }
+		
+		/** Constructor */
+		InputStreamReadResult() : InputStreamReadResult({}, true) { }
 	};
 	
-	/** Interface of simple input stream */
+	/**
+	 * Interface of simple input stream.
+	 * The read function will return a mutable buffer contains data.
+	 * The mutable buffer is useful for pass to an inplace (in-situ) parser.
+	 * Seek is not supported so it's easy to implement and with less overhead.
+	 */
 	class InputStreamBase {
 	public:
 		/** Virtual destructor */

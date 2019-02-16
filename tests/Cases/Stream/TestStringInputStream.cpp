@@ -10,14 +10,12 @@ TEST_FUTURE(TestStringInputStream, all) {
 		[] (auto& stream) {
 		stream.reset("test data");
 		return stream.read().then([&stream] (auto&& result) {
-			ASSERT_EQ(result.underlyingBuffer.size(), 0U);
-			ASSERT_EQ(result.data, "test data");
+			ASSERT_EQ(result.view(), "test data");
 			ASSERT_TRUE(result.isEnd);
 		}).then([&stream] {
 			return stream.read();
 		}).then([&stream] (auto&& result) {
-			ASSERT_EQ(result.underlyingBuffer.size(), 0U);
-			ASSERT_EQ(result.data, "");
+			ASSERT_EQ(result.view(), "");
 			ASSERT_TRUE(result.isEnd);
 		});
 	});

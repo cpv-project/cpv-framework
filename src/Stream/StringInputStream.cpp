@@ -6,9 +6,11 @@ namespace cpv {
 		if (isEnd_) {
 			return seastar::make_ready_future<InputStreamReadResult>();
 		} else {
+			// notice the lifetime of data is bound to stream
 			isEnd_ = true;
+			seastar::temporary_buffer<char> buf(str_.data(), str_.size(), seastar::deleter());
 			return seastar::make_ready_future<InputStreamReadResult>(
-				InputStreamReadResult(str_, true));
+				InputStreamReadResult(std::move(buf), true));
 		}
 	}
 	

@@ -3,7 +3,12 @@
 #include <seastar/net/packet.hh>
 
 namespace cpv {
-	/** Interface of simple output stream */
+	/**
+	 * Interface of simple output stream.
+	 * The write function will take a packet (may contains multiple segments) and
+	 * write the data of segments to stream.
+	 * seastar::scattered_message can build a packet with multiple segments, useful for reducing copy.
+	 */
 	class OutputStreamBase {
 	public:
 		/** Virtual destructor */

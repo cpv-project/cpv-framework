@@ -5,7 +5,7 @@ namespace cpv {
 	/** Input stream that use given string as data source */
 	class StringInputStream : public InputStreamBase {
 	public:
-		/** Read data from stream */
+		/** Read data from stream, notice the lifetime of data is bound to stream */
 		seastar::future<InputStreamReadResult> read() override;
 		
 		/** For Object<> */

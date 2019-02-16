@@ -5,7 +5,7 @@
 namespace cpv {
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> Http11ServerConnectionRequestStream::read() {
-		if (!returnedBody_ && !connection_->parserTemporaryData_.bodyView.empty()) {
+		/*if (!returnedBody_ && !connection_->parserTemporaryData_.bodyView.empty()) {
 			// return the first part of initial body
 			returnedBody_ = true;
 			bool isEnd = (connection_->parserTemporaryData_.messageCompleted &&
@@ -74,7 +74,9 @@ namespace cpv {
 				return seastar::make_ready_future<InputStreamReadResult>(
 					InputStreamReadResult(connection_->parserTemporaryData_.bodyView, isEnd));
 			});
-		}
+		}*/
+		// TODO rewrite here after implement custom allocators
+		throw 1;
 	}
 	
 	/** For Object<> */

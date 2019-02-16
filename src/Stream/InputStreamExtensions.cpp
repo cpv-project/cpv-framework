@@ -11,7 +11,7 @@ namespace cpv::extensions {
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str) {
 		return seastar::repeat([&stream, &str] {
 			return stream.read().then([&str] (auto&& result) {
-				str.append(result.data);
+				str.append(result.view());
 				return result.isEnd ?
 					seastar::stop_iteration::yes :
 					seastar::stop_iteration::no;
