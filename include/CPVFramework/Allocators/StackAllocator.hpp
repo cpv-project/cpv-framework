@@ -68,7 +68,7 @@ namespace cpv {
 				}
 			} else {
 				// deallocate from upstream allocator
-				return UpstreamAllocatorTrait::deallocate(*this, ptr, n);
+				UpstreamAllocatorTrait::deallocate(*this, ptr, n);
 			}
 		}
 		
@@ -123,11 +123,13 @@ namespace cpv {
 	 * - StackAllocatedVector<int, 1>: 48 (24 + 4 * 1 (storage) + 4 (padding) + 8 (index) + 8 (count))
 	 * - StackAllocatedVector<int, 100>: 440 (24 + 4 * 100 (storage) + 8 (index) + 8 (count))
 	 */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator = std::allocator<T>>
-	class StackAllocatedVector :
-		public std::vector<T, StackAllocator<T, InitialSize, UpstreamAllocator>> {
+	template <
+		class T,
+		std::size_t InitialSize,
+		class UpstreamAllocator = std::allocator<T>,
+		class Allocator = StackAllocator<T, InitialSize, UpstreamAllocator>>
+	class StackAllocatedVector : public std::vector<T, Allocator> {
 	private:
-		using Allocator = StackAllocator<T, InitialSize, UpstreamAllocator>;
 		using Base = std::vector<T, Allocator>;
 	public:
 		StackAllocatedVector() { this->reserve(InitialSize); }
@@ -161,12 +163,10 @@ namespace cpv {
 		std::size_t InitialSize,
 		class Hash = std::hash<Key>,
 		class KeyEqual = std::equal_to<Key>,
-		class UpstreamAllocator = std::allocator<std::pair<const Key, T>>>
-	class StackAllocatedUnorderedMap : public std::unordered_map<
-		Key, T, Hash, KeyEqual,
-		StackAllocator<std::pair<const Key, T>, InitialSize, UpstreamAllocator>> {
+		class UpstreamAllocator = std::allocator<std::pair<const Key, T>>,
+		class Allocator = StackAllocator<std::pair<const Key, T>, InitialSize, UpstreamAllocator>>
+	class StackAllocatedUnorderedMap : public std::unordered_map<Key, T, Hash, KeyEqual, Allocator> {
 	private:
-		using Allocator = StackAllocator<std::pair<const Key, T>, InitialSize, UpstreamAllocator>;
 		using Base = std::unordered_map<Key, T, Hash, KeyEqual, Allocator>;
 	public:
 		StackAllocatedUnorderedMap() { this->reserve(InitialSize); }
