@@ -5,16 +5,17 @@
 #include <seastar/core/temporary_buffer.hh>
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Http/HttpRequest.hpp>
 
 namespace cpv {
 	/** Members of HttpRequest */
 	class HttpRequestData {
 	public:
-		std::vector<seastar::temporary_buffer<char>> underlyingBuffers;
+		HttpRequest::UnderlyingBuffersType underlyingBuffers;
 		std::string_view method;
 		std::string_view url;
 		std::string_view version;
-		std::unordered_map<std::string_view, std::string_view> headers;
+		HttpRequest::HeadersType headers;
 		Object<InputStreamBase> bodyStream;
 		
 		HttpRequestData() :

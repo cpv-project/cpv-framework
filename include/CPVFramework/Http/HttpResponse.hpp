@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <utility>
 #include <seastar/core/temporary_buffer.hh>
+#include "../Allocators/StackAllocator.hpp"
 #include "../Stream/OutputStreamBase.hpp"
 #include "../Utility/Object.hpp"
 
@@ -17,6 +18,9 @@ namespace cpv {
 	 */
 	class HttpResponse {
 	public:
+		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
+		using HeadersType = StackAllocatedUnorderedMap<std::string_view, std::string_view, 32>;
+		
 		/** Get the http version string, e.g. "HTTP/1.1" */
 		std::string_view getVersion() const&;
 		
@@ -39,15 +43,15 @@ namespace cpv {
 		void setStatusMessage(const std::string_view& statusMessage);
 		
 		/** Get response headers */
-		std::unordered_map<std::string_view, std::string_view>& getHeaders() &;
-		const std::unordered_map<std::string_view, std::string_view>& getHeaders() const&;
+		HeadersType& getHeaders() &;
+		const HeadersType& getHeaders() const&;
 		
 		/** Set response header, must add underlying buffer first unless it's static string */
 		void setHeader(const std::string_view& key, const std::string_view& value);
 		
 		/** Get underlying buffers */
-		std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() &;
-		const std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() const&;
+		UnderlyingBuffersType& getUnderlyingBuffers() &;
+		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
 		
 		/** Add underlying buffer that owns the storage of string views */
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);

@@ -71,7 +71,7 @@ TEST(TestStackAllocator, vectorReset) {
 	void* begin = static_cast<void*>(&vec);
 	void* end = static_cast<void*>(&vec + 1);
 	for (std::size_t i = 0; i < 5; ++i) {
-		vec = {};
+		vec.clear();
 		for (std::size_t j = 0; j < 3; ++j) {
 			vec.emplace_back(j);
 			ASSERT_GE(static_cast<void*>(&vec.at(j)), begin);
@@ -129,7 +129,7 @@ TEST(TestStackAllocator, unorderedMapReset) {
 	void* begin = static_cast<void*>(&map);
 	void* end = static_cast<void*>(&map + 1);
 	for (std::size_t i = 0; i < 5; ++i) {
-		map = {};
+		map.clear();
 		for (std::size_t j = 0; j < 3; ++j) {
 			map.emplace(j, j);
 			ASSERT_GE(static_cast<void*>(&map.at(j)), begin);

@@ -2,6 +2,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <seastar/core/temporary_buffer.hh>
+#include "../Allocators/StackAllocator.hpp"
 #include "../Stream/InputStreamBase.hpp"
 #include "../Utility/Object.hpp"
 
@@ -15,6 +16,9 @@ namespace cpv {
 	 */
 	class HttpRequest {
 	public:
+		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
+		using HeadersType = StackAllocatedUnorderedMap<std::string_view, std::string_view, 32>;
+		
 		/** Get the request method, e.g. "GET" */
 		std::string_view getMethod() const&;
 		
@@ -34,15 +38,15 @@ namespace cpv {
 		void setVersion(const std::string_view& version);
 		
 		/** Get request headers */
-		std::unordered_map<std::string_view, std::string_view>& getHeaders() &;
-		const std::unordered_map<std::string_view, std::string_view>& getHeaders() const&;
+		HeadersType& getHeaders() &;
+		const HeadersType& getHeaders() const&;
 		
 		/** Set request header, must add underlying buffer first unless it's static string */
 		void setHeader(const std::string_view& key, const std::string_view& value);
 		
 		/** Get underlying buffers */
-		std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() &;
-		const std::vector<seastar::temporary_buffer<char>>& getUnderlyingBuffers() const&;
+		UnderlyingBuffersType& getUnderlyingBuffers() &;
+		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
 		
 		/** Add underlying buffer that owns the storage of string views */
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);

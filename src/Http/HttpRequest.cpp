@@ -33,12 +33,12 @@ namespace cpv {
 	}
 	
 	/** Get request headers */
-	std::unordered_map<std::string_view, std::string_view>& HttpRequest::getHeaders() & {
+	HttpRequest::HeadersType& HttpRequest::getHeaders() & {
 		return data_->headers;
 	}
 	
 	/** Get request headers */
-	const std::unordered_map<std::string_view, std::string_view>& HttpRequest::getHeaders() const& {
+	const HttpRequest::HeadersType& HttpRequest::getHeaders() const& {
 		return data_->headers;
 	}
 	
@@ -48,12 +48,12 @@ namespace cpv {
 	}
 	
 	/** Get underlying buffers */
-	std::vector<seastar::temporary_buffer<char>>& HttpRequest::getUnderlyingBuffers() & {
+	HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() & {
 		return data_->underlyingBuffers;
 	}
 	
 	/** Get underlying buffers */
-	const std::vector<seastar::temporary_buffer<char>>& HttpRequest::getUnderlyingBuffers() const& {
+	const HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() const& {
 		return data_->underlyingBuffers;
 	}
 	
