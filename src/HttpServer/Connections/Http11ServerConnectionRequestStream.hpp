@@ -24,11 +24,9 @@ namespace cpv {
 		
 	private:
 		seastar::shared_ptr<Http11ServerConnection> connection_;
-		// store buffer for body that contains multiple parts
-		seastar::temporary_buffer<char> lastBuffer_;
-		// whether is connection_->parserTemporaryData_.bodyView returned
+		// whether is connection_->parserTemporaryData_.bodyBuffer returned
 		bool returnedBody_;
-		// the last index of connection_->parserTemporaryData_.moreBodyViews returned
+		// the last index of connection_->parserTemporaryData_.moreBodyBuffers returned
 		std::size_t returnedMoreBodyIndex_;
 	};
 }

@@ -192,16 +192,19 @@ namespace cpv {
 		seastar::future f = (nextRequestBuffer_.size() == 0 ?
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
-		return std::move(f).then([this] (seastar::temporary_buffer<char> buf) {
+		return std::move(f).then([this] (seastar::temporary_buffer<char> tempBuffer) {
+			// store the last buffer received
+			auto& lastBuffer = parserTemporaryData_.lastBuffer;
+			lastBuffer = std::move(tempBuffer);
 			// check whether connection is closed from remote
-			if (buf.size() == 0) {
+			if (lastBuffer.size() == 0) {
 				state_ = Http11ServerConnectionState::Closing;
 				return seastar::make_ready_future<>();
 			}
 			// check bytes limitation of initial request data
 			// no overflow check of receivedBytes because the buffer size should be small (up to 8192)
 			// if receivedBytes + buffer size cause overflow that mean the limitation is too large
-			parserTemporaryData_.receivedBytes += buf.size();
+			parserTemporaryData_.receivedBytes += lastBuffer.size();
 			if (CPV_UNLIKELY(parserTemporaryData_.receivedBytes >
 				sharedData_->configuration.getMaxInitialRequestBytes())) {
 				return replyStaticResponse(socket_, ReachedBytesLimitationOfInitialRequestData).then([] {
@@ -224,14 +227,14 @@ namespace cpv {
 			std::size_t parsedSize = ::http_parser_execute(
 				&parser_,
 				&parserSettings_,
-				buf.get(),
-				buf.size());
-			if (parsedSize != buf.size()) {
+				lastBuffer.get(),
+				lastBuffer.size());
+			if (parsedSize != lastBuffer.size()) {
 				auto err = static_cast<enum ::http_errno>(parser_.http_errno);
 				if (err == ::http_errno::HPE_CB_message_begin &&
 					parserTemporaryData_.messageCompleted) {
 					// received next request from pipeline
-					nextRequestBuffer_ = buf.share();
+					nextRequestBuffer_ = lastBuffer.share();
 					nextRequestBuffer_.trim_front(parsedSize);
 				} else {
 					// parse error
@@ -239,7 +242,7 @@ namespace cpv {
 				}
 			}
 			// hold underlying buffer in request
-			request_.addUnderlyingBuffer(std::move(buf));
+			request_.addUnderlyingBuffer(std::move(lastBuffer));
 			// continue receiving
 			return receiveSingleRequest();
 		});
@@ -394,18 +397,25 @@ namespace cpv {
 	int Http11ServerConnection::onBody(::http_parser* parser, const char* data, std::size_t size) {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
-			// received initial body
+			// received initial body, share lastBuffer to bodyBuffer
+			auto& lastBuffer = self->parserTemporaryData_.lastBuffer;
 			self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			self->parserTemporaryData_.bodyView = std::string_view(data, size);
+			self->parserTemporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// received initial chunked body
-			self->parserTemporaryData_.moreBodyViews.emplace_back(data, size);
+			// received initial chunked body, share lastBuffer to moreBodyBuffers
+			auto& lastBuffer = self->parserTemporaryData_.lastBuffer;
+			self->parserTemporaryData_.moreBodyBuffers.emplace_back(
+				lastBuffer.share(data - lastBuffer.get(), size));
 		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
 			// receive body when replying response (called from request stream)
-			if (self->parserTemporaryData_.bodyView.empty()) {
-				self->parserTemporaryData_.bodyView = std::string_view(data, size);
+			auto& bodyBuffer = self->parserTemporaryData_.bodyBuffer;
+			if (bodyBuffer.size() == 0) {
+				// move lastBuffer to bodyBuffer
+				bodyBuffer = std::move(self->parserTemporaryData_.lastBuffer);
 			} else {
-				self->parserTemporaryData_.moreBodyViews.emplace_back(data, size);
+				// share bodyBuffer to moreBodyBuffers
+				self->parserTemporaryData_.moreBodyBuffers.emplace_back(
+					bodyBuffer.share(data - bodyBuffer.get(), size));
 			}
 		} else {
 			// state error

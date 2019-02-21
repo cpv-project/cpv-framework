@@ -1,5 +1,6 @@
 #pragma once
 #include <http_parser.h>
+#include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
@@ -83,6 +84,8 @@ namespace cpv {
 		::http_parser_settings parserSettings_;
 		::http_parser parser_;
 		struct {
+			// the last buffer received, store from receiveSingleRequest or request stream
+			seastar::temporary_buffer<char> lastBuffer;
 			// for initial request size check
 			std::size_t receivedBytes = 0;
 			std::size_t receivedPackets = 0;
@@ -96,8 +99,8 @@ namespace cpv {
 			seastar::temporary_buffer<char> headerValueMerged;
 			std::string_view headerValueView;
 			// for body, may splited as multiple parts if encoding is chunked
-			std::string_view bodyView;
-			std::vector<std::string_view> moreBodyViews;
+			seastar::temporary_buffer<char> bodyBuffer;
+			StackAllocatedVector<seastar::temporary_buffer<char>, 16> moreBodyBuffers;
 			// is message completed (no body or all body received)
 			bool messageCompleted = false;
 		} parserTemporaryData_;
