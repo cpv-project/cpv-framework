@@ -88,7 +88,6 @@ namespace cpv {
 		
 		/** Constructor */
 		StackAllocator() :
-			storage_(),
 			index_(0),
 			count_(0) { }
 		
