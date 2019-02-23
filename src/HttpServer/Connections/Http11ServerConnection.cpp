@@ -108,11 +108,11 @@ namespace cpv {
 			[self] {
 			// handle single request
 			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
-			if (self->parserTemporaryData_.messageCompleted) {
+			if (self->temporaryData_.messageCompleted) {
 				// reset members if it's not the first request
 				self->request_ = {};
 				self->response_ = {};
-				self->parserTemporaryData_ = {};
+				self->temporaryData_ = {};
 			}
 			return self->receiveSingleRequest().then([self] {
 				return self->replySingleResponse();
@@ -167,7 +167,7 @@ namespace cpv {
 		response_(),
 		parserSettings_(),
 		parser_(),
-		parserTemporaryData_(),
+		temporaryData_(),
 		nextRequestBuffer_() {
 		// setup http parser
 		::http_parser_settings_init(&parserSettings_);
@@ -194,7 +194,7 @@ namespace cpv {
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
 		return std::move(f).then([this] (seastar::temporary_buffer<char> tempBuffer) {
 			// store the last buffer received
-			auto& lastBuffer = parserTemporaryData_.lastBuffer;
+			auto& lastBuffer = temporaryData_.lastBuffer;
 			lastBuffer = std::move(tempBuffer);
 			// check whether connection is closed from remote
 			if (lastBuffer.size() == 0) {
@@ -204,8 +204,8 @@ namespace cpv {
 			// check bytes limitation of initial request data
 			// no overflow check of receivedBytes because the buffer size should be small (up to 8192)
 			// if receivedBytes + buffer size cause overflow that mean the limitation is too large
-			parserTemporaryData_.receivedBytes += lastBuffer.size();
-			if (CPV_UNLIKELY(parserTemporaryData_.receivedBytes >
+			temporaryData_.receivedBytes += lastBuffer.size();
+			if (CPV_UNLIKELY(temporaryData_.receivedBytes >
 				sharedData_->configuration.getMaxInitialRequestBytes())) {
 				return replyStaticResponse(socket_, ReachedBytesLimitationOfInitialRequestData).then([] {
 					return seastar::make_exception_future<>(LengthException(
@@ -214,8 +214,8 @@ namespace cpv {
 				});
 			}
 			// check limitation of received packets, to avoid small packet attack
-			parserTemporaryData_.receivedPackets += 1;
-			if (CPV_UNLIKELY(parserTemporaryData_.receivedPackets >
+			temporaryData_.receivedPackets += 1;
+			if (CPV_UNLIKELY(temporaryData_.receivedPackets >
 				sharedData_->configuration.getMaxInitialRequestPackets())) {
 				return replyStaticResponse(socket_, ReachedPacketsLimitationOfInitialRequestData).then([] {
 					return seastar::make_exception_future<>(LengthException(
@@ -232,7 +232,7 @@ namespace cpv {
 			if (parsedSize != lastBuffer.size()) {
 				auto err = static_cast<enum ::http_errno>(parser_.http_errno);
 				if (err == ::http_errno::HPE_CB_message_begin &&
-					parserTemporaryData_.messageCompleted) {
+					temporaryData_.messageCompleted) {
 					// received next request from pipeline
 					nextRequestBuffer_ = lastBuffer.share();
 					nextRequestBuffer_.trim_front(parsedSize);
@@ -307,12 +307,12 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
 			// the first time received the url
 			self->state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-			self->parserTemporaryData_.urlView = std::string_view(data, size);
+			self->temporaryData_.urlView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// url splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->parserTemporaryData_.urlMerged,
-				self->parserTemporaryData_.urlView,
+				self->temporaryData_.urlMerged,
+				self->temporaryData_.urlView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -326,21 +326,21 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// the first time received a new header field, flush last header field and value
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerValueMerged);
+			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerValueMerged);
 			self->request_.setHeader(
-				self->parserTemporaryData_.headerFieldView,
-				self->parserTemporaryData_.headerValueView);
-			self->parserTemporaryData_.headerFieldView = std::string_view(data, size);
+				self->temporaryData_.headerFieldView,
+				self->temporaryData_.headerValueView);
+			self->temporaryData_.headerFieldView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// the first time received the first header field
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			self->parserTemporaryData_.headerFieldView = std::string_view(data, size);
+			self->temporaryData_.headerFieldView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// header field splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->parserTemporaryData_.headerFieldMerged,
-				self->parserTemporaryData_.headerFieldView,
+				self->temporaryData_.headerFieldMerged,
+				self->temporaryData_.headerFieldView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -354,12 +354,12 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// the first time received a header value after header field
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
-			self->parserTemporaryData_.headerValueView = std::string_view(data, size);
+			self->temporaryData_.headerValueView = std::string_view(data, size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// header value splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->parserTemporaryData_.headerValueMerged,
-				self->parserTemporaryData_.headerValueView,
+				self->temporaryData_.headerValueMerged,
+				self->temporaryData_.headerValueView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -373,11 +373,11 @@ namespace cpv {
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// all headers received, flush last header field and value
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.headerValueMerged);
+			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerValueMerged);
 			self->request_.setHeader(
-				self->parserTemporaryData_.headerFieldView,
-				self->parserTemporaryData_.headerValueView);
+				self->temporaryData_.headerFieldView,
+				self->temporaryData_.headerValueView);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// no headers but url
 			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
@@ -386,10 +386,10 @@ namespace cpv {
 			return -1;
 		}
 		// flush method, url and version
-		flushMergedTemporaryBuffer(self->request_, self->parserTemporaryData_.urlMerged);
+		flushMergedTemporaryBuffer(self->request_, self->temporaryData_.urlMerged);
 		self->request_.setMethod(::http_method_str(
 			static_cast<enum ::http_method>(self->parser_.method)));
-		self->request_.setUrl(self->parserTemporaryData_.urlView);
+		self->request_.setUrl(self->temporaryData_.urlView);
 		self->request_.setVersion(getHttpVersionString(self->parser_));
 		return 0;
 	}
@@ -398,23 +398,23 @@ namespace cpv {
 		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
 		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
 			// received initial body, share lastBuffer to bodyBuffer
-			auto& lastBuffer = self->parserTemporaryData_.lastBuffer;
+			auto& lastBuffer = self->temporaryData_.lastBuffer;
 			self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			self->parserTemporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
+			self->temporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
 		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// received initial chunked body, share lastBuffer to moreBodyBuffers
-			auto& lastBuffer = self->parserTemporaryData_.lastBuffer;
-			self->parserTemporaryData_.moreBodyBuffers.emplace_back(
+			auto& lastBuffer = self->temporaryData_.lastBuffer;
+			self->temporaryData_.moreBodyBuffers.emplace_back(
 				lastBuffer.share(data - lastBuffer.get(), size));
 		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
 			// receive body when replying response (called from request stream)
-			auto& bodyBuffer = self->parserTemporaryData_.bodyBuffer;
+			auto& bodyBuffer = self->temporaryData_.bodyBuffer;
 			if (bodyBuffer.size() == 0) {
 				// move lastBuffer to bodyBuffer
-				bodyBuffer = std::move(self->parserTemporaryData_.lastBuffer);
+				bodyBuffer = std::move(self->temporaryData_.lastBuffer);
 			} else {
 				// share bodyBuffer to moreBodyBuffers
-				self->parserTemporaryData_.moreBodyBuffers.emplace_back(
+				self->temporaryData_.moreBodyBuffers.emplace_back(
 					bodyBuffer.share(data - bodyBuffer.get(), size));
 			}
 		} else {
@@ -430,10 +430,10 @@ namespace cpv {
 			self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// no body or all body is received before reply
 			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
-			self->parserTemporaryData_.messageCompleted = true;
+			self->temporaryData_.messageCompleted = true;
 		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
 			// all body received when replying response (called from request stream)
-			self->parserTemporaryData_.messageCompleted = true;
+			self->temporaryData_.messageCompleted = true;
 		} else {
 			// state error
 			return -1;

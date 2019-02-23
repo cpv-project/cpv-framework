@@ -83,6 +83,7 @@ namespace cpv {
 		HttpResponse response_;
 		::http_parser_settings parserSettings_;
 		::http_parser parser_;
+		// temporary data for single request, store in unnamed struct for easily reset
 		struct {
 			// the last buffer received, store from receiveSingleRequest or request stream
 			seastar::temporary_buffer<char> lastBuffer;
@@ -103,7 +104,7 @@ namespace cpv {
 			StackAllocatedVector<seastar::temporary_buffer<char>, 16> moreBodyBuffers;
 			// is message completed (no body or all body received)
 			bool messageCompleted = false;
-		} parserTemporaryData_;
+		} temporaryData_;
 		// the rest of buffer for next request received from pipeline
 		seastar::temporary_buffer<char> nextRequestBuffer_;
 	};
