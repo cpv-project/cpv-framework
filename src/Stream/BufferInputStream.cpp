@@ -11,6 +11,11 @@ namespace cpv {
 		}
 	}
 	
+	/** Get the total size of stream */
+	std::optional<std::size_t> BufferInputStream::size() const {
+		return size_;
+	}
+	
 	/** For Object<> */
 	void BufferInputStream::freeResources() {
 		buf_ = {};
@@ -19,6 +24,7 @@ namespace cpv {
 	/** For Object<> */
 	void BufferInputStream::reset(seastar::temporary_buffer<char>&& buf) {
 		buf_ = std::move(buf);
+		size_ = buf_.size();
 	}
 	
 	/** Constructor */

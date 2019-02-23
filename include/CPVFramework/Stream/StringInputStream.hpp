@@ -8,6 +8,9 @@ namespace cpv {
 		/** Read data from stream, notice the lifetime of data is bound to stream */
 		seastar::future<InputStreamReadResult> read() override;
 		
+		/** Get the total size of stream */
+		std::optional<std::size_t> size() const override;
+		
 		/** For Object<> */
 		void freeResources();
 		

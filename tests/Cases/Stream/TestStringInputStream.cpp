@@ -10,6 +10,8 @@ TEST_FUTURE(TestStringInputStream, all) {
 		[] (auto& stream) {
 		stream.reset("test data");
 		return stream.read().then([&stream] (auto&& result) {
+			ASSERT_TRUE(stream.size().has_value());
+			ASSERT_EQ(*stream.size(), 9U);
 			ASSERT_EQ(result.view(), "test data");
 			ASSERT_TRUE(result.isEnd);
 		}).then([&stream] {

@@ -9,6 +9,9 @@ namespace cpv {
 		/** Read data from stream */
 		seastar::future<InputStreamReadResult> read() override;
 		
+		/** Get the total size of stream */
+		std::optional<std::size_t> size() const override;
+		
 		/** For Object<> */
 		void freeResources();
 		
@@ -20,6 +23,7 @@ namespace cpv {
 		
 	private:
 		seastar::temporary_buffer<char> buf_;
+		std::size_t size_;
 	};
 }
 

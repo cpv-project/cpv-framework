@@ -79,6 +79,16 @@ namespace cpv {
 		}
 	}
 	
+	/** Get the total size of stream */
+	std::optional<std::size_t> Http11ServerConnectionRequestStream::size() const {
+		std::size_t contentLength = connection_->parser_.content_length;
+		if (CPV_LIKELY(contentLength > 0)) {
+			return contentLength;
+		} else {
+			return { };
+		}
+	}
+	
 	/** For Object<> */
 	void Http11ServerConnectionRequestStream::freeResources() {
 		connection_ = {};

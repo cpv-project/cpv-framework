@@ -14,6 +14,11 @@ namespace cpv {
 		}
 	}
 	
+	/** Get the total size of stream */
+	std::optional<std::size_t> StringInputStream::size() const {
+		return str_.size();
+	}
+	
 	/** For Object<> */
 	void StringInputStream::freeResources() {
 		str_.resize(0);

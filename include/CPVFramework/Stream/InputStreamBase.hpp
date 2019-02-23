@@ -1,5 +1,6 @@
 #pragma once
 #include <string_view>
+#include <optional>
 #include <seastar/core/future.hh>
 #include <seastar/core/temporary_buffer.hh>
 
@@ -35,6 +36,9 @@ namespace cpv {
 		
 		/** Read data from stream */
 		virtual seastar::future<InputStreamReadResult> read() = 0;
+		
+		/** Get the total size of stream, may return empty if not supported */
+		virtual std::optional<std::size_t> size() const { return { }; }
 	};
 }
 
