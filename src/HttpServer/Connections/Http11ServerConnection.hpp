@@ -56,6 +56,9 @@ namespace cpv {
 		/** Reply single response and ensure the request body is completely received */
 		seastar::future<> replySingleResponse();
 		
+		/** Send response headers if it's not sent previously */
+		seastar::future<> flushResponseHeaders();
+		
 		/** Reply error response for invalid http request format, then return exception future */
 		seastar::future<> replyErrorResponseForInvalidFormat();
 		
@@ -104,6 +107,8 @@ namespace cpv {
 			StackAllocatedVector<seastar::temporary_buffer<char>, 16> moreBodyBuffers;
 			// is message completed (no body or all body received)
 			bool messageCompleted = false;
+			// is response headers sent previously
+			bool responseHeadersFlushed = false;
 		} temporaryData_;
 		// the rest of buffer for next request received from pipeline
 		seastar::temporary_buffer<char> nextRequestBuffer_;

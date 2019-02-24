@@ -1,11 +1,13 @@
 #include <seastar/core/sleep.hh>
-#include <seastar/core/scattered_message.hh>
 #include <seastar/net/packet.hh>
 #include <CPVFramework/Exceptions/FormatException.hpp>
 #include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
+#include <CPVFramework/Utility/ConstantStrings.hpp>
+#include <CPVFramework/Utility/DateUtils.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
+#include <CPVFramework/Utility/PacketUtils.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
 #include "Http11ServerConnection.hpp"
 
@@ -276,6 +278,71 @@ namespace cpv {
 					CPV_CODEINFO, "invalid state after received single request:", state_));
 			});
 		}
+	}
+	
+	/** Send response headers if it's not sent previously */
+	seastar::future<> Http11ServerConnection::flushResponseHeaders() {
+		// caller should check responseHeadersFlushed before, so it's unlikely
+		if (CPV_UNLIKELY(temporaryData_.responseHeadersFlushed)) {
+			return seastar::make_ready_future<>();
+		}
+		// determine response http protocol version
+		std::string_view version = response_.getVersion();
+		if (CPV_LIKELY(version.empty())) {
+			// copy version from request
+			version = request_.getVersion();
+			if (CPV_UNLIKELY(version.empty())) {
+				// request version is unsupported
+				version = constants::Http10;
+			}
+			// store version for determine keepalive later
+			response_.setVersion(version);
+		}
+		// determine value of date header
+		std::string_view date;
+		auto& headers = response_.getHeaders();
+		auto dateIt = headers.find(constants::Date);
+		if (CPV_LIKELY(dateIt == headers.end())) {
+			date = formatNowForHttpHeader();
+		} else {
+			date = dateIt->second;
+			headers.erase(dateIt);
+		}
+		// determine value of server header
+		std::string_view server;
+		auto serverIt = headers.find(constants::Server);
+		if (CPV_LIKELY(serverIt == headers.end())) {
+			// no version number for security
+			server = constants::CPVFramework;
+		} else {
+			server = serverIt->second;
+			headers.erase(serverIt);
+		}
+		// calculate fragments count
+		// +6: version, space, status code, space, status message, crlf
+		// +4: date header, colon + space, header value, crlf
+		// +4: server header, colon + space, header value, crlf
+		// + headers count * 4
+		// +1: crlf
+		std::size_t fragmentsCount = 15 + headers.size() * 4;
+		// build zero copy packet
+		// TODO: test packet contains empty segment (empty header value)
+		seastar::net::packet packet(fragmentsCount);
+		packet << version << constants::Space <<
+			response_.getStatusCode() << constants::Space <<
+			response_.getStatusMessage() << constants::CRLF;
+		packet << constants::Date << constants::ColonSpace <<
+			date << constants::CRLF;
+		packet << constants::Server << constants::ColonSpace <<
+			server << constants::CRLF;
+		for (auto& pair : response_.getHeaders()) {
+			packet << pair.first << constants::ColonSpace <<
+				pair.second << constants::CRLF;
+		}
+		packet << constants::CRLF;
+		// send packet
+		temporaryData_.responseHeadersFlushed = true;
+		return socket_.out().write(std::move(packet));
 	}
 	
 	/** Reply error response for invalid http request format, then return exception future */
