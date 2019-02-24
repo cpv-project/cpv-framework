@@ -14,7 +14,7 @@ namespace cpv {
 		/** Virtual destructor */
 		virtual ~OutputStreamBase() = default;
 		
-		/** Write data to stream */
+		/** Write data to stream, please check whether packet is empty first by cast it to bool  */
 		virtual seastar::future<> write(seastar::net::packet&& data) = 0;
 	};
 }
