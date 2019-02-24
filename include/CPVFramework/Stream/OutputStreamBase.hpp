@@ -7,7 +7,7 @@ namespace cpv {
 	 * Interface of simple output stream.
 	 * The write function will take a packet (may contains multiple segments) and
 	 * write the data of segments to stream.
-	 * seastar::scattered_message can build a packet with multiple segments, useful for reducing copy.
+	 * seastar::scattered_message or PacketUtils can build a packet with multiple segments with zero copy.
 	 */
 	class OutputStreamBase {
 	public:
