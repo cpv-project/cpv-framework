@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <string_view>
 #include <algorithm>
+#include "./Macros.hpp"
 
 namespace cpv {
 	/**
@@ -50,7 +51,7 @@ namespace cpv {
 	}
 
 	/**
-	 * Convert integer to hex and write to string
+	 * Convert integer to hex and write to string.
 	 * IntType can be any of int??_t and uint??_t.
 	 * Also see stackoverflow 5100718.
 	 */
@@ -64,7 +65,7 @@ namespace cpv {
 	}
 
 	/**
-	 * Convert integer to decimal and write to string
+	 * Convert integer to decimal and write to string.
 	 * IntType can be any of int??_t and uint??_t.
 	 */
 	template <class IntType, class StringType>
@@ -94,8 +95,8 @@ namespace cpv {
 	}
 
 	/**
-	 * Convert hex to integer
-	 * Return whether the coversion successed
+	 * Convert fixed size (sizeof(IntType)*2) hex string to integer.
+	 * Return whether the coversion is successful.
 	 */
 	template <class IntType>
 	bool loadIntFromHex(const char* hex, IntType& value) {
@@ -122,8 +123,43 @@ namespace cpv {
 	}
 
 	/**
-	 * Convert hex to bytes
-	 * Return whether the coversion successed
+	 * Convert decimal string to integer.
+	 * Return whether the coversion is successful.
+	 * Notice convert minus decimal string to unsigned integer is an error,
+	 * but overflow isn't an error (the overhead of overflow detection is high).
+	 */
+	template <class IntType>
+	bool loadIntFromDec(const char* dec, std::size_t decLength, IntType& value) {
+		const char* decEnd = dec + decLength;
+		bool minus = false;
+		if (CPV_UNLIKELY(dec < decEnd && *dec == '-')) {
+			minus = true;
+			++dec;
+		}
+		std::uint8_t diff = 0;
+		value = 0;
+		while (CPV_LIKELY(dec < decEnd)) {
+			if (CPV_LIKELY((diff = *dec - '0') <= 9)) {
+				value *= 10;
+				value += diff;
+				++dec;
+			} else {
+				return false;
+			}
+		}
+		if constexpr (!std::numeric_limits<IntType>::is_signed) {
+			if (minus) {
+				return false;
+			}
+		} else if (minus) {
+			value = -value;
+		}
+		return true;
+	}
+
+	/**
+	 * Convert hex string to bytes.
+	 * Return whether the coversion is successful.
 	 */
 	template <class StringType>
 	bool loadBytesFromHex(const char* hex, std::size_t hexLength, StringType& str) {

@@ -113,6 +113,46 @@ TEST(TestStringUtils, loadIntFromHex) {
 	}
 }
 
+TEST(TestStringUtils, loadIntFromDec) {
+	{
+		std::int32_t value = 0;
+		ASSERT_TRUE(cpv::loadIntFromDec("123456789", 9, value));
+		ASSERT_EQ(value, 123456789);
+	}
+	{
+		std::int32_t value = 0;
+		ASSERT_TRUE(cpv::loadIntFromDec("987654321", 9, value));
+		ASSERT_EQ(value, 987654321);
+	}
+	{
+		std::int32_t value = 0;
+		ASSERT_TRUE(cpv::loadIntFromDec("-579", 4, value));
+		ASSERT_EQ(value, -579);
+	}
+	{
+		std::int32_t value = 0;
+		ASSERT_FALSE(cpv::loadIntFromDec("123a", 4, value));
+	}
+	{
+		std::int32_t value = 0;
+		ASSERT_FALSE(cpv::loadIntFromDec("-123a", 5, value));
+	}
+	{
+		std::int32_t value = 123;
+		ASSERT_TRUE(cpv::loadIntFromDec("", 0, value));
+		ASSERT_EQ(value, 0);
+	}
+	{
+		std::uint32_t value = 0;
+		ASSERT_TRUE(cpv::loadIntFromDec("918273645", 9, value));
+		ASSERT_EQ(value, 918273645U);
+	}
+	{
+		std::uint32_t value = 0;
+		ASSERT_FALSE(cpv::loadIntFromDec("-918273645", 10, value));
+	}
+}
+
 TEST(TestStringUtils, loadBytesFromHex) {
 	{
 		std::string str;
