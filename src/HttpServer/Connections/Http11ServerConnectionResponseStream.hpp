@@ -10,14 +10,19 @@ namespace cpv {
 	/** The output stream for http 1.0/1.1 response */
 	class Http11ServerConnectionResponseStream : public OutputStreamBase {
 	public:
-		/** Write data to stream */
-		seastar::future<> write(const char* buf, std::size_t size) override;
+		/**
+		 * Write data to stream.
+		 * This function didn't handle chunked data encoding,
+		 * (for performance, add size and crlf to packet may trigger unnecessary allocation)
+		 * chunked data should encode from writer.
+		 */
+		seastar::future<> write(seastar::net::packet&& data) override;
 		
 		/** For Object<> */
 		void freeResources();
 		
 		/** For Object<> */
-		void reset();
+		void reset(seastar::shared_ptr<Http11ServerConnection> connection);
 		
 		/** Constructor */
 		Http11ServerConnectionResponseStream();

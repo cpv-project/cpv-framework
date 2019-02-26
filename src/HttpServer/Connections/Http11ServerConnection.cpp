@@ -264,6 +264,7 @@ namespace cpv {
 				// for response contains body, headers will flush from response stream
 				// TODO
 				// detect version and header to decide whether should keepalive or not
+				// check responseBodyWrittenSize
 				// TODO
 				// discard remain body from request
 				// TODO
