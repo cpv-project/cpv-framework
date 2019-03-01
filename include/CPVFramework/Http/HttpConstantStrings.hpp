@@ -138,7 +138,10 @@ namespace cpv::constants {
 	extern const std::string WWWAuthenticate;
 	extern const std::string XFrameOptions;
 	
-	// mime types
+	// standard response values
+	extern const std::string Chunked;
+	extern const std::string Keepalive;
+	extern const std::string Close;
 	extern const std::string TextPlainUtf8;
 	extern const std::string ApplicationJsonUtf8;
 }

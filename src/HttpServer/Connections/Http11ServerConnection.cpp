@@ -72,6 +72,79 @@ namespace cpv {
 			}
 			return std::string_view();
 		}
+		
+		/**
+		 * Determine whether should keep connection for next request,
+		 * by check http version and connection header.
+		 */
+		static inline bool shouldKeepConnectionForConnectionHeader(
+			const HttpRequest& request,
+			const std::string_view& responseVersion) {
+			// check http version and connection header from request
+			auto& requestHeaders = request.getHeaders();
+			auto requestConnectionIt = requestHeaders.find(constants::Connection);
+			if (CPV_LIKELY(requestConnectionIt != requestHeaders.end() &&
+				requestConnectionIt->second == constants::Keepalive)) {
+				// client wants to keepalive
+				// many browser will send connection header even for http 1.1
+				return true;
+			} else if (CPV_UNLIKELY(responseVersion == constants::Http10)) {
+				// for http 1.0 connection is not keepalive by default
+				return false;
+			} else {
+				// for http > 1.0 connection is keepalive by default
+				return true;
+			}
+		}
+		
+		/**
+		 * Determine whether should keep connection for next request,
+		 * by check content length and received/sent state of request and response.
+		 */
+		static inline bool shouldKeepConnectionForContentLength(
+			const HttpResponse& response,
+			std::size_t responseBodyWrittenSize,
+			bool requestCompleted,
+			const seastar::shared_ptr<Logger>& logger,
+			const seastar::socket_address& clientAddress) {
+			// check whether content length is fixed or chunked
+			auto& responseHeaders = response.getHeaders();
+			auto contentLengthIt = responseHeaders.find(constants::ContentLength);
+			if (CPV_UNLIKELY(contentLengthIt == responseHeaders.end())) {
+				// content length is not fixed, check transfer encoding
+				auto transferEncodingIt = responseHeaders.find(constants::TransferEncoding);
+				if (transferEncodingIt == responseHeaders.end() ||
+					transferEncodingIt->second != constants::Chunked) {
+					// close connection to indicate response is end
+					return false;
+				}
+			} else {
+				// check whether content length of response is matched to written size
+				std::size_t contentLength = 0;
+				if (CPV_UNLIKELY(!loadIntFromDec(
+					contentLengthIt->second.data(),
+					contentLengthIt->second.size(), contentLength))) {
+					logger->log(LogLevel::Warning,
+						"going to close inconsistent connection from", clientAddress,
+						"because content length of response isn't integer");
+					return false;
+				}
+				if (CPV_UNLIKELY(contentLength != responseBodyWrittenSize)) {
+					logger->log(LogLevel::Warning,
+						"going to close inconsistent connection from", clientAddress,
+						"because content length of response isn't matched to written size");
+					return false;
+				}
+			}
+			// check whether request content is completely received
+			if (CPV_UNLIKELY(!requestCompleted)) {
+				// close connection to discard remain parts
+				return false;
+			}
+			// request content is completely received,
+			// and response content is written with fixed size or chunked encoding
+			return true;
+		}
 	}
 	
 	/** Enum descriptions of Http11ServerConnectionState */
@@ -261,13 +334,20 @@ namespace cpv {
 			return sharedData_->handlers.front()->handle(
 				request_, response_, sharedData_->handlers.begin() + 1).then([this] {
 				// flush response headers
-				// for response contains body, headers will flush from response stream
-				// TODO
-				// detect version and header to decide whether should keepalive or not
-				// check responseBodyWrittenSize
-				// TODO
-				// discard remain body from request
-				// TODO
+				seastar::future<> flushFuture = flushResponseHeaders();
+				// determine whether should close the connection after response is end
+				if (CPV_LIKELY(temporaryData_.keepConnection)) {
+					temporaryData_.keepConnection = shouldKeepConnectionForContentLength(
+						response_, temporaryData_.responseBodyWrittenSize,
+						temporaryData_.messageCompleted, sharedData_->logger, clientAddress_);
+				}
+				if (CPV_UNLIKELY(!temporaryData_.keepConnection)) {
+					state_ = Http11ServerConnectionState::Closing;
+				}
+				return std::move(flushFuture);
+			}).then([this] {
+				// flush response headers and body
+				return socket_.out().flush();
 			});
 		} else if (state_ == Http11ServerConnectionState::Closing) {
 			// connection closing
@@ -319,13 +399,32 @@ namespace cpv {
 			server = serverIt->second;
 			headers.erase(serverIt);
 		}
+		// determine value of connection header
+		std::string_view connection;
+		temporaryData_.keepConnection = shouldKeepConnectionForConnectionHeader(request_, version);
+		auto connectionIt = headers.find(constants::Connection);
+		if (CPV_LIKELY(connectionIt == headers.end())) {
+			if (CPV_LIKELY(temporaryData_.keepConnection)) {
+				connection = constants::Keepalive;
+			} else {
+				connection = constants::Close;
+			}
+		} else {
+			// custom connection header, close connection if it isn't keep-alive
+			if (CPV_LIKELY(connection != constants::Keepalive)) {
+				temporaryData_.keepConnection = false;
+			}
+			connection = connectionIt->second;
+			headers.erase(connectionIt);
+		}
 		// calculate fragments count
 		// +6: version, space, status code, space, status message, crlf
 		// +4: date header, colon + space, header value, crlf
 		// +4: server header, colon + space, header value, crlf
+		// +4: connection header, colon + space, header value, crlf
 		// + headers count * 4
 		// +1: crlf
-		std::size_t fragmentsCount = 15 + headers.size() * 4;
+		std::size_t fragmentsCount = 19 + headers.size() * 4;
 		// build zero copy packet
 		// TODO: test packet contains empty segment (empty header value)
 		seastar::net::packet packet(fragmentsCount);
@@ -336,6 +435,8 @@ namespace cpv {
 			date << constants::CRLF;
 		packet << constants::Server << constants::ColonSpace <<
 			server << constants::CRLF;
+		packet << constants::Connection << constants::ColonSpace <<
+			connection << constants::CRLF;
 		for (auto& pair : response_.getHeaders()) {
 			packet << pair.first << constants::ColonSpace <<
 				pair.second << constants::CRLF;

@@ -111,6 +111,8 @@ namespace cpv {
 			bool responseHeadersFlushed = false;
 			// bytes of response body written to client
 			std::size_t responseBodyWrittenSize = 0;
+			// is connection kept for next request
+			bool keepConnection = false;
 		} temporaryData_;
 		// the rest of buffer for next request received from pipeline
 		seastar::temporary_buffer<char> nextRequestBuffer_;
