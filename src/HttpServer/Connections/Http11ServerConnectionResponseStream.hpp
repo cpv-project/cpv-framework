@@ -1,6 +1,5 @@
 #pragma once
 #include <seastar/core/future.hh>
-#include <seastar/core/shared_ptr.hh>
 #include <CPVFramework/Stream/OutputStreamBase.hpp>
 
 namespace cpv {
@@ -22,13 +21,14 @@ namespace cpv {
 		void freeResources();
 		
 		/** For Object<> */
-		void reset(seastar::shared_ptr<Http11ServerConnection> connection);
+		void reset(Http11ServerConnection* connection);
 		
 		/** Constructor */
 		Http11ServerConnectionResponseStream();
 		
 	private:
-		seastar::shared_ptr<Http11ServerConnection> connection_;
+		// the lifetime of stream is rely on the connection
+		Http11ServerConnection* connection_;
 	};
 }
 

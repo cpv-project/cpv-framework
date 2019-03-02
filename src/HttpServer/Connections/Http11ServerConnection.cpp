@@ -335,11 +335,10 @@ namespace cpv {
 			// atleast all headers received, start replying response
 			state_ = Http11ServerConnectionState::ReplyResponse;
 			// setup request and response stream
-			auto self = shared_from_this();
 			request_.setBodyStream(
-				makeObject<Http11ServerConnectionRequestStream>(self).cast<InputStreamBase>());
+				makeObject<Http11ServerConnectionRequestStream>(this).cast<InputStreamBase>());
 			response_.setBodyStream(
-				makeObject<Http11ServerConnectionResponseStream>(std::move(self)).cast<OutputStreamBase>());
+				makeObject<Http11ServerConnectionResponseStream>(this).cast<OutputStreamBase>());
 			// call the first handler
 			return sharedData_->handlers.front()->handle(
 				request_, response_, sharedData_->handlers.begin() + 1).then([this] {

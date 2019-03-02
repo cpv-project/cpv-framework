@@ -23,13 +23,12 @@ namespace cpv {
 	
 	/** For Object<> */
 	void Http11ServerConnectionResponseStream::freeResources() {
-		connection_ = {};
+		connection_ = nullptr;
 	}
 	
 	/** For Object<> */
-	void Http11ServerConnectionResponseStream::reset(
-		seastar::shared_ptr<Http11ServerConnection> connection) {
-		connection_ = std::move(connection);
+	void Http11ServerConnectionResponseStream::reset(Http11ServerConnection* connection) {
+		connection_ = connection;
 	}
 	
 	/** Constructor */

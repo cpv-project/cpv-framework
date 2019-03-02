@@ -91,13 +91,12 @@ namespace cpv {
 	
 	/** For Object<> */
 	void Http11ServerConnectionRequestStream::freeResources() {
-		connection_ = {};
+		connection_ = nullptr;
 	}
 	
 	/** For Object<> */
-	void Http11ServerConnectionRequestStream::reset(
-		seastar::shared_ptr<Http11ServerConnection> connection) {
-		connection_ = std::move(connection);
+	void Http11ServerConnectionRequestStream::reset(Http11ServerConnection* connection) {
+		connection_ = connection;
 		returnedBody_ = false;
 		returnedMoreBodyIndex_ = 0;
 	}
