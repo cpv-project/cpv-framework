@@ -33,3 +33,37 @@ TEST(TestBufferUtils, mergeContentError) {
 		"size of existsContent + newContent overflowed");
 }
 
+TEST(TestBufferUtils, convertIntToBuffer_signed) {
+	{
+		auto buf = cpv::convertIntToBuffer<std::int64_t>(0);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "0");
+	}
+	{
+		auto buf = cpv::convertIntToBuffer<std::int64_t>(123);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "123");
+	}
+	{
+		auto buf = cpv::convertIntToBuffer<std::int64_t>(0x7fff'ffff'ffff'ffffLL);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "9223372036854775807");
+	}
+	{
+		auto buf = cpv::convertIntToBuffer<std::int64_t>(-0x8000'0000'0000'0000LL);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "-9223372036854775808");
+	}
+}
+
+TEST(TestBufferUtils, convertIntToBuffer_unsigned) {
+	{
+		auto buf = cpv::convertIntToBuffer<std::uint64_t>(0);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "0");
+	}
+	{
+		auto buf = cpv::convertIntToBuffer<std::uint64_t>(123);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "123");
+	}
+	{
+		auto buf = cpv::convertIntToBuffer<std::uint64_t>(0xffff'ffff'ffff'ffffLL);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "18446744073709551615");
+	}
+}
+

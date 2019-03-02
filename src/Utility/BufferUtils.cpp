@@ -58,12 +58,11 @@ namespace cpv {
 	seastar::temporary_buffer<char> convertIntToBuffer(std::uintmax_t value) {
 		static const constexpr std::size_t MaxStringSize = getMaxStringSize<std::uintmax_t>(10);
 		seastar::temporary_buffer<char> buf(MaxStringSize);
-		char* lastChar = buf.get_write() + MaxStringSize - 1;
+		char* lastChar = buf.get_write() + MaxStringSize;
 		do {
 			std::size_t rem = value % 10;
 			value /= 10;
-			*lastChar = DecimalDigits[rem];
-			--lastChar;
+			*(--lastChar) = DecimalDigits[rem];
 		} while (value != 0);
 		buf.trim_front(lastChar - buf.get());
 		return buf;
@@ -73,16 +72,15 @@ namespace cpv {
 	seastar::temporary_buffer<char> convertIntToBuffer(std::intmax_t value) {
 		static const constexpr std::size_t MaxStringSize = getMaxStringSize<std::intmax_t>(10);
 		seastar::temporary_buffer<char> buf(MaxStringSize);
-		char* lastChar = buf.get_write() + MaxStringSize - 1;
+		char* lastChar = buf.get_write() + MaxStringSize;
 		bool isNegative = value < 0;
 		do {
 			std::intmax_t rem = value % 10;
 			value /= 10;
-			*lastChar = DecimalDigits[rem >= 0 ? rem : -rem];
-			--lastChar;
+			*(--lastChar) = DecimalDigits[rem >= 0 ? rem : -rem];
 		} while (value != 0);
 		if (isNegative) {
-			*lastChar = '-';
+			*(--lastChar) = '-';
 		}
 		buf.trim_front(lastChar - buf.get());
 		return buf;
