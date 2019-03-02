@@ -17,6 +17,7 @@ namespace cpv {
 	}
 	
 	/** For Object<> */
+	// cppcheck-suppress unusedFunction
 	void BufferInputStream::freeResources() {
 		buf_ = {};
 	}
@@ -29,6 +30,7 @@ namespace cpv {
 	
 	/** Constructor */
 	BufferInputStream::BufferInputStream() :
-		buf_() { }
+		buf_(),
+		size_() { }
 }
 

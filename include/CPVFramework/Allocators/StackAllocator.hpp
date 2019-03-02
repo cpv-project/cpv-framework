@@ -74,7 +74,9 @@ namespace cpv {
 		
 		/** Copy constructor, copy nothing because the storage is fixed */
 		template <class U, size_t UInitialSize, class UUpstreamAllocator>
+		// cppcheck-suppress uninitMemberVar
 		StackAllocator(const StackAllocator<U, UInitialSize, UUpstreamAllocator>&) : StackAllocator() { }
+		// cppcheck-suppress uninitMemberVar
 		StackAllocator(const StackAllocator&) : StackAllocator() { }
 		
 		/** Disable move consturctor */
@@ -134,6 +136,7 @@ namespace cpv {
 		StackAllocatedVector() { this->reserve(InitialSize); }
 		StackAllocatedVector(const StackAllocatedVector& other) : Base(other) { }
 		StackAllocatedVector(StackAllocatedVector&& other) : Base(std::move(other), Allocator()) { }
+		// cppcheck-suppress noExplicitConstructor
 		StackAllocatedVector(std::initializer_list<T> items) {
 			this->reserve(std::max(InitialSize, items.size()));
 			for (auto& item : items) {
@@ -182,6 +185,7 @@ namespace cpv {
 			}
 			other.clear();
 		}
+		// cppcheck-suppress noExplicitConstructor
 		StackAllocatedUnorderedMap(std::initializer_list<std::pair<const Key, T>> items) {
 			this->reserve(std::max(InitialSize, items.size()));
 			for (auto& item : items) {

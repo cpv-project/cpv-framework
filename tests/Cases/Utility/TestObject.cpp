@@ -77,7 +77,6 @@ TEST(TestObject, moveAssignment) {
 			auto a = cpv::makeObject<Derived>(record);
 			auto b = cpv::Object<Derived>(nullptr).cast<Base>();
 			cpv::Object<Derived> c(nullptr);
-			// cppcheck-suppress redundantAssignment
 			b = std::move(a).cast<Base>();
 			b = std::move(b);
 			c = std::move(b).cast<Derived>();
