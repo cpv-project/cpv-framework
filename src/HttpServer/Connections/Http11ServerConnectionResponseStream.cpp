@@ -11,12 +11,12 @@ namespace cpv {
 		} else if (connection_->temporaryData_.responseHeadersFlushed) {
 			// headers are flushed, send data directly
 			connection_->temporaryData_.responseBodyWrittenSize += data.len();
-			return connection_->socket_.out().write(std::move(data));
+			return connection_->socket_.out().put(std::move(data));
 		} else {
 			// flush headers first, then send data directly
 			return connection_->flushResponseHeaders().then([this, d=std::move(data)]() mutable {
 				connection_->temporaryData_.responseBodyWrittenSize += d.len();
-				return connection_->socket_.out().write(std::move(d));
+				return connection_->socket_.out().put(std::move(d));
 			});
 		}
 	}

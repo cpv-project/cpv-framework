@@ -9,7 +9,11 @@
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/PacketUtils.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
-#include "Http11ServerConnection.hpp"
+#include "./Http11ServerConnection.hpp"
+#include "./Http11ServerConnectionRequestStream.hpp"
+#include "./Http11ServerConnectionResponseStream.hpp"
+
+// TODO: support metrics
 
 namespace cpv {
 	namespace {
@@ -46,7 +50,7 @@ namespace cpv {
 		
 		/** Reply static response string and flush the output stream */
 		static seastar::future<> replyStaticResponse(SocketHolder& s, const std::string_view& str) {
-			return s.out().write(seastar::net::packet::from_static_data(str.data(), str.size()))
+			return s.out().put(seastar::net::packet::from_static_data(str.data(), str.size()))
 				.then([&s] { s.out().flush(); });
 		}
 		
@@ -330,6 +334,12 @@ namespace cpv {
 			state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
 			// atleast all headers received, start replying response
 			state_ = Http11ServerConnectionState::ReplyResponse;
+			// setup request and response stream
+			auto self = shared_from_this();
+			request_.setBodyStream(
+				makeObject<Http11ServerConnectionRequestStream>(self).cast<InputStreamBase>());
+			response_.setBodyStream(
+				makeObject<Http11ServerConnectionResponseStream>(std::move(self)).cast<OutputStreamBase>());
 			// call the first handler
 			return sharedData_->handlers.front()->handle(
 				request_, response_, sharedData_->handlers.begin() + 1).then([this] {
@@ -426,7 +436,6 @@ namespace cpv {
 		// +1: crlf
 		std::size_t fragmentsCount = 19 + headers.size() * 4;
 		// build zero copy packet
-		// TODO: test packet contains empty segment (empty header value)
 		seastar::net::packet packet(fragmentsCount);
 		packet << version << constants::Space <<
 			response_.getStatusCode() << constants::Space <<
@@ -444,7 +453,7 @@ namespace cpv {
 		packet << constants::CRLF;
 		// send packet
 		temporaryData_.responseHeadersFlushed = true;
-		return socket_.out().write(std::move(packet));
+		return socket_.out().put(std::move(packet));
 	}
 	
 	/** Reply error response for invalid http request format, then return exception future */

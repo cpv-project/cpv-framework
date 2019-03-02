@@ -1,12 +1,33 @@
+#include <cstring>
 #include <algorithm>
 #include <limits>
-#include <cstring>
 #include <CPVFramework/Exceptions/OverflowException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
+#include <CPVFramework/Utility/Macros.hpp>
 
 namespace cpv {
-	/** Minimal temporary buffer capacity for mergeContent */
-	static const std::size_t MinTemporaryBufferCapacityForMerge = 512;
+	namespace {
+		/** Minimal temporary buffer capacity for mergeContent */
+		static const std::size_t MinTemporaryBufferCapacityForMerge = 512;
+		
+		/** Get max string size of integer, doesn't include zero terminator */
+		template <class IntType>
+		constexpr std::size_t getMaxStringSize(std::size_t base) {
+			IntType max = std::numeric_limits<IntType>::max();
+			std::size_t result = 1; // the first digit
+			if (std::numeric_limits<IntType>::is_signed) {
+				++result; // the sign
+			} 
+			while (static_cast<std::make_unsigned_t<IntType>>(max) >= base) {
+				++result;
+				max /= base;
+			}
+			return result;
+		}
+		
+		/** For convertIntToBuffer */
+		static const char DecimalDigits[] = "0123456789";
+	}
 	
 	/** Store existsContent + newContent to buffer, make existsContent point to merged content */
 	void mergeContent(
@@ -31,6 +52,40 @@ namespace cpv {
 		}
 		// make existsContent point to merged content
 		existsContent = std::string_view(buffer.get(), newSize);
+	}
+	
+	/** Convert unsigned integer to string and return a temporary buffer store the string */
+	seastar::temporary_buffer<char> convertIntToBuffer(std::uintmax_t value) {
+		static const constexpr std::size_t MaxStringSize = getMaxStringSize<std::uintmax_t>(10);
+		seastar::temporary_buffer<char> buf(MaxStringSize);
+		char* lastChar = buf.get_write() + MaxStringSize - 1;
+		do {
+			std::size_t rem = value % 10;
+			value /= 10;
+			*lastChar = DecimalDigits[rem];
+			--lastChar;
+		} while (value != 0);
+		buf.trim_front(lastChar - buf.get());
+		return buf;
+	}
+	
+	/** Convert signed integer to string and return a temporary buffer store the string */
+	seastar::temporary_buffer<char> convertIntToBuffer(std::intmax_t value) {
+		static const constexpr std::size_t MaxStringSize = getMaxStringSize<std::intmax_t>(10);
+		seastar::temporary_buffer<char> buf(MaxStringSize);
+		char* lastChar = buf.get_write() + MaxStringSize - 1;
+		bool isNegative = value < 0;
+		do {
+			std::intmax_t rem = value % 10;
+			value /= 10;
+			*lastChar = DecimalDigits[rem >= 0 ? rem : -rem];
+			--lastChar;
+		} while (value != 0);
+		if (isNegative) {
+			*lastChar = '-';
+		}
+		buf.trim_front(lastChar - buf.get());
+		return buf;
 	}
 }
 
