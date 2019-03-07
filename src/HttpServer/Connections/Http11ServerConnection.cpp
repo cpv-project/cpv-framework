@@ -14,6 +14,7 @@
 #include "./Http11ServerConnectionResponseStream.hpp"
 
 // TODO: support metrics
+// TODO: add more metrics targets such as timeout
 
 namespace cpv {
 	namespace {
@@ -87,11 +88,16 @@ namespace cpv {
 			// check http version and connection header from request
 			auto& requestHeaders = request.getHeaders();
 			auto requestConnectionIt = requestHeaders.find(constants::Connection);
-			if (CPV_LIKELY(requestConnectionIt != requestHeaders.end() &&
-				requestConnectionIt->second == constants::Keepalive)) {
-				// client wants to keepalive
-				// many browser will send connection header even for http 1.1
-				return true;
+			if (CPV_LIKELY(requestConnectionIt != requestHeaders.end())) {
+				if (CPV_LIKELY(requestConnectionIt->second == constants::Keepalive)) {
+					// client wants to keepalive
+					// many browser will send connection header even for http 1.1
+					return true;
+				} else {
+					// client doesn't want to keepalive
+					// it may be "close" or other unsupported string literal
+					return false;
+				}
 			} else if (CPV_UNLIKELY(responseVersion == constants::Http10)) {
 				// for http 1.0 connection is not keepalive by default
 				return false;
@@ -200,7 +206,9 @@ namespace cpv {
 			self->sharedData_->logger->log(LogLevel::Info,
 				"abort http connection from:", self->clientAddress_, "because of", ex);
 		}).then([self] {
-			// remove self from connections collection (it's weak_ptr)
+			// cancel timer anyway in case of connection error
+			self->shutdownInputTimer_.cancel();
+			// remove self from connections collection (notice it's weak_ptr)
 			auto* connectionsPtr = self->sharedData_->connectionsWrapper.get();
 			std::size_t connectionsCount = 0;
 			if (connectionsPtr != nullptr) {
@@ -247,7 +255,8 @@ namespace cpv {
 		parserSettings_(),
 		parser_(),
 		temporaryData_(),
-		nextRequestBuffer_() {
+		nextRequestBuffer_(),
+		shutdownInputTimer_() {
 		// setup http parser
 		::http_parser_settings_init(&parserSettings_);
 		::http_parser_init(&parser_, HTTP_REQUEST);
@@ -259,6 +268,13 @@ namespace cpv {
 		parserSettings_.on_body = onBody;
 		parserSettings_.on_message_complete = onMessageComplete;
 		parser_.data = this;
+		// setup timer
+		shutdownInputTimer_.set_callback([this] {
+			sharedData_->logger->log(LogLevel::Info,
+				"abort http connection from:", clientAddress_,
+				"because of initial request timeout");
+			socket_.socket().shutdown_input();
+		});
 	}
 	
 	/** Receive headers from single request, the body may not completely received */
@@ -268,10 +284,17 @@ namespace cpv {
 			return seastar::make_ready_future<>();
 		}
 		// receive request headers
+		// use custom timer instead of seastar::with_timeout for following reasons:
+		// - with_timeout will allocate a new timer and the callback function each time
+		// - delete connected_socket before read operation is finished will cause use-after-delete error
+		shutdownInputTimer_.arm(seastar::timer<>::clock::now() +
+			sharedData_->configuration.getInitialRequestTimeout());
 		seastar::future f = (nextRequestBuffer_.size() == 0 ?
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
 		return std::move(f).then([this] (seastar::temporary_buffer<char> tempBuffer) {
+			// cancel timer
+			shutdownInputTimer_.cancel();
 			// store the last buffer received
 			auto& lastBuffer = temporaryData_.lastBuffer;
 			lastBuffer = std::move(tempBuffer);

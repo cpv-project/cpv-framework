@@ -32,6 +32,17 @@ namespace cpv {
 		data_->maxInitialRequestPackets = maxInitialRequestPackets;
 	}
 	
+	/** Get timeout of initial request in milliseconds */
+	std::chrono::milliseconds HttpServerConfiguration::getInitialRequestTimeout() const {
+		return data_->initialRequestTimeout;
+	}
+	
+	/** Set timeout of initial request in milliseconds */
+	void HttpServerConfiguration::setInitialRequestTimeout(
+		const std::chrono::milliseconds& initialRequestTimeout) {
+		data_->initialRequestTimeout = initialRequestTimeout;
+	}
+	
 	/** Constructor */
 	HttpServerConfiguration::HttpServerConfiguration() :
 		data_(std::make_unique<HttpServerConfigurationData>()) { }

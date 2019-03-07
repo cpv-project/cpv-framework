@@ -1,5 +1,6 @@
 #pragma once
 #include <http_parser.h>
+#include <seastar/core/timer.hh>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
@@ -116,6 +117,8 @@ namespace cpv {
 		} temporaryData_;
 		// the rest of buffer for next request received from pipeline
 		seastar::temporary_buffer<char> nextRequestBuffer_;
+		// the timer use to implement initial request timeout
+		seastar::timer<> shutdownInputTimer_;
 	};
 }
 

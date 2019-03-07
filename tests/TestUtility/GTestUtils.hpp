@@ -1,5 +1,8 @@
 #pragma once
+#include <string>
 #include <gtest/gtest.h>
+#include <seastar/core/future.hh>
+#include <seastar/net/packet.hh>
 
 #define TEST_FUTURE(caseName, testName) \
 	static seastar::future<> caseName##_##testName##_FutureTestBody(); \
@@ -32,10 +35,13 @@
 
 #define ASSERT_THROWS(exception, expression) ASSERT_THROWS_CONTAINS(exception, expression, "")
 
-namespace cpv {
-	namespace Internal_Gtest {
-		int runAllTests(int argc, char** argv);
-	}
+namespace cpv::gtest {
+	/** the main function of test executable */
+	int runAllTests(int argc, char** argv);
+	
+	/** create tcp connection, send request then return received response as string */
+	seastar::future<std::string> tcpSendRequest(
+		const std::string& ip, std::size_t port, seastar::net::packet p);
 }
 
 namespace {

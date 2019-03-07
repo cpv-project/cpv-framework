@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <string>
 #include <vector>
 #include <memory>
@@ -34,6 +35,16 @@ namespace cpv {
 		 * This is a security setting for protection of out of memory attack.
 		 */
 		void setMaxInitialRequestPackets(std::size_t maxInitialRequestPackets);
+		
+		/** Get timeout of initial request in milliseconds, the default value is 30000 (30s) */
+		std::chrono::milliseconds getInitialRequestTimeout() const;
+		
+		/**
+		 * Set timeout of initial request in milliseconds.
+		 * This setting will help http server close idle keep-alive connections.
+		 * This setting only apply to initial request, doesn't apply to request body.
+		 */
+		void setInitialRequestTimeout(const std::chrono::milliseconds& initialRequestTimeout);
 		
 		/** Constructor */
 		HttpServerConfiguration();

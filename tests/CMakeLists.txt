@@ -42,3 +42,10 @@ elseif (CMAKE_BUILD_TYPE MATCHES Debug)
 		asan ubsan ${SEASTAR_DEBUG_LDFLAGS} gtest_main CPVFramework)
 endif()
 
+# add predefined macros
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+	HTTP_SERVER_1_IP="${HTTP_SERVER_1_IP}"
+	HTTP_SERVER_1_PORT=${HTTP_SERVER_1_PORT}
+	HTTP_SERVER_2_IP="${HTTP_SERVER_2_IP}"
+	HTTP_SERVER_2_PORT=${HTTP_SERVER_2_PORT})
+
