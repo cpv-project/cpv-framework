@@ -2,14 +2,14 @@
 #include <seastar/core/reactor.hh>
 #include <seastar/core/sleep.hh>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
+#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/HttpServer/HttpServer.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest500Handler.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
+#include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
-#include <CPVFramework/Utility/BufferUtils.hpp>
-#include <CPVFramework/Utility/ConstantStrings.hpp>
 #include <CPVFramework/Utility/PacketUtils.hpp>
-#include "TestHttpServer.Base.hpp"
+#include "./TestHttpServer.Base.hpp"
 
 namespace cpv::gtest {
 	/** Generic test runner for http server */
@@ -63,7 +63,7 @@ namespace cpv::gtest {
 		});
 	}
 	
-	/** Reply url and header values in response body */
+	/** Reply request url and header values in response body */
 	seastar::future<> HttpCheckHeadersHandler::handle(
 		cpv::HttpRequest& request,
 		cpv::HttpResponse& response,
@@ -86,14 +86,23 @@ namespace cpv::gtest {
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, "Thu, 01 Jan 1970 00:00:00 GMT");
-		if (p.len() < constants::Integers.size()) {
-			response.setHeader(constants::ContentLength, constants::Integers.at(p.len()));
-		} else {
-			auto buf = convertIntToBuffer(p.len());
-			response.setHeader(constants::ContentLength, std::string_view(buf.get(), buf.size()));
-			response.addUnderlyingBuffer(std::move(buf));
-		}
+		extensions::setHeader(response, constants::ContentLength, p.len());
 		return extensions::writeAll(response.getBodyStream(), std::move(p));
+	}
+	
+	/** Reply request body in response body */
+	seastar::future<> HttpCheckBodyHandler::handle(
+		cpv::HttpRequest& request,
+		cpv::HttpResponse& response,
+		const cpv::HttpServerRequestHandlerIterator&) const {
+		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
+			response.setStatusCode(constants::_200);
+			response.setStatusMessage(constants::OK);
+			response.setHeader(constants::ContentType, request.getHeaders().at(constants::ContentType));
+			response.setHeader(constants::Date, "Thu, 01 Jan 1970 00:00:00 GMT");
+			extensions::setHeader(response, constants::ContentLength, str.size());
+			return extensions::writeAll(response.getBodyStream(), std::move(str));
+		});
 	}
 }
 

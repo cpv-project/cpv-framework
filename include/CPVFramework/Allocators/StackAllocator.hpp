@@ -3,6 +3,7 @@
 #include <array>
 #include <type_traits>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <algorithm>
 #include "../Utility/Macros.hpp"
@@ -118,7 +119,7 @@ namespace cpv {
 	}
 	
 	/**
-	 * std::vector uses StackAllocator, reserve initial storage automatically.
+	 * std::vector with StackAllocator, reserve initial storage automatically.
 	 * Size comparison on 64 bit gcc:
 	 * - std::vector<int>: 24
 	 * - StackAllocatedVector<int, 1>: 48 (24 + 4 * 1 (storage) + 4 (padding) + 8 (index) + 8 (count))
@@ -154,7 +155,7 @@ namespace cpv {
 	};
 	
 	/**
-	 * std::unordered_map uses StackAllocator, reserve initial hash table automatically.
+	 * std::unordered_map with StackAllocator, reserve initial hash table automatically.
 	 * - std::unordered_map<int, int>: 56
 	 * - StackAllocatedUnorderedMap<int, int, 1>: 88 (56 + 16 (storage) + 8 (index) + 8 (count))
 	 * - StackAllocatedUnorderedMap<int, int, 100>: 1672 (56 + 16 * 100 (storage) + 8 (index) + 8 (count))
@@ -197,6 +198,51 @@ namespace cpv {
 			return *this;
 		}
 		StackAllocatedUnorderedMap& operator=(StackAllocatedUnorderedMap&& other) {
+			Base::operator=(std::move(other));
+			return *this;
+		}
+	};
+	
+	/**
+	 * std::map with StackAllocator.
+	 * - std::unordered_map<int, int>: 56
+	 * - StackAllocatedUnorderedMap<int, int, 1>: 88 (56 + 16 (storage) + 8 (index) + 8 (count))
+	 * - StackAllocatedUnorderedMap<int, int, 100>: 1672 (56 + 16 * 100 (storage) + 8 (index) + 8 (count))
+	 */
+	template <
+		class Key,
+		class T,
+		std::size_t InitialSize,
+		class Compare = std::less<Key>,
+		class UpstreamAllocator = std::allocator<std::pair<const Key, T>>,
+		class Allocator = StackAllocator<std::pair<const Key, T>, InitialSize, UpstreamAllocator>>
+	class StackAllocatedMap : public std::map<Key, T, Compare, Allocator> {
+	private:
+		using Base = std::map<Key, T, Compare, Allocator>;
+	public:
+		StackAllocatedMap() { }
+		StackAllocatedMap(const StackAllocatedMap& other) : Base() {
+			for (auto& item : other) {
+				this->emplace(item);
+			}
+		}
+		StackAllocatedMap(StackAllocatedMap&& other) : Base() {
+			for (auto& item : other) {
+				this->emplace(std::move(item));
+			}
+			other.clear();
+		}
+		// cppcheck-suppress noExplicitConstructor
+		StackAllocatedMap(std::initializer_list<std::pair<const Key, T>> items) {
+			for (auto& item : items) {
+				this->emplace(std::move(item));
+			}
+		}
+		StackAllocatedMap& operator=(const StackAllocatedMap& other) {
+			Base::operator=(other);
+			return *this;
+		}
+		StackAllocatedMap& operator=(StackAllocatedMap&& other) {
 			Base::operator=(std::move(other));
 			return *this;
 		}

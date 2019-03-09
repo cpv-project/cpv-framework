@@ -19,7 +19,7 @@ namespace cpv {
 	class HttpResponse {
 	public:
 		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
-		using HeadersType = StackAllocatedUnorderedMap<std::string_view, std::string_view, 32>;
+		using HeadersType = StackAllocatedMap<std::string_view, std::string_view, 32>;
 		
 		/** Get the http version string, e.g. "HTTP/1.1" */
 		std::string_view getVersion() const&;

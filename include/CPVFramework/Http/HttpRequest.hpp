@@ -17,7 +17,7 @@ namespace cpv {
 	class HttpRequest {
 	public:
 		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
-		using HeadersType = StackAllocatedUnorderedMap<std::string_view, std::string_view, 32>;
+		using HeadersType = StackAllocatedMap<std::string_view, std::string_view, 32>;
 		
 		/** Get the request method, e.g. "GET" */
 		std::string_view getMethod() const&;

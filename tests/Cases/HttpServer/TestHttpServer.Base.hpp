@@ -12,8 +12,17 @@ namespace cpv::gtest {
 	/** Generic test runner for http server */
 	seastar::future<> runHttpServerTest(HttpServerTestFunctions&& testFunctions);
 	
-	/** Handler that reply url and header values in response body */
+	/** Handler that echo request url and header values in response body */
 	class HttpCheckHeadersHandler : public cpv::HttpServerRequestHandlerBase {
+	public:
+		seastar::future<> handle(
+			cpv::HttpRequest& request,
+			cpv::HttpResponse& response,
+			const cpv::HttpServerRequestHandlerIterator&) const override;
+	};
+	
+	/** Handler that echo request body in response body */
+	class HttpCheckBodyHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
 			cpv::HttpRequest& request,
