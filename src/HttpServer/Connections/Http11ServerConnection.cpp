@@ -49,6 +49,20 @@ namespace cpv {
 				"Error: invalid state after received single request.\r\n");
 		}
 		
+		/**
+		 * Override global setting of max header size in http_parser.
+		 * The header size is checked in this framework, the parser library doesn't have to check it.
+		 */
+		static const bool HttpMaxHeaderSizeIsOverridden = ([] {
+			#if HTTP_PARSER_VERSION_MAJOR > 2 || \
+				(HTTP_PARSER_VERSION_MAJOR == 2 && HTTP_PARSER_VERSION_MINOR >= 9)
+				::http_parser_set_max_header_size(std::numeric_limits<std::uint32_t>::max());
+				return true;
+			#else
+				return false;
+			#endif
+		})();
+		
 		/** Reply static response string and flush the output stream */
 		static seastar::future<> replyStaticResponse(SocketHolder& s, const std::string_view& str) {
 			return s.out().put(seastar::net::packet::from_static_data(str.data(), str.size()))
@@ -193,8 +207,11 @@ namespace cpv {
 			[self] {
 			// handle single request
 			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
+			// initialize http parser
+			::http_parser_init(&self->parser_, HTTP_REQUEST);
+			self->parser_.data = self.get();
+			// reset members if it's not the first request
 			if (self->temporaryData_.messageCompleted) {
-				// reset members if it's not the first request
 				self->request_ = {};
 				self->response_ = {};
 				self->temporaryData_ = {};
@@ -257,9 +274,8 @@ namespace cpv {
 		temporaryData_(),
 		nextRequestBuffer_(),
 		shutdownInputTimer_() {
-		// setup http parser
+		// initialize http parser settings
 		::http_parser_settings_init(&parserSettings_);
-		::http_parser_init(&parser_, HTTP_REQUEST);
 		parserSettings_.on_message_begin = onMessageBegin;
 		parserSettings_.on_url = onUrl;
 		parserSettings_.on_header_field = onHeaderField;
@@ -267,8 +283,7 @@ namespace cpv {
 		parserSettings_.on_headers_complete = onHeadersComplete;
 		parserSettings_.on_body = onBody;
 		parserSettings_.on_message_complete = onMessageComplete;
-		parser_.data = this;
-		// setup timer
+		// initialize timer
 		shutdownInputTimer_.set_callback([this] {
 			sharedData_->logger->log(LogLevel::Info,
 				"abort http connection from:", clientAddress_,
@@ -333,11 +348,13 @@ namespace cpv {
 				lastBuffer.size());
 			if (parsedSize != lastBuffer.size()) {
 				auto err = static_cast<enum ::http_errno>(parser_.http_errno);
-				if (err == ::http_errno::HPE_CB_message_begin &&
-					temporaryData_.messageCompleted) {
+				if (CPV_LIKELY(err == ::http_errno::HPE_CB_message_begin &&
+					parsedSize > 1 && temporaryData_.messageCompleted)) {
 					// received next request from pipeline
+					// the http parser will become error state,
+					// but it will reinitialize before processing next request
 					nextRequestBuffer_ = lastBuffer.share();
-					nextRequestBuffer_.trim_front(parsedSize);
+					nextRequestBuffer_.trim_front(parsedSize - 1);
 				} else {
 					// parse error
 					return replyErrorResponseForInvalidFormat();
@@ -609,9 +626,11 @@ namespace cpv {
 		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
 			// receive body when replying response (called from request stream)
 			auto& bodyBuffer = self->temporaryData_.bodyBuffer;
-			if (bodyBuffer.size() == 0) {
+			if (bodyBuffer.empty()) {
 				// move lastBuffer to bodyBuffer
 				bodyBuffer = std::move(self->temporaryData_.lastBuffer);
+				bodyBuffer.trim_front(data - bodyBuffer.get());
+				bodyBuffer.trim(size);
 			} else {
 				// share bodyBuffer to moreBodyBuffers
 				self->temporaryData_.moreBodyBuffers.emplace_back(

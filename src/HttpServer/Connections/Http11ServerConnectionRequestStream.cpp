@@ -32,7 +32,7 @@ namespace cpv {
 				auto& lastBuffer = connection_->temporaryData_.lastBuffer;
 				lastBuffer = std::move(tempBuffer);
 				// check whether connection is closed from remote
-				if (lastBuffer.size() == 0) {
+				if (lastBuffer.empty()) {
 					connection_->state_ = Http11ServerConnectionState::Closing;
 					return seastar::make_ready_future<InputStreamReadResult>(InputStreamReadResult());
 				}
@@ -53,15 +53,15 @@ namespace cpv {
 					lastBufferSize);
 				if (parsedSize != lastBufferSize) {
 					auto err = static_cast<enum ::http_errno>(connection_->parser_.http_errno);
-					if (err == ::http_errno::HPE_CB_message_begin &&
-						connection_->temporaryData_.messageCompleted) {
+					if (CPV_LIKELY(err == ::http_errno::HPE_CB_message_begin &&
+						parsedSize > 1 && connection_->temporaryData_.messageCompleted)) {
 						// received next request from pipeline
 						if (CPV_LIKELY(bodyBuffer.size() != 0)) {
 							connection_->nextRequestBuffer_ = bodyBuffer.share();
-							connection_->nextRequestBuffer_.trim_front(parsedSize);
+							connection_->nextRequestBuffer_.trim_front(parsedSize - 1);
 						} else if (lastBuffer.size() != 0) {
 							connection_->nextRequestBuffer_ = lastBuffer.share();
-							connection_->nextRequestBuffer_.trim_front(parsedSize);
+							connection_->nextRequestBuffer_.trim_front(parsedSize - 1);
 						}
 					} else {
 						// parse error

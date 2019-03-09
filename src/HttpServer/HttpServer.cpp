@@ -91,7 +91,7 @@ namespace cpv {
 	HttpServer::HttpServer(
 		const HttpServerConfiguration& configuration,
 		const seastar::shared_ptr<Logger>& logger,
-		std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlers) :
+		HttpServerRequestHandlerCollection&& handlers) :
 		data_(std::make_unique<HttpServerData>(configuration, logger, std::move(handlers))) { }
 	
 	/** Move constructor (for incomplete member type) */

@@ -8,8 +8,8 @@
 namespace cpv {
 	/** The iterator type of HttpServerRequestHandler */
 	class HttpServerRequestHandlerBase;
-	using HttpServerRequestHandlerIterator =
-		std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>::const_iterator;
+	using HttpServerRequestHandlerCollection = std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>;
+	using HttpServerRequestHandlerIterator = HttpServerRequestHandlerCollection::const_iterator;
 	
 	/** The interface of a http server request handler */
 	class HttpServerRequestHandlerBase {

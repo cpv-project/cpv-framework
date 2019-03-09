@@ -27,13 +27,13 @@ namespace cpv {
 		HttpServerSharedData(
 			const HttpServerConfiguration& configurationVal,
 			const seastar::shared_ptr<Logger>& loggerVal,
-			std::vector<std::unique_ptr<HttpServerRequestHandlerBase>>&& handlersVal,
+			HttpServerRequestHandlerCollection&& handlersVal,
 			seastar::weak_ptr<HttpServerConnectionsWrapper>&& connectionsWrapperVal);
 		
 	public:
 		const HttpServerConfiguration configuration;
 		const seastar::shared_ptr<Logger> logger;
-		const std::vector<std::unique_ptr<HttpServerRequestHandlerBase>> handlers;
+		const HttpServerRequestHandlerCollection handlers;
 		const seastar::weak_ptr<HttpServerConnectionsWrapper> connectionsWrapper;
 		
 	public:
