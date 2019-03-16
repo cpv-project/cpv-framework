@@ -42,6 +42,13 @@ namespace cpv::gtest {
 	/** create tcp connection, send request then return received response as string */
 	seastar::future<std::string> tcpSendRequest(
 		const std::string& ip, std::size_t port, seastar::net::packet p);
+	
+	/** create tcp connection, send request partially then return received response as string */
+	seastar::future<std::string> tcpSendPartialRequest(
+		const std::string& ip,
+		std::size_t port,
+		const std::vector<std::string_view>& parts,
+		std::chrono::milliseconds interval);
 }
 
 namespace {

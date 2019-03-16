@@ -29,5 +29,23 @@ namespace cpv::gtest {
 			cpv::HttpResponse& response,
 			const cpv::HttpServerRequestHandlerIterator&) const override;
 	};
+	
+	/** Handler that reply response with body but without content length header */
+	class HttpLengthNotFixedHandler : public cpv::HttpServerRequestHandlerBase {
+	public:
+		seastar::future<> handle(
+			cpv::HttpRequest& request,
+			cpv::HttpResponse& response,
+			const cpv::HttpServerRequestHandlerIterator&) const override;
+	};
+	
+	/** Handler that reply response with body but size not matched to content length header */
+	class HttpWrittenSizeNotMatchedHandler : public cpv::HttpServerRequestHandlerBase {
+	public:
+		seastar::future<> handle(
+			cpv::HttpRequest& request,
+			cpv::HttpResponse& response,
+			const cpv::HttpServerRequestHandlerIterator&) const override;
+	};
 }
 

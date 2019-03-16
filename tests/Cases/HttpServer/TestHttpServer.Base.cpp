@@ -17,10 +17,11 @@ namespace cpv::gtest {
 		return seastar::do_with(
 			std::move(testFunctions),
 			std::make_unique<std::atomic_bool>(false),
-			[] (auto& testFunctions, auto& stopFlag) {
+			std::exception_ptr(),
+			[] (auto& testFunctions, auto& stopFlag, auto& error) {
 			return seastar::parallel_for_each(boost::irange<unsigned>(0, seastar::smp::count),
-				[&testFunctions, &stopFlag] (unsigned c) {
-				return seastar::smp::submit_to(c, [c, &testFunctions, &stopFlag] {
+				[&testFunctions, &stopFlag, &error] (unsigned c) {
+				return seastar::smp::submit_to(c, [c, &testFunctions, &stopFlag, &error] {
 					// make configuration
 					cpv::HttpServerConfiguration configuration;
 					configuration.setListenAddresses({
@@ -42,11 +43,15 @@ namespace cpv::gtest {
 					handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
 					// start http server
 					cpv::HttpServer server(configuration, logger, std::move(handlers));
-					return seastar::do_with(std::move(server), [c, &testFunctions, &stopFlag](auto& server) {
-						return server.start().then([c, &testFunctions, &stopFlag] {
+					return seastar::do_with(std::move(server),
+						[c, &testFunctions, &stopFlag, &error](auto& server) {
+						return server.start().then([c, &testFunctions, &stopFlag, &error] {
 							// target function will run on core 0
 							if (c == 0) {
 								return testFunctions.execute().then([&stopFlag] {
+									stopFlag->store(true);
+								}).handle_exception([&stopFlag, &error] (std::exception_ptr ex) {
+									error = std::move(ex);
 									stopFlag->store(true);
 								});
 							} else {
@@ -56,11 +61,22 @@ namespace cpv::gtest {
 							}
 						}).then([&server] {
 							return server.stop();
+						}).then([&error] {
+							if (error == nullptr) {
+								return seastar::make_ready_future<>();
+							} else {
+								return seastar::make_exception_future<>(std::move(error));
+							}
 						});
 					});
 				});
 			});
 		});
+	}
+	
+	namespace {
+		// Provide a fixed date value to make the response content always same
+		const std::string_view PesudoDate("Thu, 01 Jan 1970 00:00:00 GMT");
 	}
 	
 	/** Reply request url and header values in response body */
@@ -85,7 +101,7 @@ namespace cpv::gtest {
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-		response.setHeader(constants::Date, "Thu, 01 Jan 1970 00:00:00 GMT");
+		response.setHeader(constants::Date, PesudoDate);
 		extensions::setHeader(response, constants::ContentLength, p.len());
 		return extensions::writeAll(response.getBodyStream(), std::move(p));
 	}
@@ -99,10 +115,35 @@ namespace cpv::gtest {
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
 			response.setHeader(constants::ContentType, request.getHeaders().at(constants::ContentType));
-			response.setHeader(constants::Date, "Thu, 01 Jan 1970 00:00:00 GMT");
+			response.setHeader(constants::Date, PesudoDate);
 			extensions::setHeader(response, constants::ContentLength, str.size());
 			return extensions::writeAll(response.getBodyStream(), std::move(str));
 		});
+	}
+	
+	/** Reply response with body but without content length header */
+	seastar::future<> HttpLengthNotFixedHandler::handle(
+		cpv::HttpRequest&,
+		cpv::HttpResponse& response,
+		const cpv::HttpServerRequestHandlerIterator&) const {
+		response.setStatusCode(constants::_200);
+		response.setStatusMessage(constants::OK);
+		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
+		response.setHeader(constants::Date, PesudoDate);
+		return extensions::writeAll(response.getBodyStream(), "Length Not Fixed");
+	}
+	
+	/** Reply response with body but size not matched to content length header */
+	seastar::future<> HttpWrittenSizeNotMatchedHandler::handle(
+		cpv::HttpRequest&,
+		cpv::HttpResponse& response,
+		const cpv::HttpServerRequestHandlerIterator&) const {
+		response.setStatusCode(constants::_200);
+		response.setStatusMessage(constants::OK);
+		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
+		response.setHeader(constants::Date, PesudoDate);
+		extensions::setHeader(response, constants::ContentLength, 1);
+		return extensions::writeAll(response.getBodyStream(), "Written Size Not Matched");
 	}
 }
 
