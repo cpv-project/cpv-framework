@@ -2,10 +2,8 @@
 
 ### until 0.1
 
-- add tests of http connection
-- add http client
-- support metrics
 - support container
+- add http client
 - support application and module
 - support route handler
 	- support controller and action

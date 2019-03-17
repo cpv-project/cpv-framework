@@ -13,9 +13,6 @@
 #include "./Http11ServerConnectionRequestStream.hpp"
 #include "./Http11ServerConnectionResponseStream.hpp"
 
-// TODO: support metrics
-// TODO: add more metrics targets such as timeout
-
 namespace cpv {
 	namespace {
 		/** Static response strings */
@@ -217,9 +214,11 @@ namespace cpv {
 				self->temporaryData_ = {};
 			}
 			return self->receiveSingleRequest().then([self] {
+				self->sharedData_->metricData.request_received += 1;
 				return self->replySingleResponse();
 			});
 		}).handle_exception([self] (std::exception_ptr ex) {
+			self->sharedData_->metricData.request_errors += 1;
 			self->sharedData_->logger->log(LogLevel::Info,
 				"abort http connection from:", self->clientAddress_, "because of", ex);
 		}).then([self] {
@@ -231,6 +230,7 @@ namespace cpv {
 			if (connectionsPtr != nullptr) {
 				connectionsPtr->value.erase(self);
 				connectionsCount = connectionsPtr->value.size();
+				self->sharedData_->metricData.current_connections = connectionsCount;
 			}
 			// log and update state to closed
 			self->sharedData_->logger->log(LogLevel::Info,
@@ -285,6 +285,7 @@ namespace cpv {
 		parserSettings_.on_message_complete = onMessageComplete;
 		// initialize timer
 		shutdownInputTimer_.set_callback([this] {
+			sharedData_->metricData.request_timeout_errors += 1;
 			sharedData_->logger->log(LogLevel::Info,
 				"abort http connection from:", clientAddress_,
 				"because of initial request timeout");
@@ -324,6 +325,7 @@ namespace cpv {
 			temporaryData_.receivedBytes += lastBuffer.size();
 			if (CPV_UNLIKELY(temporaryData_.receivedBytes >
 				sharedData_->configuration.getMaxInitialRequestBytes())) {
+				sharedData_->metricData.request_initial_size_errors += 1;
 				return replyStaticResponse(socket_, ReachedBytesLimitationOfInitialRequestData).then([] {
 					return seastar::make_exception_future<>(LengthException(
 						CPV_CODEINFO, "http request length error:",
@@ -334,6 +336,7 @@ namespace cpv {
 			temporaryData_.receivedPackets += 1;
 			if (CPV_UNLIKELY(temporaryData_.receivedPackets >
 				sharedData_->configuration.getMaxInitialRequestPackets())) {
+				sharedData_->metricData.request_initial_size_errors += 1;
 				return replyStaticResponse(socket_, ReachedPacketsLimitationOfInitialRequestData).then([] {
 					return seastar::make_exception_future<>(LengthException(
 						CPV_CODEINFO, "http request length error:",
@@ -497,6 +500,7 @@ namespace cpv {
 	
 	/** Reply error response for invalid http request format, then return exception future */
 	seastar::future<> Http11ServerConnection::replyErrorResponseForInvalidFormat() {
+		sharedData_->metricData.request_invalid_format_errors += 1;
 		return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
 			auto err = static_cast<enum ::http_errno>(parser_.http_errno);
 			return seastar::make_exception_future<>(FormatException(

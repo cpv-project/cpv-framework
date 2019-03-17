@@ -45,6 +45,8 @@ namespace cpv {
 						sharedData, std::move(fd), std::move(addr));
 					connection->start();
 					connectionsWrapper->value.emplace(std::move(connection));
+					sharedData->metricData.total_connections += 1;
+					sharedData->metricData.current_connections = connectionsWrapper->value.size();
 					sharedData->logger->log(LogLevel::Info,
 						"accepted http connection from:", addr,
 						"(count:", connectionsWrapper->value.size(), ")");
@@ -83,6 +85,7 @@ namespace cpv {
 				// clean all connections
 				data_->connectionsWrapper->value.clear();
 				data_->sharedData->logger->log(LogLevel::Info, "http server stopped");
+				data_->sharedData->metricData.current_connections = 0;
 			});
 		});
 	}

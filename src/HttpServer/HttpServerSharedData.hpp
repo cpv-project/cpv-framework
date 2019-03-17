@@ -43,12 +43,16 @@ namespace cpv {
 			std::uint64_t total_connections = 0;
 			/** The current number of open connections */
 			std::uint64_t current_connections = 0;
-			/** The total number of http request served */
-			std::uint64_t request_served = 0;
-			/** The total number of errors while reading from client */
-			std::uint64_t read_errors = 0;
-			/** The total number of errors while writing to client */
-			std::uint64_t write_errors = 0;
+			/** The total number of http request received */
+			std::uint64_t request_received = 0;
+			/** The total number of errors while handling http request */
+			std::uint64_t request_errors = 0;
+			/** The total number of timeout errors while handling http request */
+			std::uint64_t request_timeout_errors = 0;
+			/** The total number of initial size errors while handling http request */
+			std::uint64_t request_initial_size_errors = 0;
+			/** The total number of invalid format errors while handling http request */
+			std::uint64_t request_invalid_format_errors = 0;
 		} metricData;
 		
 	private:

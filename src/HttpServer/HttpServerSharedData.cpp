@@ -39,20 +39,30 @@ namespace cpv {
 				seastar::metrics::description("The current number of open connections"),
 				labels),
 			seastar::metrics::make_derive(
-				"request_served",
-				[this] { return metricData.request_served; },
-				seastar::metrics::description("The total number of http request served"),
+				"request_received",
+				[this] { return metricData.request_received; },
+				seastar::metrics::description("The total number of http request received"),
 				labels),
 			seastar::metrics::make_derive(
-				"read_errors",
-				[this] { return metricData.read_errors; },
-				seastar::metrics::description("The total number of errors while reading from client"),
+				"request_errors",
+				[this] { return metricData.request_errors; },
+				seastar::metrics::description("The total number of errors while handling http request"),
 				labels),
 			seastar::metrics::make_derive(
-				"write_errors",
-				[this] { return metricData.write_errors; },
-				seastar::metrics::description("The total number of errors while writing to client"),
-				labels)
+				"request_timeout_errors",
+				[this] { return metricData.request_timeout_errors; },
+				seastar::metrics::description("The total number of timeout errors while handling http request"),
+				labels),
+			seastar::metrics::make_derive(
+				"request_initial_size_errors",
+				[this] { return metricData.request_initial_size_errors; },
+				seastar::metrics::description("The total number of initial size errors while handling http request"),
+				labels),
+			seastar::metrics::make_derive(
+				"request_invalid_format_errors",
+				[this] { return metricData.request_invalid_format_errors; },
+				seastar::metrics::description("The total number of invalid format errors while handling http request"),
+				labels),
 		});
 	}
 }
