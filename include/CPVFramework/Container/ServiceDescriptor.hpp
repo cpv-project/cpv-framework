@@ -1,22 +1,12 @@
 #pragma once
-#include <memory>
 #include "../Exceptions/ContainerException.hpp"
 #include "./ServiceLifetime.hpp"
-#include "./ServiceFactory.hpp"
+#include "./ServiceFactoryBase.hpp"
+#include "./ServiceDescriptorBase.hpp"
 
 namespace cpv {
 	class Container;
 	class ServiceStorage;
-	
-	/** The base class of ServiceDescriptor<TService> */
-	class ServiceDescriptorBase {
-	public:
-		/** Virtual destructor */
-		virtual ~ServiceDescriptorBase() = default;
-	};
-	
-	/** The pointer type used to store all service descriptor in container */
-	using ServiceDescriptorPtr = std::unique_ptr<ServiceDescriptorBase>;
 	
 	/** Manage the factory and the presistent instance for a given service implementation */
 	template <class TService>
