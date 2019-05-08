@@ -56,10 +56,15 @@ namespace cpv {
 		static ServiceDescriptorPtr create(
 			std::optional<TService>&& instance,
 			std::unique_ptr<ServiceFactoryBase<TService>>&& factory,
-			ServiceLifetime lifetime);
+			ServiceLifetime lifetime) {
+			return std::make_unique<ServiceDescriptor<TService>>(
+				std::move(instance), std::move(factory), lifetime);
+		}
 		
 		/** Cast from a service descriptor pointer, notice no type check will perform */
-		static const ServiceDescriptor<TService>& cast(const ServiceDescriptorPtr& ptr);
+		static const ServiceDescriptor<TService>& cast(const ServiceDescriptorPtr& ptr) {
+			return *static_cast<ServiceDescriptor<TService>*>(ptr.get());
+		}
 		
 	private:
 		/** Constructor */

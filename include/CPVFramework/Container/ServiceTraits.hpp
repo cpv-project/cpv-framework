@@ -37,9 +37,15 @@ namespace cpv {
 		}
 	};
 	
-	/** Get dependency types that should inject to the constructor */
+	/** Get dependency types that should inject to the constructor, by default it's empty */
 	template <class T, class = void>
 	struct ServiceDependencyTrait {
+		using DependencyTypes = std::tuple<>;
+	};
+	
+	/** Get dependency types that should inject to the constructor, from T::DependencyTypes */
+	template <class T>
+	struct ServiceDependencyTrait<T, std::enable_if_t<(std::tuple_size_v<typename T::DependencyTypes> > 0)>> {
 		// For example: std::tuple<A, B, C>;
 		using DependencyTypes = typename T::DependencyTypes;
 	};

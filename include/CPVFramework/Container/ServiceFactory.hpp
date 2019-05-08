@@ -7,7 +7,7 @@
 
 namespace cpv {
 	/** Get instances of service by construct given implementation type with dependency injection */
-	template <class TImplementation, class TService,
+	template <class TService, class TImplementation,
 		class = std::enable_if_t<std::is_base_of_v<TService, TImplementation>>>
 	class ServiceDependencyInjectionFactory : public ServiceFactoryBase<TService> {
 	public:
