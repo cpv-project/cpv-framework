@@ -1,5 +1,6 @@
 #pragma once
 #include <typeindex>
+#include "../Exceptions/ContainerException.hpp"
 #include "./ServiceDescriptor.hpp"
 #include "./ServiceFactory.hpp"
 
@@ -37,11 +38,11 @@ namespace cpv {
 		/** Register service with custom factory object */
 		// TODO
 		
-		/** Get service instance, throws exception if associated with none or multiple descriptors */
+		/** Get service instance, throws exception if not registered or registered multiple times */
 		// TODO
 		
 		/** Get service instances and adding them to given collection, notice it will not clear the collection first */
-		// TODO: use ServiceCollectionTrait::add to add instances
+		// TODO
 		
 		/** Constructor */
 		Container();
@@ -55,6 +56,32 @@ namespace cpv {
 		
 		/** Get all descriptors associated to given service type, return empty list if not registered */
 		ServiceDescriptorCollection& getOrCreateEmptyDescriptors(const std::type_index& serviceType) &;
+		
+		/** Get service instance, throws exception if not registered or registered multiple times */
+		template <class T>
+		T get(const ServiceDescriptorCollection& descriptors, ServiceStorage& storage) {
+			if (descriptors.get() == nullptr || descriptors->empty()) {
+				throw ContainerException(CPV_CODEINFO,
+					"get instance of type [", typeid(T).name(), "] failed: not registered");
+			} else if (descriptors->size() > 0) {
+				throw ContainerException(CPV_CODEINFO,
+					"get instance of type [", typeid(T).name(), "] failed: registered multiple times");
+			}
+			return ServiceDescriptor<T>::cast(descriptors->front()).getInstance(*this, storage);
+		}
+		
+		/** Get service instances and adding them to given collection, notice it will not clear the collection first */
+		template <class T, std::enable_if_t<ServiceCollectionTrait<T>::IsCollection, int> = 0>
+		void getMany(const ServiceDescriptorCollection& descriptors, ServiceStorage& storage, T& collection) {
+			if (descriptors.get() == nullptr) {
+				return;
+			}
+			using ElementType = typename ServiceDependencyTrait<T>::ElementType;
+			for (auto& descriptor : *descriptors) {
+				ServiceCollectionTrait<T>::add(collection,
+					ServiceDescriptor<ElementType>::cast(descriptor).getInstance(*this, storage));
+			}
+		}
 		
 	private:
 		seastar::shared_ptr<ContainerData> data_;
