@@ -9,8 +9,10 @@ namespace cpv {
 	public:
 		/** { type: [ descriptor... ] } */
 		std::unordered_map<std::type_index, ServiceDescriptorCollection> descriptorsMap;
+		/** Built-in service storage for service with ServiceLifetime::StoragePresistent */
+		ServiceStorage storage;
 		
-		ContainerData() : descriptorsMap() { }
+		ContainerData() : descriptorsMap(), storage() { }
 	};
 }
 

@@ -3,6 +3,7 @@
 #include <type_traits>
 #include <memory>
 #include <seastar/core/shared_ptr.hh>
+#include "../Exceptions/ContainerException.hpp"
 #include "../Utility/Object.hpp"
 #include "./ServiceTraits.hpp"
 #include "./ServiceDescriptorBase.hpp"
@@ -53,7 +54,7 @@ namespace cpv {
 	
 	/** Get instances of service by construct given implementation type with dependency injection */
 	template <class TService, class TImplementation,
-		class = std::enable_if_t<std::is_base_of_v<TService, TImplementation>>>
+		class = std::enable_if_t<std::is_convertible_v<TImplementation, TService>>>
 	class ServiceDependencyInjectionFactory : public ServiceFactoryBase<TService> {
 	public:
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
@@ -89,7 +90,7 @@ namespace cpv {
 	class ServiceDependencyInjectionFactory<
 		std::unique_ptr<TService>,
 		std::unique_ptr<TImplementation>,
-		std::enable_if_t<std::is_base_of_v<TService, TImplementation>>> :
+		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
 		public ServiceFactoryBase<std::unique_ptr<TService>> {
 	public:
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
@@ -126,7 +127,7 @@ namespace cpv {
 	class ServiceDependencyInjectionFactory<
 		seastar::shared_ptr<TService>,
 		seastar::shared_ptr<TImplementation>,
-		std::enable_if_t<std::is_base_of_v<TService, TImplementation>>> :
+		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
 		public ServiceFactoryBase<seastar::shared_ptr<TService>> {
 	public:
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
@@ -163,7 +164,7 @@ namespace cpv {
 	class ServiceDependencyInjectionFactory<
 		Object<TService>,
 		Object<TImplementation>,
-		std::enable_if_t<std::is_base_of_v<TService, TImplementation>>> :
+		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
 		public ServiceFactoryBase<Object<TService>> {
 	public:
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
@@ -193,6 +194,92 @@ namespace cpv {
 		}
 		
 		typename Extensions::ArrayType dependencyDescriptors_;
+	};
+	
+	/** Get instances of service by invoking custom function object */
+	template <class TService, class TFunc, class = void>
+	class ServiceFunctionFactory;
+	
+	/** TFunc(Container, ServiceStorage) version of ServiceFunctionFactory */
+	template <class TService, class TFunc>
+	class ServiceFunctionFactory<
+		TService,
+		TFunc,
+		std::enable_if_t<std::is_convertible_v<
+			std::invoke_result_t<TFunc, Container, ServiceStorage>, TService>>> :
+		public ServiceFactoryBase<TService> {
+	public:
+		/** Create an instance of service */
+		virtual TService operator()(
+			const Container& container, ServiceStorage& storage) const {
+			return func_(container, storage);
+		}
+		
+		/** Constructor **/
+		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		
+	private:
+		TFunc func_;
+	};
+	
+	/** TFunc(Container) version of ServiceFunctionFactory */
+	template <class TService, class TFunc>
+	class ServiceFunctionFactory<
+		TService,
+		TFunc,
+		std::enable_if_t<std::is_convertible_v<
+			std::invoke_result_t<TFunc, Container>, TService>>> :
+		public ServiceFactoryBase<TService> {
+	public:
+		/** Create an instance of service */
+		virtual TService operator()(const Container& container, ServiceStorage&) const {
+			return func_(container);
+		}
+		
+		/** Constructor **/
+		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		
+	private:
+		TFunc func_;
+	};
+	
+	/** TFunc() version of ServiceFunctionFactory */
+	template <class TService, class TFunc>
+	class ServiceFunctionFactory<
+		TService,
+		TFunc,
+		std::enable_if_t<std::is_convertible_v<
+			std::invoke_result_t<TFunc>, TService>>> :
+		public ServiceFactoryBase<TService> {
+	public:
+		/** Create an instance of service */
+		virtual TService operator()(const Container&, ServiceStorage&) const {
+			return func_();
+		}
+		
+		/** Constructor **/
+		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		
+	private:
+		TFunc func_;
+	};
+	
+	/** Factory throws exception with given message */
+	template <class TService>
+	class ServiceExceptionFactory : public ServiceFactoryBase<TService> {
+	public:
+		/** Throw the exception */
+		virtual TService operator()(const Container&, ServiceStorage&) const {
+			throw ContainerException(CPV_CODEINFO,
+				"get instance of service type [", typeid(TService).name(),
+				"] error:", message_);
+		}
+		
+		/** Constructor **/
+		ServiceExceptionFactory(const char* message) : message_(message) { }
+		
+	private:
+		const char* message_;
 	};
 }
 

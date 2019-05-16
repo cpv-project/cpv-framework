@@ -5,9 +5,9 @@ namespace cpv {
 	enum class ServiceLifetime {
 		/** Create new instance every times */
 		Transient = 0,
-		/** For given container, only create one instance and reuse it every times */
+		/** For given container, only create instance once and reuse it in the future (a.k.a Singleton) */
 		Presistent = 1,
-		/** For given storage, only create one instance and reuse it every times */
+		/** For given storage, only create instance once and reuse it in the future (a.k.a Scoped) */
 		StoragePresistent = 2
 	};
 }

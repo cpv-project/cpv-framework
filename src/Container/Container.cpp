@@ -33,5 +33,10 @@ namespace cpv {
 		}
 		return it->second;
 	}
+	
+	/** Get built-in service storage */
+	ServiceStorage& Container::getBuiltinStorage() const& {
+		return data_->storage;
+	}
 }
 
