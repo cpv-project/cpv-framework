@@ -3,10 +3,10 @@
 #include "./ServiceLifetime.hpp"
 #include "./ServiceFactoryBase.hpp"
 #include "./ServiceDescriptorBase.hpp"
+#include "./ServiceStorage.hpp"
 
 namespace cpv {
 	class Container;
-	class ServiceStorage;
 	
 	/** Manage the factory and the presistent instance for a given service implementation */
 	template <class TService>
@@ -17,7 +17,7 @@ namespace cpv {
 			try {
 				if (lifetime_ == ServiceLifetime::Presistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
-						if (!instance_.has_value()) {
+						if (CPV_UNLIKELY(!instance_.has_value())) {
 							instance_ = factory_(container, storage);
 						}
 						return *instance_;
@@ -30,8 +30,15 @@ namespace cpv {
 					return factory_(container, storage);
 				} else if (lifetime_ == ServiceLifetime::StoragePresistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
-						// TODO
-						throw 1;
+						std::uintptr_t key = reinterpret_cast<std::uintptr_t>(this);
+						std::any anyInstance = storage.get(key);
+						if (CPV_UNLIKELY(!anyInstance.has_value())) {
+							TService instance = factory_(container, storage);
+							storage.set(key, instance);
+							return instance;
+						} else {
+							return std::any_cast<TService>(anyInstance);
+						}
 					} else {
 						throw ContainerException(CPV_CODEINFO,
 							"get instance of service type [", typeid(TService).name(),
