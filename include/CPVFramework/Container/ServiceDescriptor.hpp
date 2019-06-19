@@ -18,7 +18,7 @@ namespace cpv {
 				if (lifetime_ == ServiceLifetime::Presistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
 						if (CPV_UNLIKELY(!instance_.has_value())) {
-							instance_ = factory_(container, storage);
+							instance_ = (*factory_)(container, storage);
 						}
 						return *instance_;
 					} else {
@@ -27,13 +27,13 @@ namespace cpv {
 							"] error: lifetime is presistent but not copy constructible");
 					}
 				} else if (lifetime_ == ServiceLifetime::Transient) {
-					return factory_(container, storage);
+					return (*factory_)(container, storage);
 				} else if (lifetime_ == ServiceLifetime::StoragePresistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
 						std::uintptr_t key = reinterpret_cast<std::uintptr_t>(this);
 						std::any anyInstance = storage.get(key);
 						if (CPV_UNLIKELY(!anyInstance.has_value())) {
-							TService instance = factory_(container, storage);
+							TService instance = (*factory_)(container, storage);
 							storage.set(key, instance);
 							return instance;
 						} else {
@@ -64,8 +64,8 @@ namespace cpv {
 			std::optional<TService>&& instance,
 			std::unique_ptr<ServiceFactoryBase<TService>>&& factory,
 			ServiceLifetime lifetime) {
-			return std::make_unique<ServiceDescriptor<TService>>(
-				std::move(instance), std::move(factory), lifetime);
+			return ServiceDescriptorPtr(new ServiceDescriptor<TService>(
+				std::move(instance), std::move(factory), lifetime));
 		}
 		
 		/** Cast from a service descriptor pointer, notice no type check will perform */
@@ -78,7 +78,10 @@ namespace cpv {
 		ServiceDescriptor(
 			std::optional<TService>&& instance,
 			std::unique_ptr<ServiceFactoryBase<TService>>&& factory,
-			ServiceLifetime lifetime);
+			ServiceLifetime lifetime) :
+			instance_(std::move(instance)),
+			factory_(std::move(factory)),
+			lifetime_(lifetime) { }
 		
 	private:
 		mutable std::optional<TService> instance_; // only for ServiceLifetime::Presistent

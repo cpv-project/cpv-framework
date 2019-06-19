@@ -29,7 +29,8 @@ namespace cpv {
 		const std::type_index& serviceType) & {
 		auto it = data_->descriptorsMap.find(serviceType);
 		if (it == data_->descriptorsMap.end()) {
-			it = data_->descriptorsMap.emplace(serviceType, ServiceDescriptorCollection()).first;
+			it = data_->descriptorsMap.emplace(serviceType,
+				seastar::make_shared<ServiceDescriptorCollection::element_type>()).first;
 		}
 		return it->second;
 	}

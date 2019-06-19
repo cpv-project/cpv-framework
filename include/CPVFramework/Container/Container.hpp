@@ -101,7 +101,7 @@ namespace cpv {
 			if (descriptors.get() == nullptr || descriptors->empty()) {
 				throw ContainerException(CPV_CODEINFO,
 					"get instance of type [", typeid(T).name(), "] failed: not registered");
-			} else if (descriptors->size() > 0) {
+			} else if (descriptors->size() > 1) {
 				throw ContainerException(CPV_CODEINFO,
 					"get instance of type [", typeid(T).name(), "] failed: registered multiple times");
 			}

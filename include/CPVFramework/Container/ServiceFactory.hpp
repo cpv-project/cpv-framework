@@ -76,7 +76,7 @@ namespace cpv {
 		TService getServiceInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
-			std::index_sequence<I...>) {
+			std::index_sequence<I...>) const {
 			return TService(Extensions::template
 				getDependencyInstance<Extensions::DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
@@ -113,7 +113,7 @@ namespace cpv {
 		std::unique_ptr<TService> getServiceInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
-			std::index_sequence<I...>) {
+			std::index_sequence<I...>) const {
 			return std::make_unique<TService>(Extensions::template
 				getDependencyInstance<Extensions::DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
@@ -150,7 +150,7 @@ namespace cpv {
 		seastar::shared_ptr<TService> getServiceInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
-			std::index_sequence<I...>) {
+			std::index_sequence<I...>) const {
 			return seastar::make_shared<TService>(Extensions::template
 				getDependencyInstance<Extensions::DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
@@ -187,7 +187,7 @@ namespace cpv {
 		Object<TService> getServiceInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
-			std::index_sequence<I...>) {
+			std::index_sequence<I...>) const {
 			return makeObject<TService>(Extensions::template
 				getDependencyInstance<Extensions::DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
