@@ -64,25 +64,29 @@ namespace cpv {
 		/** Get service instance, throws exception if not registered or registered multiple times */
 		template <class T>
 		T get(ServiceStorage& storage) const {
-			return get<T>(getDescriptors(typeid(T)), storage);
+			return get<T>(storage, getDescriptors(typeid(T)));
 		}
 		
 		/** Get service instances and adding them to given collection, it will not clear items first */
-		template <class T, std::enable_if_t<ServiceCollectionTrait<T>::IsCollection, int> = 0>
+		template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
 		std::size_t getMany(T& collection) const {
-			return getMany<T>(getBuiltinStorage(), collection);
+			return getMany<T>(collection, getBuiltinStorage());
 		}
 		
 		/** Get service instances and adding them to given collection, it will not clear items first */
-		template <class T, std::enable_if_t<ServiceCollectionTrait<T>::IsCollection, int> = 0>
-		std::size_t getMany(ServiceStorage& storage, T& collection) const {
-			return getMany<T>(getDescriptors(typeid(T)), storage, collection);
+		template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
+		std::size_t getMany(T& collection, ServiceStorage& storage) const {
+			using ActualType = typename ServiceTypeTrait<T>::ActualType;
+			return getMany<T>(collection, storage, getDescriptors(typeid(ActualType)));
 		}
 		
 		/** Constructor */
 		Container();
 		
 	private:
+		template <class DependencyTypes, class ContainerType>
+		friend struct DependencyTypesExtensions;
+		
 		/** Associate a descriptor to given service type */
 		void addDescriptor(const std::type_index& serviceType, ServiceDescriptorPtr&& serviceDescriptor);
 		
@@ -97,7 +101,7 @@ namespace cpv {
 		
 		/** Get service instance, throws exception if not registered or registered multiple times */
 		template <class T>
-		T get(const ServiceDescriptorCollection& descriptors, ServiceStorage& storage) const {
+		T get(ServiceStorage& storage, const ServiceDescriptorCollection& descriptors) const {
 			if (descriptors.get() == nullptr || descriptors->empty()) {
 				throw ContainerException(CPV_CODEINFO,
 					"get instance of type [", typeid(T).name(), "] failed: not registered");
@@ -109,16 +113,16 @@ namespace cpv {
 		}
 		
 		/** Get service instances and adding them to given collection, notice it will not clear the collection first */
-		template <class T, std::enable_if_t<ServiceCollectionTrait<T>::IsCollection, int> = 0>
+		template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
 		std::size_t getMany(
-			const ServiceDescriptorCollection& descriptors, ServiceStorage& storage, T& collection) const {
+			T& collection, ServiceStorage& storage, const ServiceDescriptorCollection& descriptors) const {
 			if (descriptors.get() == nullptr) {
 				return 0;
 			}
-			using ElementType = typename ServiceDependencyTrait<T>::ElementType;
+			using ActualType = typename ServiceTypeTrait<T>::ActualType;
 			for (auto& descriptor : *descriptors) {
-				ServiceCollectionTrait<T>::add(collection,
-					ServiceDescriptor<ElementType>::cast(descriptor).getInstance(*this, storage));
+				ServiceTypeTrait<T>::add(collection,
+					ServiceDescriptor<ActualType>::cast(descriptor).getInstance(*this, storage));
 			}
 			return descriptors->size();
 		}

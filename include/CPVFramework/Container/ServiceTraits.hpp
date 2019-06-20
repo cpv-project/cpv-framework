@@ -3,36 +3,35 @@
 #include "../Allocators/StackAllocator.hpp"
 
 namespace cpv {
-	// `class = void` is for std::enable_if_t
-	
-	/** Determine whether should return a single instance or multiple instances */
-	template <class T, class = void>
-	struct ServiceCollectionTrait {
+	/** Determine attributes of a service type, like is collection or not */
+	template <class T, class = void /* for enable_if */>
+	struct ServiceTypeTrait {
 		static const constexpr bool IsCollection = false;
 		using Type = T;
+		using ActualType = T;
 	};
 	
 	/** For std::vector */
 	template <class T>
-	struct ServiceCollectionTrait<std::vector<T>> {
+	struct ServiceTypeTrait<std::vector<T>> {
 		static const constexpr bool IsCollection = true;
 		using Type = std::vector<T>;
-		using ElementType = T;
+		using ActualType = T;
 		
-		static void add(T& collection, ElementType&& element) {
+		static void add(Type& collection, ActualType&& element) {
 			collection.emplace_back(std::move(element));
 		}
 	};
 	
 	/** For StackAllocatedVector */
 	template <class T, std::size_t InitialSize, class UpstreamAllocator, class Allocator>
-	struct ServiceCollectionTrait<StackAllocatedVector<
+	struct ServiceTypeTrait<StackAllocatedVector<
 		T, InitialSize, UpstreamAllocator, Allocator>> {
 		static const constexpr bool IsCollection = true;
 		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator, Allocator>;
-		using ElementType = T;
+		using ActualType = T;
 		
-		static void add(Type& collection, ElementType&& element) {
+		static void add(Type& collection, ActualType&& element) {
 			collection.emplace_back(std::move(element));
 		}
 	};

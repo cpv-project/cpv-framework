@@ -20,43 +20,49 @@ namespace cpv {
 		using DependencyType = std::tuple_element_t<I, DependencyTypes>;
 		
 		/** Get instance of single dependency type */
-		template <class T, std::enable_if_t<!ServiceCollectionTrait<T>::IsCollection, int> = 0>
+		template <class T, std::enable_if_t<!ServiceTypeTrait<T>::IsCollection, int> = 0>
 		static T getDependencyInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
 			const ServiceDescriptorCollection& descriptors) {
-			return container.template get<T>(descriptors, storage);
+			// make sure descriptor type is T
+			static_assert(std::is_same_v<T, typename ServiceTypeTrait<T>::ActualType>);
+			return container.template get<T>(storage, descriptors);
 		}
 		
 		/** Get instance of single dependency type, for collection */
-		template <class T, std::enable_if_t<ServiceCollectionTrait<T>::IsCollection, int> = 0>
+		template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
 		static T getDependencyInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
 			const ServiceDescriptorCollection& descriptors) {
 			T collection;
-			container.template getMany<T>(descriptors, storage, collection);
+			container.template getMany<T>(collection, storage, descriptors);
 			return collection;
 		}
 		
-		/** Get array contains service descriptors for each dependency types */
+		/** Get array contains service descriptors for each dependency type */
+		static ArrayType getDependencyDescriptors(Container& container) {
+			return getDependencyDescriptorsImpl(container, IndexSequence);
+		}
+		
+	private:
+		/** Get array contains service descriptors for each dependency type */
 		template <std::size_t... I>
 		static ArrayType getDependencyDescriptorsImpl(
 			ContainerType& container, std::index_sequence<I...>) {
-			return ArrayType(container.getOrCreateEmptyDescriptors(typeid(DependencyType<I>))...);
-		}
-		
-		/** Get array contains service descriptors for each dependency types */
-		static ArrayType getDependencyDescriptors(Container& container) {
-			return getDependencyDescriptorsImpl(container, IndexSequence);
+			return ArrayType({
+				container.getOrCreateEmptyDescriptors(typeid(
+					typename ServiceTypeTrait<DependencyType<I>>::ActualType))...
+			});
 		}
 	};
 	
 	/** Get instances of service by construct given implementation type with dependency injection */
-	template <class TService, class TImplementation,
-		class = std::enable_if_t<std::is_convertible_v<TImplementation, TService>>>
+	template <class TService, class TImplementation, class = void /* for enable_if */>
 	class ServiceDependencyInjectionFactory : public ServiceFactoryBase<TService> {
 	public:
+		static_assert(std::is_convertible_v<TImplementation, TService>);
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
 		using DependencyTypes = typename DependencyTrait::DependencyTypes;
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
@@ -77,8 +83,8 @@ namespace cpv {
 			const ContainerType& container,
 			ServiceStorage& storage,
 			std::index_sequence<I...>) const {
-			return TService(Extensions::template
-				getDependencyInstance<Extensions::DependencyType<I>>(
+			return TImplementation(Extensions::template
+				getDependencyInstance<typename Extensions::template DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
 		}
 		
@@ -89,10 +95,10 @@ namespace cpv {
 	template <class TService, class TImplementation>
 	class ServiceDependencyInjectionFactory<
 		std::unique_ptr<TService>,
-		std::unique_ptr<TImplementation>,
-		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
+		std::unique_ptr<TImplementation>> :
 		public ServiceFactoryBase<std::unique_ptr<TService>> {
 	public:
+		static_assert(std::is_base_of_v<TService, TImplementation>);
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
 		using DependencyTypes = typename DependencyTrait::DependencyTypes;
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
@@ -114,8 +120,8 @@ namespace cpv {
 			const ContainerType& container,
 			ServiceStorage& storage,
 			std::index_sequence<I...>) const {
-			return std::make_unique<TService>(Extensions::template
-				getDependencyInstance<Extensions::DependencyType<I>>(
+			return std::make_unique<TImplementation>(Extensions::template
+				getDependencyInstance<typename Extensions::template DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
 		}
 		
@@ -126,10 +132,10 @@ namespace cpv {
 	template <class TService, class TImplementation>
 	class ServiceDependencyInjectionFactory<
 		seastar::shared_ptr<TService>,
-		seastar::shared_ptr<TImplementation>,
-		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
+		seastar::shared_ptr<TImplementation>> :
 		public ServiceFactoryBase<seastar::shared_ptr<TService>> {
 	public:
+		static_assert(std::is_base_of_v<TService, TImplementation>);
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
 		using DependencyTypes = typename DependencyTrait::DependencyTypes;
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
@@ -151,8 +157,8 @@ namespace cpv {
 			const ContainerType& container,
 			ServiceStorage& storage,
 			std::index_sequence<I...>) const {
-			return seastar::make_shared<TService>(Extensions::template
-				getDependencyInstance<Extensions::DependencyType<I>>(
+			return seastar::make_shared<TImplementation>(Extensions::template
+				getDependencyInstance<typename Extensions::template DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...);
 		}
 		
@@ -163,10 +169,10 @@ namespace cpv {
 	template <class TService, class TImplementation>
 	class ServiceDependencyInjectionFactory<
 		Object<TService>,
-		Object<TImplementation>,
-		std::enable_if_t<std::is_convertible_v<TImplementation, TService>>> :
+		Object<TImplementation>> :
 		public ServiceFactoryBase<Object<TService>> {
 	public:
+		static_assert(std::is_base_of_v<TService, TImplementation>);
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
 		using DependencyTypes = typename DependencyTrait::DependencyTypes;
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
@@ -188,17 +194,20 @@ namespace cpv {
 			const ContainerType& container,
 			ServiceStorage& storage,
 			std::index_sequence<I...>) const {
-			return makeObject<TService>(Extensions::template
-				getDependencyInstance<Extensions::DependencyType<I>>(
-				container, storage, dependencyDescriptors_[I])...);
+			return makeObject<TImplementation>(Extensions::template
+				getDependencyInstance<typename Extensions::template DependencyType<I>>(
+				container, storage, dependencyDescriptors_[I])...).template cast<TService>();
 		}
 		
 		typename Extensions::ArrayType dependencyDescriptors_;
 	};
 	
 	/** Get instances of service by invoking custom function object */
-	template <class TService, class TFunc, class = void>
-	class ServiceFunctionFactory;
+	template <class TService, class TFunc, class = void /* for enable_if */>
+	class ServiceFunctionFactory {
+	public:
+		ServiceFunctionFactory() = delete;
+	};
 	
 	/** TFunc(Container, ServiceStorage) version of ServiceFunctionFactory */
 	template <class TService, class TFunc>
@@ -206,7 +215,7 @@ namespace cpv {
 		TService,
 		TFunc,
 		std::enable_if_t<std::is_convertible_v<
-			std::invoke_result_t<TFunc, Container, ServiceStorage>, TService>>> :
+			std::invoke_result_t<TFunc, const Container&, ServiceStorage&>, TService>>> :
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
@@ -228,7 +237,7 @@ namespace cpv {
 		TService,
 		TFunc,
 		std::enable_if_t<std::is_convertible_v<
-			std::invoke_result_t<TFunc, Container>, TService>>> :
+			std::invoke_result_t<TFunc, const Container&>, TService>>> :
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
