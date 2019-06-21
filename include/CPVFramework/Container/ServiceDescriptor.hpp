@@ -12,7 +12,7 @@ namespace cpv {
 	template <class TService>
 	class ServiceDescriptor : public ServiceDescriptorBase {
 	public:
-		/** Get an instance of given service */
+		/** Get an instance of this service */
 		TService getInstance(const Container& container, ServiceStorage& storage) const {
 			try {
 				if (lifetime_ == ServiceLifetime::Presistent) {
@@ -57,6 +57,11 @@ namespace cpv {
 					"get instance of service type [", typeid(TService).name(),
 					"] error:", std::current_exception());
 			}
+		}
+		
+		/** Get the lifetime of this service */
+		ServiceLifetime getLifetime() const {
+			return lifetime_;
 		}
 		
 		/** Create a service descriptor pointer */

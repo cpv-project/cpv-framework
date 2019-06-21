@@ -1,5 +1,6 @@
 #include <sstream>
 #include <CPVFramework/Container/Container.hpp>
+#include <CPVFramework/Container/ServicePatcher.hpp>
 #include <TestUtility/GTestUtils.hpp>
 
 namespace {
@@ -339,30 +340,138 @@ TEST(TestContainer, getVectorAsSingleService) {
 	ASSERT_EQ(instance.at(2), 3);
 }
 
-TEST(TestContainer, errorWhenGetServiceotRegistered) {
-	// TODO
+TEST(TestContainer, errorWhenGetServiceNotRegistered) {
+	cpv::Container container;
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container.get<int>(),
+		"failed: not registered");
 }
 
 TEST(TestContainer, errorWhenGetServiceMultipleRegistered) {
-	// TODO
+	cpv::Container container;
+	container.add<int>(1);
+	container.add<int>(2);
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container.get<int>(),
+		"failed: registered multiple times");
 }
 
 TEST(TestContainer, errorWhenGetPresistentServiceNotCopyConstructible) {
-	// TODO
+	cpv::Container container;
+	container.add<
+		std::unique_ptr<TestService>,
+		std::unique_ptr<TestImplSimple>>(
+		cpv::ServiceLifetime::Presistent);
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container.get<std::unique_ptr<TestService>>(),
+		"error: lifetime is presistent but not copy constructible");
 }
 
 TEST(TestContainer, errorWhenGetStoragePresistentServiceNotCopyConstructible) {
-	// TODO
+	cpv::Container container;
+	container.add<
+		std::unique_ptr<TestService>,
+		std::unique_ptr<TestImplSimple>>(
+		cpv::ServiceLifetime::StoragePresistent);
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container.get<std::unique_ptr<TestService>>(),
+		"error: lifetime is storage presistent but not copy constructible");
 }
 
-TEST(TestContainer, patchTransientService) {
-	// TODO
+TEST(TestContainer, patchTransientServiceWithFunc0Args) {
+	cpv::Container container;
+	container.add<std::unique_ptr<int>>([] {
+		return std::make_unique<int>(1);
+	});
+	auto count = seastar::make_shared<std::size_t>(0);
+	cpv::ServicePatcher<std::unique_ptr<int>>::patch(
+		container, [count] (std::unique_ptr<int> v) {
+			++(*count);
+			*v = -*v;
+			return v;
+		});
+	ASSERT_EQ(*container.get<std::unique_ptr<int>>(), -1);
+	ASSERT_EQ(*container.get<std::unique_ptr<int>>(), -1);
+	ASSERT_EQ(*count, 2U);
 }
 
-TEST(TestContainer, patchPresistentService) {
-	// TODO
+TEST(TestContainer, patchPresistentServiceWithFunc1Args) {
+	cpv::Container container;
+	container.add<int>(100);
+	container.add<seastar::shared_ptr<int>>([] {
+		return seastar::make_shared<int>(1);
+	}, cpv::ServiceLifetime::Presistent);
+	auto count = seastar::make_shared<std::size_t>(0);
+	cpv::ServicePatcher<seastar::shared_ptr<int>>::patch(
+		container, [count] (const cpv::Container& c, seastar::shared_ptr<int> v) {
+			++(*count);
+			*v += c.get<int>();
+			return v;
+		});
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(), 101);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(), 101);
+	ASSERT_EQ(*count, 1U);
 }
 
-TEST(TestContainer, patchStoragePresistentService) {
-	// TODO
+TEST(TestContainer, patchStoragePresistentServiceWithFunc2Args) {
+	cpv::Container container;
+	cpv::ServiceStorage storageP;
+	cpv::ServiceStorage storageQ;
+	container.add<int>([v=seastar::make_shared<int>(0)] {
+		return ++*v;
+	}, cpv::ServiceLifetime::StoragePresistent);
+	container.add<seastar::shared_ptr<int>>([] {
+		return seastar::make_shared<int>(100);
+	}, cpv::ServiceLifetime::StoragePresistent);
+	auto count = seastar::make_shared<std::size_t>(0);
+	cpv::ServicePatcher<seastar::shared_ptr<int>>::patch(
+		container, [count] (
+			const cpv::Container& c, cpv::ServiceStorage& s, seastar::shared_ptr<int> v) {
+			++(*count);
+			*v += c.get<int>(s);
+			return v;
+		});
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(), 101);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(), 101);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(storageP), 102);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(storageP), 102);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(storageQ), 103);
+	ASSERT_EQ(*container.get<seastar::shared_ptr<int>>(storageQ), 103);
+	ASSERT_EQ(*count, 3U);
 }
+
+TEST(TestContainer, patchNotRegisteredService) {
+	cpv::Container container;
+	cpv::ServicePatcher<int>::patch(container, [] (int) { return 0; });
+	ASSERT_THROWS_CONTAINS(
+		cpv::ContainerException,
+		container.get<int>(),
+		"failed: not registered");
+}
+
+TEST(TestContainer, patchDoesNotBreakDIFactory) {
+	cpv::Container container;
+	container.add<std::unique_ptr<TestService>, std::unique_ptr<TestImplInject>>();
+	container.add<int>(123);
+	container.add<std::string>("abc");
+	container.add<std::unique_ptr<int>>([] { return std::make_unique<int>(100); });
+	container.add<std::unique_ptr<int>>([] { return nullptr; });
+	container.add<std::unique_ptr<int>>([] { return std::make_unique<int>(101); });
+	cpv::ServicePatcher<std::string>::patch(
+		container, [] (std::string v) { return v + ".patched"; });
+	cpv::ServicePatcher<std::unique_ptr<int>>::patch(
+		container, [] (std::unique_ptr<int> v) {
+			if (v != nullptr) {
+				*v = -*v;
+			}
+			return v;
+		});
+	auto instance = container.get<std::unique_ptr<TestService>>();
+	ASSERT_TRUE(instance.get() != nullptr);
+	ASSERT_EQ(instance->name(), "123 abc.patched -100 nullptr -101 ");
+}
+

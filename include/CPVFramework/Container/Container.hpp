@@ -38,11 +38,10 @@ namespace cpv {
 			std::enable_if_t<std::is_base_of_v<
 				ServiceFactoryBase<TService>,
 				ServiceFunctionFactory<TService, TFunc>>, int> = 0>
-		void add(TFunc&& func, ServiceLifetime lifetime = ServiceLifetime::Transient) {
+		void add(TFunc func, ServiceLifetime lifetime = ServiceLifetime::Transient) {
 			addDescriptor(typeid(TService), ServiceDescriptor<TService>::create(
 				std::optional<TService>(),
-				std::make_unique<ServiceFunctionFactory<TService, TFunc>>(
-					std::is_lvalue_reference_v<TFunc> ? TFunc(func) : std::move(func)),
+				std::make_unique<ServiceFunctionFactory<TService, TFunc>>(std::move(func)),
 				lifetime));
 		}
 		
@@ -55,16 +54,16 @@ namespace cpv {
 		}
 		
 		/** Get service instance, throws exception if not registered or registered multiple times */
-		template <class T>
-		T get() const {
+		template <class TService>
+		TService get() const {
 			// use built-in service storage
-			return get<T>(getBuiltinStorage());
+			return get<TService>(getBuiltinStorage());
 		}
 		
 		/** Get service instance, throws exception if not registered or registered multiple times */
-		template <class T>
-		T get(ServiceStorage& storage) const {
-			return get<T>(storage, getDescriptors(typeid(T)));
+		template <class TService>
+		TService get(ServiceStorage& storage) const {
+			return get<TService>(storage, getDescriptors(typeid(TService)));
 		}
 		
 		/** Get service instances and adding them to given collection, it will not clear items first */
@@ -86,6 +85,9 @@ namespace cpv {
 	private:
 		template <class DependencyTypes, class ContainerType>
 		friend struct DependencyTypesExtensions;
+		template <class TService>
+		friend struct ServicePatcher;
+		friend struct Dummy;
 		
 		/** Associate a descriptor to given service type */
 		void addDescriptor(const std::type_index& serviceType, ServiceDescriptorPtr&& serviceDescriptor);
@@ -100,16 +102,16 @@ namespace cpv {
 		ServiceStorage& getBuiltinStorage() const&;
 		
 		/** Get service instance, throws exception if not registered or registered multiple times */
-		template <class T>
-		T get(ServiceStorage& storage, const ServiceDescriptorCollection& descriptors) const {
+		template <class TService>
+		TService get(ServiceStorage& storage, const ServiceDescriptorCollection& descriptors) const {
 			if (descriptors.get() == nullptr || descriptors->empty()) {
 				throw ContainerException(CPV_CODEINFO,
-					"get instance of type [", typeid(T).name(), "] failed: not registered");
+					"get instance of type [", typeid(TService).name(), "] failed: not registered");
 			} else if (descriptors->size() > 1) {
 				throw ContainerException(CPV_CODEINFO,
-					"get instance of type [", typeid(T).name(), "] failed: registered multiple times");
+					"get instance of type [", typeid(TService).name(), "] failed: registered multiple times");
 			}
-			return ServiceDescriptor<T>::cast(descriptors->front()).getInstance(*this, storage);
+			return ServiceDescriptor<TService>::cast(descriptors->front()).getInstance(*this, storage);
 		}
 		
 		/** Get service instances and adding them to given collection, notice it will not clear the collection first */
