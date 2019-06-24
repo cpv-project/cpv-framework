@@ -8,16 +8,19 @@ namespace cpv {
 		if (CPV_UNLIKELY(!static_cast<bool>(data))) {
 			// ignore empty data
 			return seastar::make_ready_future<>();
-		} else if (connection_->temporaryData_.responseHeadersFlushed) {
-			// headers are flushed, send data directly
+		} else if (CPV_UNLIKELY(connection_->temporaryData_.responseHeadersAppended)) {
+			// headers are sent, just send data
 			connection_->temporaryData_.responseBodyWrittenSize += data.len();
 			return connection_->socket_.out().put(std::move(data));
 		} else {
-			// flush headers first, then send data directly
-			return connection_->flushResponseHeaders().then([this, d=std::move(data)]() mutable {
-				connection_->temporaryData_.responseBodyWrittenSize += d.len();
-				return connection_->socket_.out().put(std::move(d));
-			});
+			// send headers and data in single packet (it's very important to performance)
+			std::size_t fragmentsCount = connection_->getResponseHeadersFragmentsCount();
+			fragmentsCount += data.nr_frags();
+			seastar::net::packet merged(fragmentsCount);
+			connection_->appendResponseHeaders(merged);
+			connection_->temporaryData_.responseBodyWrittenSize += data.len();
+			merged.append(std::move(data));
+			return connection_->socket_.out().put(std::move(merged));
 		}
 	}
 	

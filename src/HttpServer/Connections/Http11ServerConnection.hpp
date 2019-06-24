@@ -57,8 +57,11 @@ namespace cpv {
 		/** Reply single response and ensure the request body is completely received */
 		seastar::future<> replySingleResponse();
 		
-		/** Send response headers if it's not sent previously */
-		seastar::future<> flushResponseHeaders();
+		/** Get how many fragments should reserve for response headers, may greater than actual count  */
+		std::size_t getResponseHeadersFragmentsCount() const;
+		
+		/** Append response headers to packet, please check responseHeadersAppended first */
+		void appendResponseHeaders(seastar::net::packet& packet);
 		
 		/** Reply error response for invalid http request format, then return exception future */
 		seastar::future<> replyErrorResponseForInvalidFormat();
@@ -108,8 +111,8 @@ namespace cpv {
 			StackAllocatedVector<seastar::temporary_buffer<char>, 16> moreBodyBuffers;
 			// is message completed (no body or all body received)
 			bool messageCompleted = false;
-			// is response headers sent previously
-			bool responseHeadersFlushed = false;
+			// is response headers appended to packet previously
+			bool responseHeadersAppended = false;
 			// bytes of response body written to client
 			std::size_t responseBodyWrittenSize = 0;
 			// is connection kept for next request

@@ -21,7 +21,8 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME} PRIVATE ../include)
 target_compile_options(${PROJECT_NAME} PRIVATE
 	-Wall -Wextra
-	-Wno-unused-variable -Wno-unused-function)
+	-Wno-unused-variable -Wno-unused-function
+	-ftls-model=initial-exec -fPIC -fvisibility=default)
 target_link_libraries(${PROJECT_NAME} PRIVATE http_parser)
 
 # set compile options dependent on build type

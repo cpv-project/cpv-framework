@@ -385,9 +385,19 @@ namespace cpv {
 			// call the first handler
 			return sharedData_->handlers.front()->handle(
 				request_, response_, sharedData_->handlers.begin() + 1).then([this] {
-				// flush response headers
-				seastar::future<> flushFuture = flushResponseHeaders();
+				// send response headers if not sent befofe, then flush response
+				seastar::future<> result = seastar::make_ready_future<>();
+				if (CPV_LIKELY(temporaryData_.responseHeadersAppended)) {
+					result = socket_.out().flush();
+				} else {
+					seastar::net::packet data(getResponseHeadersFragmentsCount());
+					appendResponseHeaders(data);
+					result = socket_.out().put(std::move(data)).then([this] {
+						return socket_.out().flush();
+					});
+				}
 				// determine whether should close the connection after response is end
+				// should call appendResponseHeaders before reach here
 				if (CPV_LIKELY(temporaryData_.keepConnection)) {
 					temporaryData_.keepConnection = shouldKeepConnectionForContentLength(
 						response_, temporaryData_.responseBodyWrittenSize,
@@ -396,10 +406,7 @@ namespace cpv {
 				if (CPV_UNLIKELY(!temporaryData_.keepConnection)) {
 					state_ = Http11ServerConnectionState::Closing;
 				}
-				return std::move(flushFuture);
-			}).then([this] {
-				// flush response headers and body
-				return socket_.out().flush();
+				return std::move(result);
 			});
 		} else if (state_ == Http11ServerConnectionState::Closing) {
 			// connection closing
@@ -413,12 +420,26 @@ namespace cpv {
 		}
 	}
 	
-	/** Send response headers if it's not sent previously */
-	seastar::future<> Http11ServerConnection::flushResponseHeaders() {
-		// caller should check responseHeadersFlushed before, so it's unlikely
-		if (CPV_UNLIKELY(temporaryData_.responseHeadersFlushed)) {
-			return seastar::make_ready_future<>();
+	/** Get how many fragments should reserve for response headers, may greater than actual count  */
+	std::size_t Http11ServerConnection::getResponseHeadersFragmentsCount() const {
+		// calculate fragments count
+		// +6: version, space, status code, space, status message, crlf
+		// +4: date header, colon + space, header value, crlf
+		// +4: server header, colon + space, header value, crlf
+		// +4: connection header, colon + space, header value, crlf
+		// + headers count * 4
+		//   reserve 3 addition header for date, server, connection
+		// +1: crlf
+		return 31 + response_.getHeaders().size() * 4;
+	}
+	
+	/** Append response headers to packet, please check responseHeadersAppended first */
+	void Http11ServerConnection::appendResponseHeaders(seastar::net::packet& packet) {
+		// check flag
+		if (CPV_UNLIKELY(temporaryData_.responseHeadersAppended)) {
+			return;
 		}
+		temporaryData_.responseHeadersAppended = true;
 		// determine response http protocol version
 		std::string_view version = response_.getVersion();
 		if (CPV_LIKELY(version.empty())) {
@@ -428,8 +449,15 @@ namespace cpv {
 				// request version is unsupported
 				version = constants::Http10;
 			}
-			// store version for determine keepalive later
+			// store version for keepalive determination later
 			response_.setVersion(version);
+		}
+		// return a special status code for handler didn't set it
+		if (CPV_UNLIKELY(
+			response_.getStatusCode().empty() ||
+			response_.getStatusMessage().empty())) {
+			response_.setStatusCode("0");
+			response_.setStatusMessage("Status code or status message not set");
 		}
 		// determine value of date header
 		std::string_view date;
@@ -469,16 +497,7 @@ namespace cpv {
 			connection = connectionIt->second;
 			headers.erase(connectionIt);
 		}
-		// calculate fragments count
-		// +6: version, space, status code, space, status message, crlf
-		// +4: date header, colon + space, header value, crlf
-		// +4: server header, colon + space, header value, crlf
-		// +4: connection header, colon + space, header value, crlf
-		// + headers count * 4
-		// +1: crlf
-		std::size_t fragmentsCount = 19 + headers.size() * 4;
-		// build zero copy packet
-		seastar::net::packet packet(fragmentsCount);
+		// append response headers to packet
 		packet << version << constants::Space <<
 			response_.getStatusCode() << constants::Space <<
 			response_.getStatusMessage() << constants::CRLF;
@@ -493,9 +512,6 @@ namespace cpv {
 				pair.second << constants::CRLF;
 		}
 		packet << constants::CRLF;
-		// send packet
-		temporaryData_.responseHeadersFlushed = true;
-		return socket_.out().put(std::move(packet));
 	}
 	
 	/** Reply error response for invalid http request format, then return exception future */
