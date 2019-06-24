@@ -14,7 +14,7 @@ namespace cpv {
 			return seastar::make_exception_future(LogicException(
 				CPV_CODEINFO, "can't start http server while stopping"));
 		}
-		data_->sharedData->logger->log(LogLevel::Info, "starting http server");
+		data_->sharedData->logger->log(LogLevel::Notice, "starting http server");
 		// cleanup (if last time this function interrupt by exception)
 		for (auto& listener : data_->listeners) {
 			listener->first.abort_accept();
@@ -33,7 +33,7 @@ namespace cpv {
 		}
 		// start listeners
 		for (const auto& listener : data_->listeners) {
-			data_->sharedData->logger->log(LogLevel::Info,
+			data_->sharedData->logger->log(LogLevel::Notice,
 				"start listen http connections from:", listener->second);
 			data_->listenerStoppedFutures.emplace_back(seastar::keep_doing(
 				[listener, connectionsWrapper=data_->connectionsWrapper, sharedData=data_->sharedData] {
@@ -52,17 +52,17 @@ namespace cpv {
 						"(count:", connectionsWrapper->value.size(), ")");
 				});
 			}).handle_exception([listener, sharedData=data_->sharedData] (std::exception_ptr ex) {
-				sharedData->logger->log(LogLevel::Info,
+				sharedData->logger->log(LogLevel::Notice,
 					"stop listen http connections from:", listener->second, "because of", ex);
 			}));
 		}
-		data_->sharedData->logger->log(LogLevel::Info, "http server started");
+		data_->sharedData->logger->log(LogLevel::Notice, "http server started");
 		return seastar::make_ready_future<>();
 	}
 	
 	/** Stop accept http connection and close all exists connections  */
 	seastar::future<> HttpServer::stop() {
-		data_->sharedData->logger->log(LogLevel::Info, "stopping http server");
+		data_->sharedData->logger->log(LogLevel::Notice, "stopping http server");
 		// abort all listeners
 		for (const auto& listener : data_->listeners) {
 			listener->first.abort_accept();
@@ -84,7 +84,7 @@ namespace cpv {
 			return seastar::when_all(futures.begin(), futures.end()).then([this] (auto&&) {
 				// clean all connections
 				data_->connectionsWrapper->value.clear();
-				data_->sharedData->logger->log(LogLevel::Info, "http server stopped");
+				data_->sharedData->logger->log(LogLevel::Notice, "http server stopped");
 				data_->sharedData->metricData.current_connections = 0;
 			});
 		});

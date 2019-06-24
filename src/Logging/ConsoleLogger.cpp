@@ -7,8 +7,10 @@ namespace cpv {
 		static const char* getColorCodePrefix(LogLevel logLevel) {
 			if (logLevel <= LogLevel::Error) {
 				return "\e[31m"; // red
-			} else if (logLevel<= LogLevel::Notice) {
+			} else if (logLevel <= LogLevel::Warning) {
 				return "\e[33m"; // yellow
+			} else if (logLevel<= LogLevel::Notice) {
+				return "\e[32m"; // green
 			} else if (logLevel >= LogLevel::Debug) {
 				return "\e[90m"; // gray
 			} else {
@@ -24,10 +26,11 @@ namespace cpv {
 	
 	/** The implmentation of log, writes to console */
 	void ConsoleLogger::logImpl(LogLevel logLevel, const std::string& message) {
+		// build a single string first to avoid thread race
 		if (logLevel <= LogLevel::Warning) {
-			std::cerr << getColorCodePrefix(logLevel) << message << getColorCodeSuffix();
+			std::cerr << (getColorCodePrefix(logLevel) + message + getColorCodeSuffix());
 		} else {
-			std::cout << getColorCodePrefix(logLevel) << message << getColorCodeSuffix();
+			std::cout << (getColorCodePrefix(logLevel) + message + getColorCodeSuffix());
 		}
 	}
 }

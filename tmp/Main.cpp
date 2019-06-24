@@ -45,14 +45,30 @@ namespace {
 			return extensions::writeAll(response.getBodyStream(), std::move(p));
 		}
 	};
+
+	class HelloHandler : public cpv::HttpServerRequestHandlerBase {
+	public:
+		seastar::future<> handle(
+			cpv::HttpRequest&,
+			cpv::HttpResponse& response,
+			const cpv::HttpServerRequestHandlerIterator&) const override {
+			using namespace cpv;
+			response.setStatusCode(constants::_200);
+			response.setStatusMessage(constants::OK);
+			response.setHeader(constants::ContentType, constants::TextPlainUtf8);
+			response.setHeader(constants::ContentLength, constants::Integers.at(12));
+			return cpv::extensions::writeAll(response.getBodyStream(), "Hello World!");
+		}
+	};
 	
 	seastar::future<> service_loop() {
 		cpv::HttpServerConfiguration configuration;
 		configuration.setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
-		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Debug);
+		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Notice);
 		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>> handlers;
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
-		handlers.emplace_back(std::make_unique<CustomHandler>());
+		// handlers.emplace_back(std::make_unique<CustomHandler>());
+		handlers.emplace_back(std::make_unique<HelloHandler>());
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
 		cpv::HttpServer server(configuration, logger, std::move(handlers));
 		return seastar::do_with(std::move(server), [](auto& server) {
