@@ -9,7 +9,7 @@ cmake -DCMAKE_BUILD_TYPE=Release \
 	../../tmp
 make V=1 --jobs=$(printf "%d\n4" $(nproc) | sort -n | head -1)
 
-./CPVFrameworkTmp --reactor-backend epoll
+./CPVFrameworkTmp --task-quota-ms=20
 
 
 
