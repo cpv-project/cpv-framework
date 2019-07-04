@@ -21,11 +21,7 @@
 
  /** This file is modified from http-parser project: https://github.com/nodejs/http-parser */
 
-#ifndef http_parser_h
-#define http_parser_h
-#ifdef __cplusplus
-extern "C" {
-#endif
+#pragma once
 
 /* Also update SONAME in the Makefile whenever you change these. */
 #define HTTP_PARSER_VERSION_MAJOR 2
@@ -66,6 +62,8 @@ typedef unsigned __int64 uint64_t;
 # define HTTP_MAX_HEADER_SIZE (80*1024)
 #endif
 
+namespace cpv::internal::http_parser {
+
 typedef struct http_parser http_parser;
 typedef struct http_parser_settings http_parser_settings;
 
@@ -88,8 +86,8 @@ typedef struct http_parser_settings http_parser_settings;
  * many times for each string. E.G. you might get 10 callbacks for "on_url"
  * each providing just a few characters more data.
  */
-typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
-typedef int (*http_cb) (http_parser*);
+// typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
+// typedef int (*http_cb) (http_parser*);
 
 
 /* Status Codes */
@@ -318,26 +316,23 @@ struct http_parser {
    * error checking.
    */
   unsigned int upgrade : 1;
-
-  /** PUBLIC **/
-  void *data; /* A pointer to get hook to the "connection" or "socket" object */
 };
 
 
 struct http_parser_settings {
-  http_cb      on_message_begin;
-  http_data_cb on_url;
-  http_data_cb on_status;
-  http_data_cb on_header_field;
-  http_data_cb on_header_value;
-  http_cb      on_headers_complete;
-  http_data_cb on_body;
-  http_cb      on_message_complete;
+  int on_message_begin() { return 0; }
+  int on_url(const char*, size_t) { return 0; }
+  int on_status(const char*, size_t) { return 0; }
+  int on_header_field(const char*, size_t) { return 0; }
+  int on_header_value(const char*, size_t) { return 0; }
+  int on_headers_complete() { return 0; }
+  int on_body(const char*, size_t) { return 0; }
+  int on_message_complete() { return 0; }
   /* When on_chunk_header is called, the current chunk length is stored
    * in parser->content_length.
    */
-  http_cb      on_chunk_header;
-  http_cb      on_chunk_complete;
+  int on_chunk_header() { return 0; }
+  int on_chunk_complete() { return 0; }
 };
 
 
@@ -393,8 +388,9 @@ void http_parser_settings_init(http_parser_settings *settings);
 
 /* Executes the parser. Returns number of parsed bytes. Sets
  * `parser->http_errno` on error. */
+template <class Settings>
 size_t http_parser_execute(http_parser *parser,
-                           const http_parser_settings *settings,
+                           Settings *settings,
                            const char *data,
                            size_t len);
 
@@ -436,8 +432,5 @@ int http_body_is_final(const http_parser *parser);
 /* Change the maximum header size provided at compile time. */
 void http_parser_set_max_header_size(uint32_t size);
 
-#ifdef __cplusplus
 }
-#endif
-#endif
 

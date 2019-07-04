@@ -21,12 +21,14 @@
 
 /** This file is modified from http-parser project: https://github.com/nodejs/http-parser */
 
-#include "http_parser.h"
 #include <assert.h>
 #include <stddef.h>
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include "./Http11Parser.hpp"
+
+namespace cpv::internal::http_parser {
 
 static uint32_t max_header_size = HTTP_MAX_HEADER_SIZE;
 
@@ -84,9 +86,9 @@ do {                                                                 \
 do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
                                                                      \
-  if (LIKELY(settings->on_##FOR)) {                                  \
+  if (true) {                                                        \
     parser->state = CURRENT_STATE();                                 \
-    if (UNLIKELY(0 != settings->on_##FOR(parser))) {                 \
+    if (UNLIKELY(0 != settings->on_##FOR())) {                       \
       SET_ERRNO(HPE_CB_##FOR);                                       \
     }                                                                \
     UPDATE_STATE(parser->state);                                     \
@@ -110,10 +112,9 @@ do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
                                                                      \
   if (FOR##_mark) {                                                  \
-    if (LIKELY(settings->on_##FOR)) {                                \
+    if (true) {                                                      \
       parser->state = CURRENT_STATE();                               \
-      if (UNLIKELY(0 !=                                              \
-                   settings->on_##FOR(parser, FOR##_mark, (LEN)))) { \
+      if (UNLIKELY(0 != settings->on_##FOR(FOR##_mark, (LEN)))) {    \
         SET_ERRNO(HPE_CB_##FOR);                                     \
       }                                                              \
       UPDATE_STATE(parser->state);                                   \
@@ -638,8 +639,9 @@ parse_url_char(enum state s, const char ch)
   return s_dead;
 }
 
+template <class Settings>
 size_t http_parser_execute (http_parser *parser,
-                            const http_parser_settings *settings,
+                            Settings *settings,
                             const char *data,
                             size_t len)
 {
@@ -1800,8 +1802,8 @@ reexecute:
          * We'd like to use CALLBACK_NOTIFY_NOADVANCE() here but we cannot, so
          * we have to simulate it by handling a change in errno below.
          */
-        if (settings->on_headers_complete) {
-          switch (settings->on_headers_complete(parser)) {
+        if (true) {
+          switch (settings->on_headers_complete()) {
             case 0:
               break;
 
@@ -2150,9 +2152,7 @@ http_status_str (enum http_status s)
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
-  void *data = parser->data; /* preserve application data */
   memset(parser, 0, sizeof(*parser));
-  parser->data = data;
   parser->type = t;
   parser->state = (t == HTTP_REQUEST ? s_start_req : (t == HTTP_RESPONSE ? s_start_res : s_start_req_or_res));
   parser->http_errno = HPE_OK;
@@ -2499,4 +2499,15 @@ void
 http_parser_set_max_header_size(uint32_t size) {
   max_header_size = size;
 }
+
+}
+
+// template instantiation
+#include "./Http11ServerConnection.hpp"
+
+template size_t cpv::internal::http_parser::http_parser_execute<cpv::Http11ServerConnection>(
+	cpv::internal::http_parser::http_parser *parser,
+	cpv::Http11ServerConnection *settings,
+	const char *data,
+	size_t len);
 

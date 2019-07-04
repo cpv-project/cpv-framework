@@ -6,6 +6,8 @@ BUILDDIR=../build/cpvframework-tests
 mkdir -p ${BUILDDIR}
 cd ${BUILDDIR}
 cmake -DCMAKE_BUILD_TYPE=Debug \
+	-DCMAKE_C_COMPILER=gcc-9 \
+	-DCMAKE_CXX_COMPILER=g++-9 \
 	-DHTTP_SERVER_1_IP=127.0.0.1 \
 	-DHTTP_SERVER_1_PORT=8100 \
 	-DHTTP_SERVER_2_IP=0.0.0.0 \

@@ -53,7 +53,8 @@ namespace cpv {
 		static const bool HttpMaxHeaderSizeIsOverridden = ([] {
 			#if HTTP_PARSER_VERSION_MAJOR > 2 || \
 				(HTTP_PARSER_VERSION_MAJOR == 2 && HTTP_PARSER_VERSION_MINOR >= 9)
-				::http_parser_set_max_header_size(std::numeric_limits<std::uint32_t>::max());
+				internal::http_parser::http_parser_set_max_header_size(
+					std::numeric_limits<std::uint32_t>::max());
 				return true;
 			#else
 				return false;
@@ -76,7 +77,8 @@ namespace cpv {
 		}
 		
 		/** Get http version string from parser, return empty for version not supported */
-		static inline std::string_view getHttpVersionString(const ::http_parser& parser) {
+		static inline std::string_view getHttpVersionString(
+			const internal::http_parser::http_parser& parser) {
 			if (CPV_LIKELY(parser.http_major == 1)) {
 				if (CPV_LIKELY(parser.http_minor == 1)) {
 					return constants::Http11;
@@ -205,8 +207,8 @@ namespace cpv {
 			// handle single request
 			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
 			// initialize http parser
-			::http_parser_init(&self->parser_, HTTP_REQUEST);
-			self->parser_.data = self.get();
+			internal::http_parser::http_parser_init(
+				&self->parser_, internal::http_parser::HTTP_REQUEST);
 			// reset members if it's not the first request
 			if (self->temporaryData_.messageCompleted) {
 				self->request_ = {};
@@ -269,20 +271,10 @@ namespace cpv {
 		state_(Http11ServerConnectionState::Initial),
 		request_(),
 		response_(),
-		parserSettings_(),
 		parser_(),
 		temporaryData_(),
 		nextRequestBuffer_(),
 		shutdownInputTimer_() {
-		// initialize http parser settings
-		::http_parser_settings_init(&parserSettings_);
-		parserSettings_.on_message_begin = onMessageBegin;
-		parserSettings_.on_url = onUrl;
-		parserSettings_.on_header_field = onHeaderField;
-		parserSettings_.on_header_value = onHeaderValue;
-		parserSettings_.on_headers_complete = onHeadersComplete;
-		parserSettings_.on_body = onBody;
-		parserSettings_.on_message_complete = onMessageComplete;
 		// initialize timer
 		shutdownInputTimer_.set_callback([this] {
 			sharedData_->metricData.request_timeout_errors += 1;
@@ -344,14 +336,14 @@ namespace cpv {
 				});
 			}
 			// execute http parser
-			std::size_t parsedSize = ::http_parser_execute(
+			std::size_t parsedSize = internal::http_parser::http_parser_execute(
 				&parser_,
-				&parserSettings_,
+				this,
 				lastBuffer.get(),
 				lastBuffer.size());
 			if (parsedSize != lastBuffer.size()) {
-				auto err = static_cast<enum ::http_errno>(parser_.http_errno);
-				if (CPV_LIKELY(err == ::http_errno::HPE_CB_message_begin &&
+				auto err = static_cast<enum internal::http_parser::http_errno>(parser_.http_errno);
+				if (CPV_LIKELY(err == internal::http_parser::http_errno::HPE_CB_message_begin &&
 					parsedSize > 1 && temporaryData_.messageCompleted)) {
 					// received next request from pipeline
 					// the http parser will become error state,
@@ -518,19 +510,19 @@ namespace cpv {
 	seastar::future<> Http11ServerConnection::replyErrorResponseForInvalidFormat() {
 		sharedData_->metricData.request_invalid_format_errors += 1;
 		return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
-			auto err = static_cast<enum ::http_errno>(parser_.http_errno);
+			auto err = static_cast<enum internal::http_parser::http_errno>(parser_.http_errno);
 			return seastar::make_exception_future<>(FormatException(
 				CPV_CODEINFO, "http request format error:",
-				::http_errno_name(err), ::http_errno_description(err),
+				internal::http_parser::http_errno_name(err),
+				internal::http_parser::http_errno_description(err),
 				", state:", state_));
 		});
 	}
 	
-	int Http11ServerConnection::onMessageBegin(::http_parser* parser) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestInitial) {
+	int Http11ServerConnection::on_message_begin() {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestInitial) {
 			// normal begin
-			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
+			state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
 		} else {
 			// state error, maybe the next request from pipeline,
 			// the caller should check parser_.http_errno and remember rest of the buffer
@@ -539,17 +531,16 @@ namespace cpv {
 		return 0;
 	}
 	
-	int Http11ServerConnection::onUrl(::http_parser* parser, const char* data, std::size_t size) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
+	int Http11ServerConnection::on_url(const char* data, std::size_t size) {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
 			// the first time received the url
-			self->state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-			self->temporaryData_.urlView = std::string_view(data, size);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
+			state_ = Http11ServerConnectionState::ReceiveRequestUrl;
+			temporaryData_.urlView = std::string_view(data, size);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// url splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->temporaryData_.urlMerged,
-				self->temporaryData_.urlView,
+				temporaryData_.urlMerged,
+				temporaryData_.urlView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -558,26 +549,25 @@ namespace cpv {
 		return 0;
 	}
 	
-	int Http11ServerConnection::onHeaderField(::http_parser* parser, const char* data, std::size_t size) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
+	int Http11ServerConnection::on_header_field(const char* data, std::size_t size) {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// the first time received a new header field, flush last header field and value
-			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerValueMerged);
-			self->request_.setHeader(
-				self->temporaryData_.headerFieldView,
-				self->temporaryData_.headerValueView);
-			self->temporaryData_.headerFieldView = std::string_view(data, size);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
+			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
+			flushMergedTemporaryBuffer(request_, temporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(request_, temporaryData_.headerValueMerged);
+			request_.setHeader(
+				temporaryData_.headerFieldView,
+				temporaryData_.headerValueView);
+			temporaryData_.headerFieldView = std::string_view(data, size);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// the first time received the first header field
-			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			self->temporaryData_.headerFieldView = std::string_view(data, size);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
+			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
+			temporaryData_.headerFieldView = std::string_view(data, size);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// header field splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->temporaryData_.headerFieldMerged,
-				self->temporaryData_.headerFieldView,
+				temporaryData_.headerFieldMerged,
+				temporaryData_.headerFieldView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -586,17 +576,16 @@ namespace cpv {
 		return 0;
 	}
 	
-	int Http11ServerConnection::onHeaderValue(::http_parser* parser, const char* data, std::size_t size) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
+	int Http11ServerConnection::on_header_value(const char* data, std::size_t size) {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// the first time received a header value after header field
-			self->state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
-			self->temporaryData_.headerValueView = std::string_view(data, size);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
+			state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
+			temporaryData_.headerValueView = std::string_view(data, size);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// header value splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				self->temporaryData_.headerValueMerged,
-				self->temporaryData_.headerValueView,
+				temporaryData_.headerValueMerged,
+				temporaryData_.headerValueView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -605,55 +594,53 @@ namespace cpv {
 		return 0;
 	}
 	
-	int Http11ServerConnection::onHeadersComplete(::http_parser* parser) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
+	int Http11ServerConnection::on_headers_complete() {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// all headers received, flush last header field and value
-			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(self->request_, self->temporaryData_.headerValueMerged);
-			self->request_.setHeader(
-				self->temporaryData_.headerFieldView,
-				self->temporaryData_.headerValueView);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
+			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
+			flushMergedTemporaryBuffer(request_, temporaryData_.headerFieldMerged);
+			flushMergedTemporaryBuffer(request_, temporaryData_.headerValueMerged);
+			request_.setHeader(
+				temporaryData_.headerFieldView,
+				temporaryData_.headerValueView);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// no headers but url
-			self->state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
+			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
 		} else {
 			// state error
 			return -1;
 		}
 		// flush method, url and version
-		flushMergedTemporaryBuffer(self->request_, self->temporaryData_.urlMerged);
-		self->request_.setMethod(::http_method_str(
-			static_cast<enum ::http_method>(self->parser_.method)));
-		self->request_.setUrl(self->temporaryData_.urlView);
-		self->request_.setVersion(getHttpVersionString(self->parser_));
+		flushMergedTemporaryBuffer(request_, temporaryData_.urlMerged);
+		request_.setMethod(internal::http_parser::http_method_str(
+			static_cast<enum internal::http_parser::http_method>(parser_.method)));
+		request_.setUrl(temporaryData_.urlView);
+		request_.setVersion(getHttpVersionString(parser_));
 		return 0;
 	}
 	
-	int Http11ServerConnection::onBody(::http_parser* parser, const char* data, std::size_t size) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
+	int Http11ServerConnection::on_body(const char* data, std::size_t size) {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
 			// received initial body, share lastBuffer to bodyBuffer
-			auto& lastBuffer = self->temporaryData_.lastBuffer;
-			self->state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			self->temporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
-		} else if (self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+			auto& lastBuffer = temporaryData_.lastBuffer;
+			state_ = Http11ServerConnectionState::ReceiveRequestBody;
+			temporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// received initial chunked body, share lastBuffer to moreBodyBuffers
-			auto& lastBuffer = self->temporaryData_.lastBuffer;
-			self->temporaryData_.moreBodyBuffers.emplace_back(
+			auto& lastBuffer = temporaryData_.lastBuffer;
+			temporaryData_.moreBodyBuffers.emplace_back(
 				lastBuffer.share(data - lastBuffer.get(), size));
-		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
+		} else if (state_ == Http11ServerConnectionState::ReplyResponse) {
 			// receive body when replying response (called from request stream)
-			auto& bodyBuffer = self->temporaryData_.bodyBuffer;
+			auto& bodyBuffer = temporaryData_.bodyBuffer;
 			if (bodyBuffer.empty()) {
 				// move lastBuffer to bodyBuffer
-				bodyBuffer = std::move(self->temporaryData_.lastBuffer);
+				bodyBuffer = std::move(temporaryData_.lastBuffer);
 				bodyBuffer.trim_front(data - bodyBuffer.get());
 				bodyBuffer.trim(size);
 			} else {
 				// share bodyBuffer to moreBodyBuffers
-				self->temporaryData_.moreBodyBuffers.emplace_back(
+				temporaryData_.moreBodyBuffers.emplace_back(
 					bodyBuffer.share(data - bodyBuffer.get(), size));
 			}
 		} else {
@@ -663,16 +650,15 @@ namespace cpv {
 		return 0;
 	}
 	
-	int Http11ServerConnection::onMessageComplete(::http_parser* parser) {
-		auto* self = reinterpret_cast<Http11ServerConnection*>(parser->data);
-		if (self->state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
-			self->state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+	int Http11ServerConnection::on_message_complete() {
+		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
+			state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// no body or all body is received before reply
-			self->state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
-			self->temporaryData_.messageCompleted = true;
-		} else if (self->state_ == Http11ServerConnectionState::ReplyResponse) {
+			state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
+			temporaryData_.messageCompleted = true;
+		} else if (state_ == Http11ServerConnectionState::ReplyResponse) {
 			// all body received when replying response (called from request stream)
-			self->temporaryData_.messageCompleted = true;
+			temporaryData_.messageCompleted = true;
 		} else {
 			// state error
 			return -1;

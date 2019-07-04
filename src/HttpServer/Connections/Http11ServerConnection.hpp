@@ -1,5 +1,4 @@
 #pragma once
-#include <http_parser.h>
 #include <seastar/core/timer.hh>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
@@ -8,6 +7,7 @@
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequestHandlerBase.hpp>
 #include "../HttpServerSharedData.hpp"
 #include "./HttpServerConnectionBase.hpp"
+#include "./Http11Parser.hpp"
 
 namespace cpv {
 	/** The state of a http 1.0/1.1 connection */
@@ -36,6 +36,7 @@ namespace cpv {
 	/** Connection accepted from http client uses http 1.0/1.1 protocol */
 	class Http11ServerConnection :
 		public HttpServerConnectionBase,
+		private internal::http_parser::http_parser_settings,
 		public seastar::enable_shared_from_this<Http11ServerConnection> {
 	public:
 		/** Start receive requests and send responses */
@@ -67,20 +68,23 @@ namespace cpv {
 		seastar::future<> replyErrorResponseForInvalidFormat();
 		
 		/** Parser callbacks */
-		static int onMessageBegin(::http_parser* parser);
-		static int onUrl(::http_parser* parser, const char* data, std::size_t size);
-		static int onHeaderField(::http_parser* parser, const char* data, std::size_t size);
-		static int onHeaderValue(::http_parser* parser, const char* data, std::size_t size);
-		static int onHeadersComplete(::http_parser* parser);
-		static int onBody(::http_parser* parser, const char* data, std::size_t size);
-		static int onMessageComplete(::http_parser* parser);
-		static int onChunkHeader(::http_parser* parser);
-		static int onChunkComplete(::http_parser* parser);
+		int on_message_begin();
+		int on_url(const char*, size_t);
+		using internal::http_parser::http_parser_settings::on_status;
+		int on_header_field(const char*, size_t);
+		int on_header_value(const char*, size_t);
+		int on_headers_complete();
+		int on_body(const char*, size_t);
+		int on_message_complete();
+		using internal::http_parser::http_parser_settings::on_chunk_header;
+		using internal::http_parser::http_parser_settings::on_chunk_complete;
 		
 		/** Friends **/
+		friend size_t internal::http_parser::http_parser_execute<>(
+			http_parser*, Http11ServerConnection*, const char*, size_t);
 		friend class Http11ServerConnectionRequestStream;
 		friend class Http11ServerConnectionResponseStream;
-	
+		
 	private:
 		seastar::lw_shared_ptr<HttpServerSharedData> sharedData_;
 		SocketHolder socket_;
@@ -88,8 +92,7 @@ namespace cpv {
 		Http11ServerConnectionState state_;
 		HttpRequest request_;
 		HttpResponse response_;
-		::http_parser_settings parserSettings_;
-		::http_parser parser_;
+		internal::http_parser::http_parser parser_;
 		// temporary data for single request, store in unnamed struct for easily reset
 		struct {
 			// the last buffer received, store from receiveSingleRequest or request stream

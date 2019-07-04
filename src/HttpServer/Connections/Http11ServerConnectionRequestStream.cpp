@@ -46,14 +46,15 @@ namespace cpv {
 				// execute http parser
 				// lastBuffer may moved to bodyBuffer after parsed
 				std::size_t lastBufferSize = lastBuffer.size();
-				std::size_t parsedSize = ::http_parser_execute(
+				std::size_t parsedSize = internal::http_parser::http_parser_execute(
 					&connection_->parser_,
-					&connection_->parserSettings_,
+					connection_,
 					lastBuffer.get(),
 					lastBufferSize);
 				if (parsedSize != lastBufferSize) {
-					auto err = static_cast<enum ::http_errno>(connection_->parser_.http_errno);
-					if (CPV_LIKELY(err == ::http_errno::HPE_CB_message_begin &&
+					auto err = static_cast<enum internal::http_parser::http_errno>(
+						connection_->parser_.http_errno);
+					if (CPV_LIKELY(err == internal::http_parser::http_errno::HPE_CB_message_begin &&
 						parsedSize > 1 && connection_->temporaryData_.messageCompleted)) {
 						// received next request from pipeline
 						if (CPV_LIKELY(bodyBuffer.size() != 0)) {

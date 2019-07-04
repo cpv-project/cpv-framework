@@ -30,7 +30,7 @@ if (CMAKE_BUILD_TYPE MATCHES Release OR
 	CMAKE_BUILD_TYPE MATCHES RelWithDebInfo OR
 	CMAKE_BUILD_TYPE MATCHES MinSizeRel)
 	target_compile_options(${PROJECT_NAME} PRIVATE
-		${SEASTAR_CFLAGS})
+		${SEASTAR_CFLAGS} -O3)
 	target_link_libraries(${PROJECT_NAME} PRIVATE
 		${SEASTAR_LDFLAGS} -flto -fuse-ld=gold)
 elseif (CMAKE_BUILD_TYPE MATCHES Debug)
