@@ -23,7 +23,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 	-Wall -Wextra
 	-Wno-unused-variable -Wno-unused-function
 	-ftls-model=initial-exec -fPIC -fvisibility=default)
-target_link_libraries(${PROJECT_NAME} PRIVATE http_parser)
+target_link_libraries(${PROJECT_NAME} PRIVATE)
 
 # set compile options dependent on build type
 if (CMAKE_BUILD_TYPE MATCHES Release OR
