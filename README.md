@@ -2,7 +2,7 @@
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/79809aeed9b146f4aa52e9247b5eaf2c)](https://www.codacy.com/app/compiv/cpv-framework?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=cpv-project/cpv-framework&amp;utm_campaign=Badge_Grade)
 [![Build Status](https://travis-ci.org/cpv-project/cpv-framework.svg?branch=master)](https://travis-ci.org/cpv-project/cpv-framework)
-[![license](https://img.shields.io/github/license/cpv-project/cpv-manage-scripts.svg)]() 
+[![license](https://img.shields.io/github/license/cpv-project/cpv-framework.svg)]() 
 
 TODO
 
