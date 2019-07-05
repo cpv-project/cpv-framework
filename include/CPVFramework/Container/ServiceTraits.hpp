@@ -24,11 +24,11 @@ namespace cpv {
 	};
 	
 	/** For StackAllocatedVector */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator, class Allocator>
+	template <class T, std::size_t InitialSize, class UpstreamAllocator, std::size_t Size, class Allocator>
 	struct ServiceTypeTrait<StackAllocatedVector<
-		T, InitialSize, UpstreamAllocator, Allocator>> {
+		T, InitialSize, UpstreamAllocator, Size, Allocator>> {
 		static const constexpr bool IsCollection = true;
-		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator, Allocator>;
+		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator, Size, Allocator>;
 		using ActualType = T;
 		
 		static void add(Type& collection, ActualType&& element) {

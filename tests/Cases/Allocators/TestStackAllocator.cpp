@@ -3,7 +3,9 @@
 #include <TestUtility/GTestUtils.hpp>
 
 TEST(TestStackAllocator, allocate) {
-	cpv::StackAllocator<int, 4> allocator;
+	static constexpr const std::size_t Size = sizeof(int)*4;
+	cpv::StackAllocatorStorage<Size> storage;
+	cpv::StackAllocator<int, Size> allocator(storage);
 	
 	using ptr_type = std::unique_ptr<int, std::function<void(int*)>>;
 	ptr_type first(allocator.allocate(1), [&allocator] (int* p) { allocator.deallocate(p, 1); });
@@ -12,8 +14,8 @@ TEST(TestStackAllocator, allocate) {
 	ptr_type fifth(allocator.allocate(1), [&allocator] (int* p) { allocator.deallocate(p, 1); });
 	ptr_type sixth(allocator.allocate(2), [&allocator] (int* p) { allocator.deallocate(p, 2); });
 	
-	void* begin = static_cast<void*>(&allocator);
-	void* end = static_cast<void*>(&allocator + 1);
+	void* begin = static_cast<void*>(&storage);
+	void* end = static_cast<void*>(&storage + 1);
 	ASSERT_GE(static_cast<void*>(first.get()), begin);
 	ASSERT_LT(static_cast<void*>(first.get()), end);
 	ASSERT_GE(static_cast<void*>(second.get()), begin);
