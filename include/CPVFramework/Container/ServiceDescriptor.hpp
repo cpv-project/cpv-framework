@@ -50,7 +50,7 @@ namespace cpv {
 						"] error: unsupported lifetime type (",
 						static_cast<std::size_t>(lifetime_), ")");
 				}
-			} catch (ContainerException) {
+			} catch (const ContainerException&) {
 				throw;
 			} catch (...) {
 				throw ContainerException(CPV_CODEINFO,

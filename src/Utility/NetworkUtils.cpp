@@ -16,7 +16,7 @@ namespace cpv {
 		try {
 			inetAddress = seastar::net::inet_address(
 				index > 0 ? address.substr(0, index) : "0.0.0.0");
-		} catch (std::invalid_argument&) {
+		} catch (const std::invalid_argument&) {
 			throw FormatException(CPV_CODEINFO, "invalid listen ip address:", address);
 		}
 		if (CPV_UNLIKELY(inetAddress.in_family() != seastar::net::inet_address::family::INET)) {

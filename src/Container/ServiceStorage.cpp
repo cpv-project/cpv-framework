@@ -11,6 +11,7 @@ namespace cpv {
 	}
 	
 	/** Set the service instance with associated key */
+	// cppcheck-suppress unusedFunction
 	void ServiceStorage::set(std::uintptr_t key, std::any&& value) {
 		instances_.insert_or_assign(key, std::move(value));
 	}

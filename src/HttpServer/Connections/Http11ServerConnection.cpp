@@ -398,7 +398,7 @@ namespace cpv {
 				if (CPV_UNLIKELY(!temporaryData_.keepConnection)) {
 					state_ = Http11ServerConnectionState::Closing;
 				}
-				return std::move(result);
+				return result;
 			});
 		} else if (state_ == Http11ServerConnectionState::Closing) {
 			// connection closing

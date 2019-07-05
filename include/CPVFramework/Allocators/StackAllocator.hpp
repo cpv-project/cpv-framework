@@ -122,8 +122,15 @@ namespace cpv {
 		StackAllocator(const StackAllocator<U, Size, UUpstreamAllocator>& other) :
 			UpstreamAllocator(other), storage_(other.storage_) { }
 		
+		/** Copy assign operator for rebind */
+		template <class U, class UUpstreamAllocator>
+		StackAllocator& operator=(const StackAllocator<U, Size, UUpstreamAllocator>& other) {
+			UpstreamAllocator::operator=(other);
+			return *this;
+		}
+		
 		/** Constructor */
-		StackAllocator(StackAllocatorStorage<Size>& storage) :
+		explicit StackAllocator(StackAllocatorStorage<Size>& storage) :
 			storage_(storage) { }
 		
 	private:
