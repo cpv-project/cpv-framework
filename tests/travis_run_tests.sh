@@ -15,6 +15,7 @@ Command=$(cat <<"EOF"
   apt-get update && \
   apt-get install -y ca-certificates software-properties-common && \
   add-apt-repository -y ppa:compiv/cpv-project
+  add-apt-repository -y ppa:ubuntu-toolchain-r/test
   apt-get update
   apt-get install -y seastar libgtest-dev g++-9
   cd /project/tests && \
