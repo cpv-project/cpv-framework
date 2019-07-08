@@ -334,7 +334,7 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithChunkedBody) {
 TEST_FUTURE(HttpServer_Http11, keepaliveTimeout) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.updateConfiguration = [] (cpv::HttpServerConfiguration& configuration) {
-		configuration.setInitialRequestTimeout(std::chrono::milliseconds(100));
+		configuration.setRequestTimeout(std::chrono::milliseconds(100));
 	};
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;

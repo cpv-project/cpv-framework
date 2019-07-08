@@ -1,4 +1,5 @@
 #pragma once
+#include <seastar/core/queue.hh>
 #include <seastar/core/timer.hh>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>

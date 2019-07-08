@@ -33,14 +33,34 @@ namespace cpv {
 	}
 	
 	/** Get timeout of initial request in milliseconds */
-	std::chrono::milliseconds HttpServerConfiguration::getInitialRequestTimeout() const {
-		return data_->initialRequestTimeout;
+	std::chrono::milliseconds HttpServerConfiguration::getRequestTimeout() const {
+		return data_->requestTimeout;
 	}
 	
 	/** Set timeout of initial request in milliseconds */
-	void HttpServerConfiguration::setInitialRequestTimeout(
-		const std::chrono::milliseconds& initialRequestTimeout) {
-		data_->initialRequestTimeout = initialRequestTimeout;
+	void HttpServerConfiguration::setRequestTimeout(
+		const std::chrono::milliseconds& requestTimeout) {
+		data_->requestTimeout = requestTimeout;
+	}
+	
+	/** Get the queue size of pending requests of single connection */
+	std::size_t HttpServerConfiguration::getRequestQueueSize() const {
+		return data_->requestQueueSize;
+	}
+	
+	/** Set the queue size of pending requests of single connection */
+	void HttpServerConfiguration::setRequestQueueSize(std::size_t requestQueueSize) {
+		data_->requestQueueSize = requestQueueSize;
+	}
+	
+	/** Get the queue size of pending body buffers of single request */
+	std::size_t HttpServerConfiguration::getRequestBodyQueueSize() const {
+		return data_->requestBodyQueueSize;
+	}
+	
+	/** Set the queue size of pending body buffers of single request */
+	void HttpServerConfiguration::setRequestBodyQueueSize(std::size_t requestBodyQueueSize) {
+		data_->requestBodyQueueSize = requestBodyQueueSize;
 	}
 	
 	/** Constructor */

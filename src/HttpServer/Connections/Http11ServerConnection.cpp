@@ -296,7 +296,7 @@ namespace cpv {
 		// - with_timeout will allocate a new timer and the callback function each time
 		// - delete connected_socket before read operation is finished will cause use-after-delete error
 		shutdownInputTimer_.arm(seastar::timer<>::clock::now() +
-			sharedData_->configuration.getInitialRequestTimeout());
+			sharedData_->configuration.getRequestTimeout());
 		seastar::future f = (nextRequestBuffer_.size() == 0 ?
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
