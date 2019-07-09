@@ -53,12 +53,12 @@ namespace cpv {
 		data_->requestQueueSize = requestQueueSize;
 	}
 	
-	/** Get the queue size of pending body buffers of single request */
+	/** Get the queue size of pending body buffers of single connection */
 	std::size_t HttpServerConfiguration::getRequestBodyQueueSize() const {
 		return data_->requestBodyQueueSize;
 	}
 	
-	/** Set the queue size of pending body buffers of single request */
+	/** Set the queue size of pending body buffers of single connnection */
 	void HttpServerConfiguration::setRequestBodyQueueSize(std::size_t requestBodyQueueSize) {
 		data_->requestBodyQueueSize = requestBodyQueueSize;
 	}

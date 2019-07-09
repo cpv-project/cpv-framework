@@ -293,12 +293,12 @@ enum http_errno {
 
 struct http_parser {
   /** PRIVATE **/
-  unsigned int type : 2;         /* enum http_parser_type */
-  unsigned int flags : 8;        /* F_* values from 'flags' enum; semi-public */
-  unsigned int state : 7;        /* enum state from http_parser.c */
-  unsigned int header_state : 7; /* enum header_state from http_parser.c */
-  unsigned int index : 7;        /* index into current matcher */
-  unsigned int lenient_http_headers : 1;
+  unsigned int type;         /* enum http_parser_type */
+  unsigned int flags;        /* F_* values from 'flags' enum; semi-public */
+  unsigned int state;        /* enum state from http_parser.c */
+  unsigned int header_state; /* enum header_state from http_parser.c */
+  unsigned int index;        /* index into current matcher */
+  unsigned int lenient_http_headers;
 
   uint32_t nread;          /* # bytes read in various scenarios */
   uint64_t content_length; /* # bytes in body (0 if no Content-Length header) */
@@ -306,16 +306,16 @@ struct http_parser {
   /** READ-ONLY **/
   unsigned short http_major;
   unsigned short http_minor;
-  unsigned int status_code : 16; /* responses only */
-  unsigned int method : 8;       /* requests only */
-  unsigned int http_errno : 7;
+  unsigned int status_code; /* responses only */
+  unsigned int method;       /* requests only */
+  unsigned int http_errno;
 
   /* 1 = Upgrade header was present and the parser has exited because of that.
    * 0 = No upgrade header present.
    * Should be checked when http_parser_execute() returns in addition to
    * error checking.
    */
-  unsigned int upgrade : 1;
+  unsigned int upgrade;
 };
 
 

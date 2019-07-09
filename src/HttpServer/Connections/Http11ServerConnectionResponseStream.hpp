@@ -13,7 +13,7 @@ namespace cpv {
 		 * Write data to stream.
 		 * This function didn't handle chunked data encoding,
 		 * (for performance, add size and crlf to packet may trigger unnecessary allocation)
-		 * chunked data should encode from writer.
+		 * chunked data should be encoded from writer.
 		 */
 		seastar::future<> write(seastar::net::packet&& data) override;
 		

@@ -1,7 +1,5 @@
 #include <seastar/core/sleep.hh>
 #include <seastar/net/packet.hh>
-#include <CPVFramework/Exceptions/FormatException.hpp>
-#include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/ConstantStrings.hpp>
@@ -12,6 +10,26 @@
 #include "./Http11ServerConnection.hpp"
 #include "./Http11ServerConnectionRequestStream.hpp"
 #include "./Http11ServerConnectionResponseStream.hpp"
+
+/**
+ * Implmentation Details:
+ * 
+ * For better pipeline support, this connection class will spawn two loop for
+ * receive requests and reply responses, the receive loop will push requests to a queue once
+ * headers competed (notice the body may not completed), and the reply loop will pop requests
+ * from the queue and handle it.
+ * 
+ * Handle request body is a bit complicate, the receive loop will push body chunks to a queue,
+ * this queue shared between all requests, request body stream have to pop body chunk from
+ * the queue and make sure the body chunk belongs to the request.
+ *
+ * For less bugs, here are the rules for implementation:
+ * - receive loop will not send any data to client
+ * - receive loop only push request and body chunk to queue
+ * - reply loop will not receive any data from client
+ * - reply loop only pop request and body chunk from queue
+ * - reply loop can send error to client after loop is end
+ */
 
 namespace cpv {
 	namespace {
@@ -37,13 +55,6 @@ namespace cpv {
 				"Content-Length: 37\r\n"
 				"Connection: close\r\n\r\n"
 				"Error: invalid http request format.\r\n");
-			
-			static const std::string InvalidStateAfterReceivedSingleRequest(
-				"HTTP/1.0 500 Internal Server Error\r\n"
-				"Content-Type: text/plain;charset=utf-8\r\n"
-				"Content-Length: 53\r\n"
-				"Connection: close\r\n\r\n"
-				"Error: invalid state after received single request.\r\n");
 		}
 		
 		/**
@@ -61,14 +72,8 @@ namespace cpv {
 			#endif
 		})();
 		
-		/** Reply static response string and flush the output stream */
-		static seastar::future<> replyStaticResponse(SocketHolder& s, const std::string_view& str) {
-			return s.out().put(seastar::net::packet::from_static_data(str.data(), str.size()))
-				.then([&s] { s.out().flush(); });
-		}
-		
-		/** Move temporary buffer to request and update string view if necessary */
-		static inline void flushMergedTemporaryBuffer(
+		/** Move temporary buffer to request if buffer not empty */
+		static inline void addUnderlyingBufferIfNotEmpty(
 			HttpRequest& request,
 			seastar::temporary_buffer<char>& buffer) {
 			if (CPV_UNLIKELY(buffer.size() > 0)) {
@@ -90,84 +95,6 @@ namespace cpv {
 			}
 			return std::string_view();
 		}
-		
-		/**
-		 * Determine whether should keep connection for next request,
-		 * by check http version and connection header.
-		 */
-		static inline bool shouldKeepConnectionForConnectionHeader(
-			const HttpRequest& request,
-			const std::string_view& responseVersion) {
-			// check http version and connection header from request
-			auto& requestHeaders = request.getHeaders();
-			auto requestConnectionIt = requestHeaders.find(constants::Connection);
-			if (CPV_LIKELY(requestConnectionIt != requestHeaders.end())) {
-				if (CPV_LIKELY(requestConnectionIt->second == constants::Keepalive)) {
-					// client wants to keepalive
-					// many browser will send connection header even for http 1.1
-					return true;
-				} else {
-					// client doesn't want to keepalive
-					// it may be "close" or other unsupported string literal
-					return false;
-				}
-			} else if (CPV_UNLIKELY(responseVersion == constants::Http10)) {
-				// for http 1.0 connection is not keepalive by default
-				return false;
-			} else {
-				// for http > 1.0 connection is keepalive by default
-				return true;
-			}
-		}
-		
-		/**
-		 * Determine whether should keep connection for next request,
-		 * by check content length and received/sent state of request and response.
-		 */
-		static inline bool shouldKeepConnectionForContentLength(
-			const HttpResponse& response,
-			std::size_t responseBodyWrittenSize,
-			bool requestCompleted,
-			const seastar::shared_ptr<Logger>& logger,
-			const seastar::socket_address& clientAddress) {
-			// check whether content length is fixed or chunked
-			auto& responseHeaders = response.getHeaders();
-			auto contentLengthIt = responseHeaders.find(constants::ContentLength);
-			if (CPV_UNLIKELY(contentLengthIt == responseHeaders.end())) {
-				// content length is not fixed, check transfer encoding
-				auto transferEncodingIt = responseHeaders.find(constants::TransferEncoding);
-				if (transferEncodingIt == responseHeaders.end() ||
-					transferEncodingIt->second != constants::Chunked) {
-					// close connection to indicate response is end
-					return false;
-				}
-			} else {
-				// check whether content length of response is matched to written size
-				std::size_t contentLength = 0;
-				if (CPV_UNLIKELY(!loadIntFromDec(
-					contentLengthIt->second.data(),
-					contentLengthIt->second.size(), contentLength))) {
-					logger->log(LogLevel::Warning,
-						"going to close inconsistent connection from", clientAddress,
-						"because content length of response isn't integer");
-					return false;
-				}
-				if (CPV_UNLIKELY(contentLength != responseBodyWrittenSize)) {
-					logger->log(LogLevel::Warning,
-						"going to close inconsistent connection from", clientAddress,
-						"because content length of response isn't matched to written size");
-					return false;
-				}
-			}
-			// check whether request content is completely received
-			if (CPV_UNLIKELY(!requestCompleted)) {
-				// close connection to discard remain parts
-				return false;
-			}
-			// request content is completely received,
-			// and response content is written with fixed size or chunked encoding
-			return true;
-		}
 	}
 	
 	/** Enum descriptions of Http11ServerConnectionState */
@@ -176,7 +103,6 @@ namespace cpv {
 		static std::vector<std::pair<Http11ServerConnectionState, const char*>> staticNames({
 			{ Http11ServerConnectionState::Initial, "Initial" },
 			{ Http11ServerConnectionState::Started, "Started" },
-			{ Http11ServerConnectionState::ReceiveRequestInitial, "ReceiveRequestInitial" },
 			{ Http11ServerConnectionState::ReceiveRequestMessageBegin, "ReceiveRequestMessageBegin" },
 			{ Http11ServerConnectionState::ReceiveRequestUrl, "ReceiveRequestUrl" },
 			{ Http11ServerConnectionState::ReceiveRequestHeaderField, "ReceiveRequestHeaderField" },
@@ -184,7 +110,6 @@ namespace cpv {
 			{ Http11ServerConnectionState::ReceiveRequestHeadersComplete, "ReceiveRequestHeadersComplete" },
 			{ Http11ServerConnectionState::ReceiveRequestBody, "ReceiveRequestBody" },
 			{ Http11ServerConnectionState::ReceiveRequestMessageComplete, "ReceiveRequestMessageComplete" },
-			{ Http11ServerConnectionState::ReplyResponse, "ReplyResponse" },
 			{ Http11ServerConnectionState::Closing, "Closing" },
 			{ Http11ServerConnectionState::Closed, "Closed" },
 		});
@@ -199,31 +124,12 @@ namespace cpv {
 				CPV_CODEINFO, "can't start http connection not at initial state");
 		}
 		state_ = Http11ServerConnectionState::Started;
-		// handle requests
+		// spawn receive and reply loop
+		// `this` will keep alive until `then` finished, so the loop can sure `this` is valid
+		// receive loop and reply loop will handle exception on their own
 		auto self = shared_from_this();
-		seastar::do_until(
-			[self] { return self->state_ == Http11ServerConnectionState::Closing; },
-			[self] {
-			// handle single request
-			self->state_ = Http11ServerConnectionState::ReceiveRequestInitial;
-			// initialize http parser
-			internal::http_parser::http_parser_init(
-				&self->parser_, internal::http_parser::HTTP_REQUEST);
-			// reset members if it's not the first request
-			if (self->temporaryData_.messageCompleted) {
-				self->request_ = {};
-				self->response_ = {};
-				self->temporaryData_ = {};
-			}
-			return self->receiveSingleRequest().then([self] {
-				self->sharedData_->metricData.request_received += 1;
-				return self->replySingleResponse();
-			});
-		}).handle_exception([self] (std::exception_ptr ex) {
-			self->sharedData_->metricData.request_errors += 1;
-			self->sharedData_->logger->log(LogLevel::Info,
-				"abort http connection from:", self->clientAddress_, "because of", ex);
-		}).then([self] {
+		seastar::when_all(startReceiveRequestLoop(), startReplyResponseLoop()).then(
+			[self] (std::tuple<seastar::future<>, seastar::future<>>) {
 			// cancel timer anyway in case of connection error
 			self->shutdownInputTimer_.cancel();
 			// remove self from connections collection (notice it's weak_ptr)
@@ -236,21 +142,17 @@ namespace cpv {
 			}
 			// log and update state to closed
 			self->sharedData_->logger->log(LogLevel::Info,
-				"close http connection from:", self->clientAddress_,
-				"(count:", connectionsCount, ")");
+				"closed http connection from:", self->clientAddress_,
+				", reason:", self->shutdownReason_,
+				", remain connections count:", connectionsCount);
 			self->state_ = Http11ServerConnectionState::Closed;
 		});
 	}
 	
 	/** Stop the connection immediately */
 	seastar::future<> Http11ServerConnection::stop() {
-		// update state to closing
-		state_ = Http11ServerConnectionState::Closing;
-		// abort reader and writer
-		if (socket_.isConnected()) {
-			socket_.socket().shutdown_output();
-			socket_.socket().shutdown_input();
-		}
+		// shutdown connection
+		shutdown("stop function called");
 		// wait until connection closed
 		// check state every seconds instead of allocate promise object,
 		// because stop connection is a rare operation
@@ -269,29 +171,75 @@ namespace cpv {
 		socket_(std::move(fd)),
 		clientAddress_(std::move(addr)),
 		state_(Http11ServerConnectionState::Initial),
-		request_(),
-		response_(),
-		parser_(),
-		temporaryData_(),
+		shutdownInputTimer_(),
+		requestQueue_(sharedData_->configuration.getRequestQueueSize()),
+		requestBodyQueue_(sharedData_->configuration.getRequestBodyQueueSize()),
+		newRequest_(),
 		nextRequestBuffer_(),
-		shutdownInputTimer_() {
+		processingRequest_(),
+		processingResponse_(),
+		lastErrorResponse_(),
+		shutdownReason_("not set"),
+		parser_(),
+		receiveLoopData_(),
+		replyLoopData_() {
 		// initialize timer
 		shutdownInputTimer_.set_callback([this] {
 			sharedData_->metricData.request_timeout_errors += 1;
-			sharedData_->logger->log(LogLevel::Info,
-				"abort http connection from:", clientAddress_,
-				"because of initial request timeout");
+			shutdown("request timeout");
+		});
+		// initialize http parser (will initialize again for next request)
+		internal::http_parser::http_parser_init(&parser_, internal::http_parser::HTTP_REQUEST);
+	}
+	
+	/** Shutdown connection, break receive and reply loop */
+	void Http11ServerConnection::shutdown(const char* reason) {
+		if (state_ == Http11ServerConnectionState::Closing) {
+			return;
+		}
+		if (socket_.isConnected()) {
+			// break receiving loop, keep output for error response
 			socket_.socket().shutdown_input();
+		}
+		// break reply loop
+		static thread_local std::exception_ptr ex(
+			std::make_exception_ptr("abort queue for http connection shutdown"));
+		requestQueue_.abort(ex);
+		requestBodyQueue_.abort(ex);
+		// update shutdown reason and state
+		shutdownReason_ = reason;
+		state_ = Http11ServerConnectionState::Closing;
+	}
+	
+	/** start receiveRequestLoop and catch exceptions */
+	seastar::future<> Http11ServerConnection::startReceiveRequestLoop() {
+		return receiveRequestLoop().handle_exception([this] (std::exception_ptr ex) {
+			if (state_ == Http11ServerConnectionState::Closing) {
+				return;
+			}
+			sharedData_->metricData.request_errors += 1;
+			sharedData_->logger->log(LogLevel::Info,
+				"exception occurs when receive http request from", clientAddress_, ":", ex);
+			shutdown("exception occurs when receive request");
 		});
 	}
 	
-	/** Receive headers from single request, the body may not completely received */
-	seastar::future<> Http11ServerConnection::receiveSingleRequest() {
-		if (state_ >= Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
-			// either headers completed or connection closing
+	/** Keep receiving requests until state become closing, will push requests to a queue */
+	seastar::future<> Http11ServerConnection::receiveRequestLoop() {
+		// exit loop when closing connection
+		if (state_ == Http11ServerConnectionState::Closing) {
 			return seastar::make_ready_future<>();
 		}
-		// receive request headers
+		// reset request data if previous request completed
+		if (state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
+			auto nextId = receiveLoopData_.requestId + 1;
+			newRequest_ = {};
+			receiveLoopData_ = {};
+			receiveLoopData_.requestId = nextId;
+			state_ = Http11ServerConnectionState::Started;
+			internal::http_parser::http_parser_init(&parser_, internal::http_parser::HTTP_REQUEST);
+		}
+		// receive request headers or body
 		// use custom timer instead of seastar::with_timeout for following reasons:
 		// - with_timeout will allocate a new timer and the callback function each time
 		// - delete connected_socket before read operation is finished will cause use-after-delete error
@@ -300,40 +248,38 @@ namespace cpv {
 		seastar::future f = (nextRequestBuffer_.size() == 0 ?
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
-		return std::move(f).then([this] (seastar::temporary_buffer<char> tempBuffer) {
+		return f.then([this] (seastar::temporary_buffer<char> tempBuffer) {
 			// cancel timer
 			shutdownInputTimer_.cancel();
 			// store the last buffer received
-			auto& lastBuffer = temporaryData_.lastBuffer;
+			auto& lastBuffer = receiveLoopData_.lastBuffer;
 			lastBuffer = std::move(tempBuffer);
 			// check whether connection is closed from remote
 			if (lastBuffer.size() == 0) {
-				state_ = Http11ServerConnectionState::Closing;
+				shutdown("closed from remote");
 				return seastar::make_ready_future<>();
 			}
-			// check bytes limitation of initial request data
-			// no overflow check of receivedBytes because the buffer size should be small (up to 8192)
-			// if receivedBytes + buffer size cause overflow that mean the limitation is too large
-			temporaryData_.receivedBytes += lastBuffer.size();
-			if (CPV_UNLIKELY(temporaryData_.receivedBytes >
-				sharedData_->configuration.getMaxInitialRequestBytes())) {
-				sharedData_->metricData.request_initial_size_errors += 1;
-				return replyStaticResponse(socket_, ReachedBytesLimitationOfInitialRequestData).then([] {
-					return seastar::make_exception_future<>(LengthException(
-						CPV_CODEINFO, "http request length error:",
-						"reached bytes limitation of initial request data"));
-				});
-			}
-			// check limitation of received packets, to avoid small packet attack
-			temporaryData_.receivedPackets += 1;
-			if (CPV_UNLIKELY(temporaryData_.receivedPackets >
-				sharedData_->configuration.getMaxInitialRequestPackets())) {
-				sharedData_->metricData.request_initial_size_errors += 1;
-				return replyStaticResponse(socket_, ReachedPacketsLimitationOfInitialRequestData).then([] {
-					return seastar::make_exception_future<>(LengthException(
-						CPV_CODEINFO, "http request length error:",
-						"reached packets limitation of initial request data"));
-				});
+			if (state_ != Http11ServerConnectionState::ReceiveRequestBody) {
+				// check bytes limitation of initial request data
+				// no overflow check of receivedBytes because the buffer size should be small (up to 8192)
+				// if receivedBytes + buffer size cause overflow that mean the limitation is too large
+				receiveLoopData_.receivedBytes += lastBuffer.size();
+				if (CPV_UNLIKELY(receiveLoopData_.receivedBytes >
+					sharedData_->configuration.getMaxInitialRequestBytes())) {
+					sharedData_->metricData.request_initial_size_errors += 1;
+					lastErrorResponse_ = ReachedBytesLimitationOfInitialRequestData;
+					shutdown("reached bytes limitation of initial request data");
+					return seastar::make_ready_future<>();
+				}
+				// check limitation of received packets, to avoid small packet attack
+				receiveLoopData_.receivedPackets += 1;
+				if (CPV_UNLIKELY(receiveLoopData_.receivedPackets >
+					sharedData_->configuration.getMaxInitialRequestPackets())) {
+					sharedData_->metricData.request_initial_size_errors += 1;
+					lastErrorResponse_ = ReachedPacketsLimitationOfInitialRequestData;
+					shutdown("reached packets limitation of initial request data");
+					return seastar::make_ready_future<>();
+				}
 			}
 			// execute http parser
 			std::size_t parsedSize = internal::http_parser::http_parser_execute(
@@ -341,45 +287,135 @@ namespace cpv {
 				this,
 				lastBuffer.get(),
 				lastBuffer.size());
+			// check parse result
 			if (parsedSize != lastBuffer.size()) {
 				auto err = static_cast<enum internal::http_parser::http_errno>(parser_.http_errno);
 				if (CPV_LIKELY(err == internal::http_parser::http_errno::HPE_CB_message_begin &&
-					parsedSize > 1 && temporaryData_.messageCompleted)) {
+					parsedSize > 1 &&
+					state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete)) {
 					// received next request from pipeline
-					// the http parser will become error state,
-					// but it will reinitialize before processing next request
 					nextRequestBuffer_ = lastBuffer.share();
 					nextRequestBuffer_.trim_front(parsedSize - 1);
 				} else {
-					// parse error
-					return replyErrorResponseForInvalidFormat();
+					// parse error, log level is info because it may not cause by server
+					sharedData_->metricData.request_invalid_format_errors += 1;
+					lastErrorResponse_ = InvalidHttpRequestFormat;
+					sharedData_->logger->log(LogLevel::Info,
+						"http request format error from client", clientAddress_,
+						", error:", internal::http_parser::http_errno_name(err),
+						", description:", internal::http_parser::http_errno_description(err),
+						", state:", state_);
+					shutdown("invalid request format");
+					return seastar::make_ready_future<>();
 				}
 			}
-			// hold underlying buffer in request
-			request_.addUnderlyingBuffer(std::move(lastBuffer));
-			// continue receiving
-			return receiveSingleRequest();
+			// add underlying buffer to request
+			// if request is enqueued, then lastBuffer is shared to bodyBuffers
+			if (CPV_LIKELY(!receiveLoopData_.requestEnqueued)) {
+				newRequest_.addUnderlyingBuffer(std::move(lastBuffer));
+			}
+			// enqueue body buffers => enqueue request when headers completed => continue receiving
+			if (receiveLoopData_.bodyBuffers.empty()) {
+				return enqueueRequestAndContinueReceiving(false);
+			} else {
+				return enqueueBodyBuffers().then([this] {
+					return enqueueRequestAndContinueReceiving(true);
+				});
+			}
 		});
 	}
 	
-	/** Reply single response and ensure the request body is completely received */
-	seastar::future<> Http11ServerConnection::replySingleResponse() {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
+	/** (for receive loop) Enqueue body buffers to queue */
+	seastar::future<> Http11ServerConnection::enqueueBodyBuffers() {
+		if (receiveLoopData_.bodyBufferEnqueueIndex >= receiveLoopData_.bodyBuffers.size()) {
+			receiveLoopData_.bodyBufferEnqueueIndex = 0;
+			receiveLoopData_.bodyBuffers.clear();
+			return seastar::make_ready_future<>();
+		}
+		std::size_t index = receiveLoopData_.bodyBufferEnqueueIndex++;
+		BodyEntry entry({
+			std::move(receiveLoopData_.bodyBuffers[index]),
+			receiveLoopData_.requestId,
+			(index + 1 == receiveLoopData_.bodyBuffers.size() &&
+				state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete)
+		});
+		return requestBodyQueue_.push_eventually(std::move(entry)).then([this] {
+			return enqueueBodyBuffers();
+		});
+	}
+	
+	/** (for receive loop) Enqueue request to queue when headers completed, and continue receiving */
+	seastar::future<> Http11ServerConnection::enqueueRequestAndContinueReceiving(bool hasBody) {
+		if (!receiveLoopData_.requestEnqueued &&
+			(state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
 			state_ == Http11ServerConnectionState::ReceiveRequestBody ||
-			state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete) {
-			// atleast all headers received, start replying response
-			state_ = Http11ServerConnectionState::ReplyResponse;
-			// setup request and response stream
-			request_.setBodyStream(
+			state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete)) {
+			// headers completed, enqueue request to queue
+			sharedData_->metricData.request_received += 1;
+			receiveLoopData_.requestEnqueued = true;
+			RequestEntry entry({
+				std::move(newRequest_),
+				receiveLoopData_.requestId,
+				hasBody || state_ != Http11ServerConnectionState::ReceiveRequestMessageComplete
+			});
+			auto f = requestQueue_.push_eventually(std::move(entry));
+			if (CPV_UNLIKELY(!f.available())) {
+				return f.then([this] {
+					return receiveRequestLoop();
+				});
+			}
+		}
+		return receiveRequestLoop();
+	}
+	
+	/** start replyResponseLoop and catch exceptions */
+	seastar::future<> Http11ServerConnection::startReplyResponseLoop() {
+		return replyResponseLoop().handle_exception([this] (std::exception_ptr ex) {
+			if (state_ == Http11ServerConnectionState::Closing) {
+				return replyResponseLoop(); // send error response
+			}
+			sharedData_->metricData.request_errors += 1;
+			sharedData_->logger->log(LogLevel::Info,
+				"exception occurs when reply http response to", clientAddress_, ":", ex);
+			shutdown("exception occurs when reply response");
+			return replyResponseLoop(); // send error response
+		});
+	}
+	
+	/** Keep reply responses until state become closing, will pop requests from the queue */
+	seastar::future<> Http11ServerConnection::replyResponseLoop() {
+		// exit loop when closing connection
+		if (state_ == Http11ServerConnectionState::Closing) {
+			// send error response to client if there any
+			if (CPV_LIKELY(lastErrorResponse_.empty() || !socket_.isConnected())) {
+				return seastar::make_ready_future<>();
+			}
+			return socket_.out()
+				.put(seastar::net::packet::from_static_data(
+					lastErrorResponse_.data(), lastErrorResponse_.size()))
+				.then([this] { socket_.out().flush(); })
+				.handle_exception([] (std::exception_ptr) { });
+		}
+		// pop request from queue
+		return requestQueue_.pop_eventually().then([this] (RequestEntry entry) {
+			// setup request and response
+			processingRequest_ = std::move(entry.request);
+			processingResponse_ = {};
+			processingRequest_.setBodyStream(
 				makeObject<Http11ServerConnectionRequestStream>(this).cast<InputStreamBase>());
-			response_.setBodyStream(
+			processingResponse_.setBodyStream(
 				makeObject<Http11ServerConnectionResponseStream>(this).cast<OutputStreamBase>());
-			// call the first handler
+			replyLoopData_ = {};
+			replyLoopData_.requestId = entry.id;
+			replyLoopData_.requestBodyConsumed = !entry.hasBody;
+			// invoke the first handler
 			return sharedData_->handlers.front()->handle(
-				request_, response_, sharedData_->handlers.begin() + 1).then([this] {
-				// send response headers if not sent befofe, then flush response
+				processingRequest_,
+				processingResponse_,
+				sharedData_->handlers.begin() + 1).then([this] {
+				// send response headers if not sent before, and flush response
 				seastar::future<> result = seastar::make_ready_future<>();
-				if (CPV_LIKELY(temporaryData_.responseHeadersAppended)) {
+				if (replyLoopData_.responseHeadersAppended) {
 					result = socket_.out().flush();
 				} else {
 					seastar::net::packet data(getResponseHeadersFragmentsCount());
@@ -388,31 +424,30 @@ namespace cpv {
 						return socket_.out().flush();
 					});
 				}
-				// determine whether should close the connection after response is end
-				// should call appendResponseHeaders before reach here
-				if (CPV_LIKELY(temporaryData_.keepConnection)) {
-					temporaryData_.keepConnection = shouldKeepConnectionForContentLength(
-						response_, temporaryData_.responseBodyWrittenSize,
-						temporaryData_.messageCompleted, sharedData_->logger, clientAddress_);
+				// check keepalive again
+				if (CPV_LIKELY(replyLoopData_.keepConnection)) {
+					replyLoopData_.keepConnection = checkKeepaliveByContentLength();
 				}
-				if (CPV_UNLIKELY(!temporaryData_.keepConnection)) {
-					state_ = Http11ServerConnectionState::Closing;
+				// handle next request if keepalive enabled
+				if (CPV_LIKELY(replyLoopData_.keepConnection)) {
+					if (CPV_LIKELY(result.available())) {
+						return replyResponseLoop(); // hot path
+					} else {
+						return result.then([this] {
+							return replyResponseLoop();
+						});
+					}
+				} else {
+					return result.then([this] {
+						shutdown("keepalive not enabled");
+						return replyResponseLoop();
+					});
 				}
-				return result;
 			});
-		} else if (state_ == Http11ServerConnectionState::Closing) {
-			// connection closing
-			return seastar::make_ready_future<>();
-		} else {
-			// state error
-			return replyStaticResponse(socket_, InvalidStateAfterReceivedSingleRequest).then([this] {
-				return seastar::make_exception_future<>(LogicException(
-					CPV_CODEINFO, "invalid state after received single request:", state_));
-			});
-		}
+		});
 	}
 	
-	/** Get how many fragments should reserve for response headers, may greater than actual count  */
+	/** (for reply loop) Get maximum fragments count for response headers */
 	std::size_t Http11ServerConnection::getResponseHeadersFragmentsCount() const {
 		// calculate fragments count
 		// +6: version, space, status code, space, status message, crlf
@@ -422,38 +457,38 @@ namespace cpv {
 		// + headers count * 4
 		//   reserve 3 addition header for date, server, connection
 		// +1: crlf
-		return 31 + response_.getHeaders().size() * 4;
+		return 31 + processingResponse_.getHeaders().size() * 4;
 	}
 	
-	/** Append response headers to packet, please check responseHeadersAppended first */
+	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
 	void Http11ServerConnection::appendResponseHeaders(seastar::net::packet& packet) {
 		// check flag
-		if (CPV_UNLIKELY(temporaryData_.responseHeadersAppended)) {
+		if (CPV_UNLIKELY(replyLoopData_.responseHeadersAppended)) {
 			return;
 		}
-		temporaryData_.responseHeadersAppended = true;
+		replyLoopData_.responseHeadersAppended = true;
 		// determine response http protocol version
-		std::string_view version = response_.getVersion();
+		std::string_view version = processingResponse_.getVersion();
 		if (CPV_LIKELY(version.empty())) {
 			// copy version from request
-			version = request_.getVersion();
+			version = processingRequest_.getVersion();
 			if (CPV_UNLIKELY(version.empty())) {
 				// request version is unsupported
 				version = constants::Http10;
 			}
 			// store version for keepalive determination later
-			response_.setVersion(version);
+			processingResponse_.setVersion(version);
 		}
 		// return a special status code for handler didn't set it
 		if (CPV_UNLIKELY(
-			response_.getStatusCode().empty() ||
-			response_.getStatusMessage().empty())) {
-			response_.setStatusCode("0");
-			response_.setStatusMessage("Status code or status message not set");
+			processingResponse_.getStatusCode().empty() ||
+			processingResponse_.getStatusMessage().empty())) {
+			processingResponse_.setStatusCode("0");
+			processingResponse_.setStatusMessage("Status code or status message not set");
 		}
 		// determine value of date header
 		std::string_view date;
-		auto& headers = response_.getHeaders();
+		auto& headers = processingResponse_.getHeaders();
 		auto dateIt = headers.find(constants::Date);
 		if (CPV_LIKELY(dateIt == headers.end())) {
 			date = formatNowForHttpHeader();
@@ -473,10 +508,10 @@ namespace cpv {
 		}
 		// determine value of connection header
 		std::string_view connection;
-		temporaryData_.keepConnection = shouldKeepConnectionForConnectionHeader(request_, version);
+		replyLoopData_.keepConnection = checkKeepaliveByConnnectionHeader();
 		auto connectionIt = headers.find(constants::Connection);
 		if (CPV_LIKELY(connectionIt == headers.end())) {
-			if (CPV_LIKELY(temporaryData_.keepConnection)) {
+			if (CPV_LIKELY(replyLoopData_.keepConnection)) {
 				connection = constants::Keepalive;
 			} else {
 				connection = constants::Close;
@@ -484,43 +519,94 @@ namespace cpv {
 		} else {
 			// custom connection header, close connection if it isn't keep-alive
 			if (CPV_LIKELY(connection != constants::Keepalive)) {
-				temporaryData_.keepConnection = false;
+				replyLoopData_.keepConnection = false;
 			}
 			connection = connectionIt->second;
 			headers.erase(connectionIt);
 		}
 		// append response headers to packet
 		packet << version << constants::Space <<
-			response_.getStatusCode() << constants::Space <<
-			response_.getStatusMessage() << constants::CRLF;
+			processingResponse_.getStatusCode() << constants::Space <<
+			processingResponse_.getStatusMessage() << constants::CRLF;
 		packet << constants::Date << constants::ColonSpace <<
 			date << constants::CRLF;
 		packet << constants::Server << constants::ColonSpace <<
 			server << constants::CRLF;
 		packet << constants::Connection << constants::ColonSpace <<
 			connection << constants::CRLF;
-		for (auto& pair : response_.getHeaders()) {
+		for (auto& pair : headers) {
 			packet << pair.first << constants::ColonSpace <<
 				pair.second << constants::CRLF;
 		}
 		packet << constants::CRLF;
 	}
 	
-	/** Reply error response for invalid http request format, then return exception future */
-	seastar::future<> Http11ServerConnection::replyErrorResponseForInvalidFormat() {
-		sharedData_->metricData.request_invalid_format_errors += 1;
-		return replyStaticResponse(socket_, InvalidHttpRequestFormat).then([this] {
-			auto err = static_cast<enum internal::http_parser::http_errno>(parser_.http_errno);
-			return seastar::make_exception_future<>(FormatException(
-				CPV_CODEINFO, "http request format error:",
-				internal::http_parser::http_errno_name(err),
-				internal::http_parser::http_errno_description(err),
-				", state:", state_));
-		});
+	/** (for reply loop) Determine whether keep connection or not by checking connection header */
+	bool Http11ServerConnection::checkKeepaliveByConnnectionHeader() const {
+		auto& requestHeaders = processingRequest_.getHeaders();
+		auto requestConnectionIt = requestHeaders.find(constants::Connection);
+		if (requestConnectionIt != requestHeaders.end()) {
+			if (CPV_LIKELY(requestConnectionIt->second == constants::Keepalive)) {
+				// client wants to keepalive
+				// most browser will send connection header even for http 1.1
+				return true;
+			} else {
+				// client doesn't want to keepalive
+				// it may be "close" or other unsupported string literal
+				return false;
+			}
+		} else if (processingResponse_.getVersion() == constants::Http10) {
+			// for http 1.0, keepalive is disabled by default
+			return false;
+		} else {
+			// for http > 1.0, keepalive is enabled by default
+			return true;
+		}
+	}
+	
+	/** (for reply loop) Determine whether keep connection or not by checking content length */
+	bool Http11ServerConnection::checkKeepaliveByContentLength() const {
+		// check whether content length is fixed or chunked
+		auto& responseHeaders = processingResponse_.getHeaders();
+		auto contentLengthIt = responseHeaders.find(constants::ContentLength);
+		if (CPV_UNLIKELY(contentLengthIt == responseHeaders.end())) {
+			// content length is not fixed, check transfer encoding
+			auto transferEncodingIt = responseHeaders.find(constants::TransferEncoding);
+			if (transferEncodingIt == responseHeaders.end() ||
+				transferEncodingIt->second != constants::Chunked) {
+				// close connection to indicate response is end
+				return false;
+			}
+		} else {
+			// check whether content length of response is matched to written size
+			std::size_t contentLength = 0;
+			if (CPV_UNLIKELY(!loadIntFromDec(
+				contentLengthIt->second.data(),
+				contentLengthIt->second.size(), contentLength))) {
+				sharedData_->logger->log(LogLevel::Warning,
+					"going to close inconsistent connection from", clientAddress_,
+					"because content length of response isn't integer");
+				return false;
+			}
+			if (CPV_UNLIKELY(contentLength != replyLoopData_.responseWrittenBytes)) {
+				sharedData_->logger->log(LogLevel::Warning,
+					"going to close inconsistent connection from", clientAddress_,
+					"because content length of response doesn't matched to written size");
+				return false;
+			}
+		}
+		// check whether request content is completely consumed
+		if (CPV_UNLIKELY(!replyLoopData_.requestBodyConsumed)) {
+			// close connection to discard remain parts
+			return false;
+		}
+		// request content is completely consumed,
+		// and response content is written with fixed size or chunked encoding
+		return true;
 	}
 	
 	int Http11ServerConnection::on_message_begin() {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestInitial) {
+		if (state_ == Http11ServerConnectionState::Started) {
 			// normal begin
 			state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
 		} else {
@@ -535,12 +621,12 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
 			// the first time received the url
 			state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-			temporaryData_.urlView = std::string_view(data, size);
+			receiveLoopData_.urlView = std::string_view(data, size);
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// url splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				temporaryData_.urlMerged,
-				temporaryData_.urlView,
+				receiveLoopData_.urlMerged,
+				receiveLoopData_.urlView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -551,23 +637,23 @@ namespace cpv {
 	
 	int Http11ServerConnection::on_header_field(const char* data, std::size_t size) {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// the first time received a new header field, flush last header field and value
+			// the first time received a new header field, store last header field and value
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			flushMergedTemporaryBuffer(request_, temporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(request_, temporaryData_.headerValueMerged);
-			request_.setHeader(
-				temporaryData_.headerFieldView,
-				temporaryData_.headerValueView);
-			temporaryData_.headerFieldView = std::string_view(data, size);
+			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerFieldMerged);
+			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerValueMerged);
+			newRequest_.setHeader(
+				receiveLoopData_.headerFieldView,
+				receiveLoopData_.headerValueView);
+			receiveLoopData_.headerFieldView = std::string_view(data, size);
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// the first time received the first header field
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			temporaryData_.headerFieldView = std::string_view(data, size);
+			receiveLoopData_.headerFieldView = std::string_view(data, size);
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// header field splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				temporaryData_.headerFieldMerged,
-				temporaryData_.headerFieldView,
+				receiveLoopData_.headerFieldMerged,
+				receiveLoopData_.headerFieldView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -580,12 +666,12 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// the first time received a header value after header field
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
-			temporaryData_.headerValueView = std::string_view(data, size);
+			receiveLoopData_.headerValueView = std::string_view(data, size);
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// header value splited in multiple packets, merge them to a temporary buffer
 			mergeContent(
-				temporaryData_.headerValueMerged,
-				temporaryData_.headerValueView,
+				receiveLoopData_.headerValueMerged,
+				receiveLoopData_.headerValueView,
 				std::string_view(data, size));
 		} else {
 			// state error
@@ -596,13 +682,13 @@ namespace cpv {
 	
 	int Http11ServerConnection::on_headers_complete() {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// all headers received, flush last header field and value
+			// all headers received, store last header field and value
 			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			flushMergedTemporaryBuffer(request_, temporaryData_.headerFieldMerged);
-			flushMergedTemporaryBuffer(request_, temporaryData_.headerValueMerged);
-			request_.setHeader(
-				temporaryData_.headerFieldView,
-				temporaryData_.headerValueView);
+			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerFieldMerged);
+			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerValueMerged);
+			newRequest_.setHeader(
+				receiveLoopData_.headerFieldView,
+				receiveLoopData_.headerValueView);
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// no headers but url
 			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
@@ -610,39 +696,29 @@ namespace cpv {
 			// state error
 			return -1;
 		}
-		// flush method, url and version
-		flushMergedTemporaryBuffer(request_, temporaryData_.urlMerged);
-		request_.setMethod(internal::http_parser::http_method_str(
+		// store method, url and version
+		addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.urlMerged);
+		newRequest_.setMethod(internal::http_parser::http_method_str(
 			static_cast<enum internal::http_parser::http_method>(parser_.method)));
-		request_.setUrl(temporaryData_.urlView);
-		request_.setVersion(getHttpVersionString(parser_));
+		newRequest_.setUrl(receiveLoopData_.urlView);
+		newRequest_.setVersion(getHttpVersionString(parser_));
 		return 0;
 	}
 	
 	int Http11ServerConnection::on_body(const char* data, std::size_t size) {
+		// warning:
+		// newRequest_ maybe empty (moved to queue but not all completed), don't touch it
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
-			// received initial body, share lastBuffer to bodyBuffer
-			auto& lastBuffer = temporaryData_.lastBuffer;
+			// received initial body, share lastBuffer to bodyBuffers
 			state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			temporaryData_.bodyBuffer = lastBuffer.share(data - lastBuffer.get(), size);
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// received initial chunked body, share lastBuffer to moreBodyBuffers
-			auto& lastBuffer = temporaryData_.lastBuffer;
-			temporaryData_.moreBodyBuffers.emplace_back(
+			auto& lastBuffer = receiveLoopData_.lastBuffer;
+			receiveLoopData_.bodyBuffers.emplace_back(
 				lastBuffer.share(data - lastBuffer.get(), size));
-		} else if (state_ == Http11ServerConnectionState::ReplyResponse) {
-			// receive body when replying response (called from request stream)
-			auto& bodyBuffer = temporaryData_.bodyBuffer;
-			if (bodyBuffer.empty()) {
-				// move lastBuffer to bodyBuffer
-				bodyBuffer = std::move(temporaryData_.lastBuffer);
-				bodyBuffer.trim_front(data - bodyBuffer.get());
-				bodyBuffer.trim(size);
-			} else {
-				// share bodyBuffer to moreBodyBuffers
-				temporaryData_.moreBodyBuffers.emplace_back(
-					bodyBuffer.share(data - bodyBuffer.get(), size));
-			}
+		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
+			// received following body, share lastBuffer to bodyBuffers
+			auto& lastBuffer = receiveLoopData_.lastBuffer;
+			receiveLoopData_.bodyBuffers.emplace_back(
+				lastBuffer.share(data - lastBuffer.get(), size));
 		} else {
 			// state error
 			return -1;
@@ -651,14 +727,17 @@ namespace cpv {
 	}
 	
 	int Http11ServerConnection::on_message_complete() {
+		// warning:
+		// newRequest_ maybe empty (moved to queue but not all completed), don't touch it
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
 			state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// no body or all body is received before reply
+			// no body or all body received
+			if (receiveLoopData_.requestEnqueued && receiveLoopData_.bodyBuffers.empty()) {
+				// request enqueued before completed, but no body received
+				// add empty tail body to make sure stream can finish
+				receiveLoopData_.bodyBuffers.emplace_back();
+			}
 			state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
-			temporaryData_.messageCompleted = true;
-		} else if (state_ == Http11ServerConnectionState::ReplyResponse) {
-			// all body received when replying response (called from request stream)
-			temporaryData_.messageCompleted = true;
 		} else {
 			// state error
 			return -1;

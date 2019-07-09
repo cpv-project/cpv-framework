@@ -27,10 +27,6 @@ namespace cpv {
 	private:
 		// the lifetime of stream is rely on the connection
 		Http11ServerConnection* connection_;
-		// whether is connection_->parserTemporaryData_.bodyBuffer returned
-		bool returnedBody_;
-		// the last index of connection_->parserTemporaryData_.moreBodyBuffers returned
-		std::size_t returnedMoreBodyIndex_;
 	};
 }
 

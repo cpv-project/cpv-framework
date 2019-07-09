@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <seastar/core/queue.hh>
 #include <seastar/core/timer.hh>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
@@ -11,11 +12,10 @@
 #include "./Http11Parser.hpp"
 
 namespace cpv {
-	/** The state of a http 1.0/1.1 connection */
+	/** The state of a http 1.0/1.1 connection, only for receive loop */
 	enum class Http11ServerConnectionState {
 		Initial,
 		Started,
-		ReceiveRequestInitial,
 		ReceiveRequestMessageBegin,
 		ReceiveRequestUrl,
 		ReceiveRequestHeaderField,
@@ -23,7 +23,6 @@ namespace cpv {
 		ReceiveRequestHeadersComplete,
 		ReceiveRequestBody,
 		ReceiveRequestMessageComplete,
-		ReplyResponse,
 		Closing,
 		Closed
 	};
@@ -51,22 +50,40 @@ namespace cpv {
 			const seastar::lw_shared_ptr<HttpServerSharedData>& sharedData,
 			seastar::connected_socket&& fd,
 			seastar::socket_address&& addr);
-	
+		
 	private:
-		/** Receive headers from single request, the body may not completely received */
-		seastar::future<> receiveSingleRequest();
+		/** Shutdown connection, break receive and reply loop */
+		void shutdown(const char* reason);
 		
-		/** Reply single response and ensure the request body is completely received */
-		seastar::future<> replySingleResponse();
+		/** start receiveRequestLoop and catch exceptions */
+		seastar::future<> startReceiveRequestLoop();
 		
-		/** Get how many fragments should reserve for response headers, may greater than actual count  */
+		/** Keep receiving requests until state become closing, will push requests to a queue */
+		seastar::future<> receiveRequestLoop();
+
+		/** (for receive loop) Enqueue body buffers to queue */
+		seastar::future<> enqueueBodyBuffers();
+		
+		/** (for receive loop) Enqueue request to queue when headers completed, and continue receiving */
+		seastar::future<> enqueueRequestAndContinueReceiving(bool hasBody);
+		
+		/** start replyResponseLoop and catch exceptions */
+		seastar::future<> startReplyResponseLoop();
+		
+		/** Keep reply responses until state become closing, will pop requests from the queue */
+		seastar::future<> replyResponseLoop();
+		
+		/** (for reply loop) Get maximum fragments count for response headers */
 		std::size_t getResponseHeadersFragmentsCount() const;
 		
-		/** Append response headers to packet, please check responseHeadersAppended first */
+		/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
 		void appendResponseHeaders(seastar::net::packet& packet);
 		
-		/** Reply error response for invalid http request format, then return exception future */
-		seastar::future<> replyErrorResponseForInvalidFormat();
+		/** (for reply loop) Determine whether keep connection or not by checking connection header */
+		bool checkKeepaliveByConnnectionHeader() const;
+		
+		/** (for reply loop) Determine whether keep connection or not by checking content length */
+		bool checkKeepaliveByContentLength() const;
 		
 		/** Parser callbacks */
 		int on_message_begin();
@@ -91,11 +108,32 @@ namespace cpv {
 		SocketHolder socket_;
 		seastar::socket_address clientAddress_;
 		Http11ServerConnectionState state_;
-		HttpRequest request_;
-		HttpResponse response_;
+		// the timer used for implement request timeout
+		seastar::timer<> shutdownInputTimer_;
+		// the queue store received requests which headers completed (notice body may not completed)
+		struct RequestEntry { HttpRequest request; std::uint32_t id; bool hasBody; };
+		seastar::queue<RequestEntry> requestQueue_;
+		// the queue store received body buffers for all requests
+		struct BodyEntry { seastar::temporary_buffer<char> buffer; std::uint32_t id; bool isEnd; };
+		seastar::queue<BodyEntry> requestBodyQueue_;
+		// the new request, when headers completed it will move to requestQueue_
+		HttpRequest newRequest_;
+		// the rest of buffer for next request received from pipeline
+		seastar::temporary_buffer<char> nextRequestBuffer_;
+		// the request and response processing now
+		HttpRequest processingRequest_;
+		HttpResponse processingResponse_;
+		// the error response send to client before close connection
+		// usually it's cause by invalid format or headers too large
+		std::string_view lastErrorResponse_;
+		// the shutdown reason used for logging
+		const char* shutdownReason_;
+		// the parser used to parse http request
 		internal::http_parser::http_parser parser_;
-		// temporary data for single request, store in unnamed struct for easily reset
+		// per request data for receive loop, use unnamed struct for fast reset
 		struct {
+			// new request id (only for internal error check)
+			std::uint32_t requestId = 0;
 			// the last buffer received, store from receiveSingleRequest or request stream
 			seastar::temporary_buffer<char> lastBuffer;
 			// for initial request size check
@@ -111,21 +149,24 @@ namespace cpv {
 			seastar::temporary_buffer<char> headerValueMerged;
 			std::string_view headerValueView;
 			// for body, may splited as multiple parts if encoding is chunked
-			seastar::temporary_buffer<char> bodyBuffer;
-			StackAllocatedVector<seastar::temporary_buffer<char>, 16> moreBodyBuffers;
-			// is message completed (no body or all body received)
-			bool messageCompleted = false;
+			StackAllocatedVector<seastar::temporary_buffer<char>, 3> bodyBuffers;
+			std::size_t bodyBufferEnqueueIndex = 0;
+			// is newRequest_ enqueued (empty now)
+			bool requestEnqueued = false;
+		} receiveLoopData_;
+		// per request and response data for reply loop, use unnamed struct for fast reset
+		struct {
+			//.processing request id (only for internal error check)
+			std::uint32_t requestId = 0;
+			// is processing request body consumed
+			bool requestBodyConsumed = false;
 			// is response headers appended to packet previously
 			bool responseHeadersAppended = false;
 			// bytes of response body written to client
-			std::size_t responseBodyWrittenSize = 0;
-			// is connection kept for next request
+			std::size_t responseWrittenBytes = 0;
+			// is connection keeping for next request
 			bool keepConnection = false;
-		} temporaryData_;
-		// the rest of buffer for next request received from pipeline
-		seastar::temporary_buffer<char> nextRequestBuffer_;
-		// the timer use to implement initial request timeout
-		seastar::timer<> shutdownInputTimer_;
+		} replyLoopData_;
 	};
 }
 

@@ -52,10 +52,10 @@ namespace cpv {
 		/** Set the queue size of pending requests of single connection */
 		void setRequestQueueSize(std::size_t requestQueueSize);
 		
-		/** Get the queue size of pending body buffers of single request, the default value is 50 */
+		/** Get the queue size of pending body buffers of single connection, the default value is 50 */
 		std::size_t getRequestBodyQueueSize() const;
 		
-		/** Set the queue size of pending body buffers of single request */
+		/** Set the queue size of pending body buffers of single connection */
 		void setRequestBodyQueueSize(std::size_t requestBodyQueueSize);
 		
 		/** Constructor */

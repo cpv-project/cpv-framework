@@ -49,7 +49,7 @@ namespace cpv {
 					sharedData->metricData.current_connections = connectionsWrapper->value.size();
 					sharedData->logger->log(LogLevel::Info,
 						"accepted http connection from:", addr,
-						"(count:", connectionsWrapper->value.size(), ")");
+						", connections count:", connectionsWrapper->value.size());
 				});
 			}).handle_exception([listener, sharedData=data_->sharedData] (std::exception_ptr ex) {
 				sharedData->logger->log(LogLevel::Notice,
