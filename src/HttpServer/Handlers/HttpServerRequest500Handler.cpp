@@ -39,7 +39,7 @@ namespace cpv {
 		// expand futurize_apply manually to reduce overhead
 		try {
 			auto f = (*next)->handle(request, response, next + 1);
-			if (f.available()) {
+			if (f.available() && !f.failed()) {
 				return f;
 			}
 			return f.handle_exception([&response, this] (std::exception_ptr ex) {
