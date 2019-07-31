@@ -1,6 +1,7 @@
 #pragma once
 #include <seastar/core/future.hh>
 #include <CPVFramework/Stream/OutputStreamBase.hpp>
+#include <CPVFramework/Utility/Object.hpp>
 
 namespace cpv {
 	/** Declare types */
@@ -29,6 +30,12 @@ namespace cpv {
 	private:
 		// the lifetime of stream is rely on the connection
 		Http11ServerConnection* connection_;
+	};
+	
+	/** Increase free list size */
+	template <>
+	struct ObjectFreeListSize<Http11ServerConnectionResponseStream> {
+		static const constexpr std::size_t value = 65535;
 	};
 }
 

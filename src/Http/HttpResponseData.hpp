@@ -37,5 +37,11 @@ namespace cpv {
 		
 		static void reset() { }
 	};
+	
+	/** Increase free list size */
+	template <>
+	struct ObjectFreeListSize<HttpResponseData> {
+		static const constexpr std::size_t value = 65535;
+	};
 }
 
