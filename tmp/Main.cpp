@@ -66,7 +66,7 @@ namespace {
 		configuration.setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
 		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Notice);
 		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>> handlers;
-		// handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
+		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
 		// handlers.emplace_back(std::make_unique<CustomHandler>());
 		handlers.emplace_back(std::make_unique<HelloHandler>());
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
