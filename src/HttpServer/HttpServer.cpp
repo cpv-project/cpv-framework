@@ -6,6 +6,11 @@
 #include "./Connections/Http11ServerConnection.hpp"
 #include "./HttpServerData.hpp"
 
+// increase backlog can avoid ECONNREFUSED when many connections come with in a short period
+#if !defined(CPV_HTTP_SERVER_LISTEN_BACKLOG)
+	#define CPV_HTTP_SERVER_LISTEN_BACKLOG 65535
+#endif
+
 namespace cpv {
 	/** Start accept http connections */
 	seastar::future<> HttpServer::start() {
@@ -24,6 +29,7 @@ namespace cpv {
 		// parse listen addresses and create listeners
 		seastar::listen_options listenOptions;
 		listenOptions.reuse_address = true;
+		listenOptions.listen_backlog = CPV_HTTP_SERVER_LISTEN_BACKLOG;
 		for (const auto& listenAddressStr : data_->sharedData->configuration.getListenAddresses()) {
 			auto listenAddress = parseListenAddress(listenAddressStr);
 			auto listener = seastar::listen(listenAddress, listenOptions);
