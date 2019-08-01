@@ -455,9 +455,8 @@ namespace cpv {
 		// +4: server header, colon + space, header value, crlf
 		// +4: connection header, colon + space, header value, crlf
 		// + headers count * 4
-		//   reserve 3 addition header for date, server, connection
 		// +1: crlf
-		return 31 + processingResponse_.getHeaders().size() * 4;
+		return 19 + processingResponse_.getHeaders().maxSize() * 4;
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
@@ -467,7 +466,7 @@ namespace cpv {
 			return;
 		}
 		replyLoopData_.responseHeadersAppended = true;
-		// determine response http protocol version
+		// set protocol version
 		std::string_view version = processingResponse_.getVersion();
 		if (CPV_LIKELY(version.empty())) {
 			// copy version from request
@@ -486,75 +485,53 @@ namespace cpv {
 			processingResponse_.setStatusCode("0");
 			processingResponse_.setStatusMessage("Status code or status message not set");
 		}
-		// determine value of date header
-		std::string_view date;
-		auto& headers = processingResponse_.getHeaders();
-		auto dateIt = headers.find(constants::Date);
-		if (CPV_LIKELY(dateIt == headers.end())) {
-			date = formatNowForHttpHeader();
-		} else {
-			date = dateIt->second;
-			headers.erase(dateIt);
+		// set date header
+		auto& responseHeaders = processingResponse_.getHeaders();
+		if (CPV_LIKELY(responseHeaders.getDate().empty())) {
+			responseHeaders.setDate(formatNowForHttpHeader());
 		}
-		// determine value of server header
-		std::string_view server;
-		auto serverIt = headers.find(constants::Server);
-		if (CPV_LIKELY(serverIt == headers.end())) {
+		// set server header
+		if (CPV_LIKELY(responseHeaders.getServer().empty())) {
 			// no version number for security
-			server = constants::CPVFramework;
-		} else {
-			server = serverIt->second;
-			headers.erase(serverIt);
+			responseHeaders.setServer(constants::CPVFramework);
 		}
-		// determine value of connection header
-		std::string_view connection;
+		// set connection header
 		replyLoopData_.keepConnection = checkKeepaliveByConnnectionHeader();
-		auto connectionIt = headers.find(constants::Connection);
-		if (CPV_LIKELY(connectionIt == headers.end())) {
+		auto connectionValue = responseHeaders.getConnection();
+		if (CPV_LIKELY(connectionValue.empty())) {
 			if (CPV_LIKELY(replyLoopData_.keepConnection)) {
-				connection = constants::Keepalive;
+				responseHeaders.setConnection(constants::Keepalive);
 			} else {
-				connection = constants::Close;
+				responseHeaders.setConnection(constants::Close);
 			}
 		} else {
 			// custom connection header, close connection if it isn't keep-alive
-			if (CPV_LIKELY(connection != constants::Keepalive)) {
+			if (CPV_LIKELY(connectionValue != constants::Keepalive)) {
 				replyLoopData_.keepConnection = false;
 			}
-			connection = connectionIt->second;
-			headers.erase(connectionIt);
 		}
 		// append response headers to packet
 		packet << version << constants::Space <<
 			processingResponse_.getStatusCode() << constants::Space <<
 			processingResponse_.getStatusMessage() << constants::CRLF;
-		packet << constants::Date << constants::ColonSpace <<
-			date << constants::CRLF;
-		packet << constants::Server << constants::ColonSpace <<
-			server << constants::CRLF;
-		packet << constants::Connection << constants::ColonSpace <<
-			connection << constants::CRLF;
-		for (auto& pair : headers) {
-			packet << pair.first << constants::ColonSpace <<
-				pair.second << constants::CRLF;
-		}
+		responseHeaders.foreach([&packet] (const auto& key, const auto& value) {
+			packet << key << constants::ColonSpace << value << constants::CRLF;
+		});
 		packet << constants::CRLF;
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
 	bool Http11ServerConnection::checkKeepaliveByConnnectionHeader() const {
 		auto& requestHeaders = processingRequest_.getHeaders();
-		auto requestConnectionIt = requestHeaders.find(constants::Connection);
-		if (requestConnectionIt != requestHeaders.end()) {
-			if (CPV_LIKELY(requestConnectionIt->second == constants::Keepalive)) {
-				// client wants to keepalive
-				// most browser will send connection header even for http 1.1
-				return true;
-			} else {
-				// client doesn't want to keepalive
-				// it may be "close" or other unsupported string literal
-				return false;
-			}
+		auto connectionValue = requestHeaders.getConnection();
+		if (CPV_LIKELY(connectionValue == constants::Keepalive)) {
+			// client wants to keepalive
+			// most browser will send connection header even for http 1.1
+			return true;
+		} else if (!connectionValue.empty()) {
+			// client doesn't want to keepalive
+			// it may be "close" or other unsupported string literal
+			return false;
 		} else if (processingResponse_.getVersion() == constants::Http10) {
 			// for http 1.0, keepalive is disabled by default
 			return false;
@@ -568,12 +545,10 @@ namespace cpv {
 	bool Http11ServerConnection::checkKeepaliveByContentLength() const {
 		// check whether content length is fixed or chunked
 		auto& responseHeaders = processingResponse_.getHeaders();
-		auto contentLengthIt = responseHeaders.find(constants::ContentLength);
-		if (CPV_UNLIKELY(contentLengthIt == responseHeaders.end())) {
-			// content length is not fixed, check transfer encoding
-			auto transferEncodingIt = responseHeaders.find(constants::TransferEncoding);
-			if (transferEncodingIt == responseHeaders.end() ||
-				transferEncodingIt->second != constants::Chunked) {
+		auto contentLengthValue = responseHeaders.getContentLength();
+		if (CPV_UNLIKELY(contentLengthValue.empty())) {
+			// content length did not set, check transfer encoding
+			if (responseHeaders.getTransferEncoding() != constants::Chunked) {
 				// close connection to indicate response is end
 				return false;
 			}
@@ -581,8 +556,7 @@ namespace cpv {
 			// check whether content length of response is matched to written size
 			std::size_t contentLength = 0;
 			if (CPV_UNLIKELY(!loadIntFromDec(
-				contentLengthIt->second.data(),
-				contentLengthIt->second.size(), contentLength))) {
+				contentLengthValue.data(), contentLengthValue.size(), contentLength))) {
 				sharedData_->logger->log(LogLevel::Warning,
 					"going to close inconsistent connection from", clientAddress_,
 					"because content length of response isn't integer");

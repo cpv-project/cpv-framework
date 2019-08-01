@@ -15,7 +15,7 @@ namespace cpv {
 		std::string_view version;
 		std::string_view statusCode;
 		std::string_view statusMessage;
-		HttpResponse::HeadersType headers;
+		HttpResponseHeaders headers;
 		Object<OutputStreamBase> bodyStream;
 		
 		HttpResponseData() :
@@ -30,7 +30,7 @@ namespace cpv {
 			version = {};
 			statusCode = {};
 			statusMessage = {};
-			headers.clear();
+			headers = {};
 			bodyStream = Object<OutputStreamBase>();
 			underlyingBuffers.clear();
 		}

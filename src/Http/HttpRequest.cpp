@@ -33,18 +33,18 @@ namespace cpv {
 	}
 	
 	/** Get request headers */
-	HttpRequest::HeadersType& HttpRequest::getHeaders() & {
+	HttpRequestHeaders& HttpRequest::getHeaders() & {
 		return data_->headers;
 	}
 	
 	/** Get request headers */
-	const HttpRequest::HeadersType& HttpRequest::getHeaders() const& {
+	const HttpRequestHeaders& HttpRequest::getHeaders() const& {
 		return data_->headers;
 	}
 	
 	/** Set request header */
 	void HttpRequest::setHeader(const std::string_view& key, const std::string_view& value) {
-		data_->headers.insert_or_assign(key, value);
+		data_->headers.setHeader(key, value);
 	}
 	
 	/** Get underlying buffers */

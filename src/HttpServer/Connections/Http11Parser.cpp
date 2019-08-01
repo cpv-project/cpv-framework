@@ -415,8 +415,10 @@ enum http_host_state
 };
 
 /* Macros for character classes; depends on strict-mode  */
-#define CR                  '\r'
-#define LF                  '\n'
+namespace {
+	static const constexpr char CR = '\r';
+	static const constexpr char LF = '\n';
+}
 #define LOWER(c)            (unsigned char)(c | 0x20)
 #define IS_ALPHA(c)         (LOWER(c) >= 'a' && LOWER(c) <= 'z')
 #define IS_NUM(c)           ((c) >= '0' && (c) <= '9')

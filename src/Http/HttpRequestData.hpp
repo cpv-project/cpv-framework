@@ -15,7 +15,7 @@ namespace cpv {
 		std::string_view method;
 		std::string_view url;
 		std::string_view version;
-		HttpRequest::HeadersType headers;
+		HttpRequestHeaders headers;
 		Object<InputStreamBase> bodyStream;
 		
 		HttpRequestData() :
@@ -29,7 +29,7 @@ namespace cpv {
 			method = {};
 			url = {};
 			version = {};
-			headers.clear();
+			headers = {};
 			bodyStream = Object<InputStreamBase>();
 			underlyingBuffers.clear();
 		}

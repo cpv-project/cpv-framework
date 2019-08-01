@@ -17,9 +17,9 @@ TEST_FUTURE(HttpServerRequest404Handler, handle) {
 		return handlers.at(0)->handle(request, response, handlers.end()).then([&response, &str] {
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_404);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::NotFound);
-			ASSERT_EQ(response.getHeaders().at(cpv::constants::ContentType),
-				cpv::constants::TextPlainUtf8);
-			ASSERT_EQ(response.getHeaders().at(cpv::constants::ContentLength),
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength),
 				cpv::constants::Integers.at(cpv::constants::NotFound.size()));
 			ASSERT_EQ(*str, cpv::constants::NotFound);
 		});

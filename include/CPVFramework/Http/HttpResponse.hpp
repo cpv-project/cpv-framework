@@ -1,12 +1,12 @@
 #pragma once
-#include <string>
 #include <string_view>
-#include <unordered_map>
-#include <utility>
+#include <limits>
 #include <seastar/core/temporary_buffer.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Stream/OutputStreamBase.hpp"
 #include "../Utility/Object.hpp"
+#include "../Utility/BufferUtils.hpp"
+#include "./HttpResponseHeaders.hpp"
 
 namespace cpv {
 	/** Members of HttpResponse */
@@ -19,7 +19,6 @@ namespace cpv {
 	class HttpResponse {
 	public:
 		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
-		using HeadersType = StackAllocatedMap<std::string_view, std::string_view, 32>;
 		
 		/** Get the http version string, e.g. "HTTP/1.1" */
 		std::string_view getVersion() const&;
@@ -43,11 +42,15 @@ namespace cpv {
 		void setStatusMessage(const std::string_view& statusMessage);
 		
 		/** Get response headers */
-		HeadersType& getHeaders() &;
-		const HeadersType& getHeaders() const&;
+		HttpResponseHeaders& getHeaders() &;
+		const HttpResponseHeaders& getHeaders() const&;
 		
-		/** Set response header, must add underlying buffer first unless it's static string */
+		/** Set response header, must add underlying buffer first unless it's a static string */
 		void setHeader(const std::string_view& key, const std::string_view& value);
+		
+		/** Set response header to integer value */
+		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+		void setHeader(const std::string_view& key, T value);
 		
 		/** Get underlying buffers */
 		UnderlyingBuffersType& getUnderlyingBuffers() &;
@@ -68,5 +71,17 @@ namespace cpv {
 	private:
 		Object<HttpResponseData> data_;
 	};
+	
+	/** Set response header to integer value */
+	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+	void HttpResponse::setHeader(const std::string_view& key, T value) {
+		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
+			setHeader(key, constants::Integers[value]);
+		} else {
+			auto buf = convertIntToBuffer(value);
+			setHeader(key, std::string_view(buf.get(), buf.size()));
+			addUnderlyingBuffer(std::move(buf));
+		}
+	}
 }
 

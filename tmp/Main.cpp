@@ -28,20 +28,13 @@ namespace {
 			p << "request url: " << request.getUrl() << "\r\n";
 			p << "request version: " << request.getVersion() << "\r\n";
 			p << "request headers:\r\n";
-			p << "";
-			for (auto& pair : request.getHeaders()) {
-				p << "  " << pair.first << ": " << pair.second << "\r\n";
-			}
+			request.getHeaders().foreach([&p] (const auto& key, const auto& value) {
+				p << "  " << key << ": " << value << "\r\n";
+			});
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
 			response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-			if (p.len() < constants::Integers.size()) {
-				response.setHeader(constants::ContentLength, constants::Integers.at(p.len()));
-			} else {
-				auto buf = convertIntToBuffer(p.len());
-				response.setHeader(constants::ContentLength, std::string_view(buf.get(), buf.size()));
-				response.addUnderlyingBuffer(std::move(buf));
-			}
+			response.setHeader(constants::ContentLength, p.len());
 			return extensions::writeAll(response.getBodyStream(), std::move(p));
 		}
 	};
@@ -56,8 +49,8 @@ namespace {
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
 			response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-			response.setHeader(constants::ContentLength, constants::Integers.at(12));
-			return cpv::extensions::writeAll(response.getBodyStream(), "Hello World!");
+			response.setHeader(constants::ContentLength, 12);
+			return extensions::writeAll(response.getBodyStream(), "Hello World!");
 		}
 	};
 	

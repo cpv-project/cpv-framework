@@ -46,9 +46,9 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 			[&response, &str, &logger] {
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_500);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::InternalServerError);
-			ASSERT_EQ(response.getHeaders().at(cpv::constants::ContentType),
-				cpv::constants::TextPlainUtf8);
-			ASSERT_EQ(response.getHeaders().at(cpv::constants::ContentLength),
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength),
 				cpv::constants::Integers.at(str->size()));
 			ASSERT_CONTAINS(*str, cpv::constants::InternalServerError);
 			ASSERT_CONTAINS(*str, "ID: ");

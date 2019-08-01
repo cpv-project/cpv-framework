@@ -90,6 +90,41 @@ namespace cpv::constants {
 	extern const std::string GatewayTimeout; // 504
 	extern const std::string HttpVersionNotSupported; // 505
 	
+	// standard request fields
+	extern const std::string AIM;
+	extern const std::string Accept;
+	extern const std::string AcceptCharset;
+	extern const std::string AcceptDatetime;
+	extern const std::string AcceptEncoding;
+	extern const std::string AcceptLanguage;
+	extern const std::string AccessControlRequestMethod;
+	extern const std::string AccessControlRequestHeaders;
+	extern const std::string Authorization;
+	extern const std::string Cookie;
+	extern const std::string Expect;
+	extern const std::string Forwarded;
+	extern const std::string From;
+	extern const std::string Host;
+	extern const std::string Http2Settings;
+	extern const std::string IfMatch;
+	extern const std::string IfModifiedSince;
+	extern const std::string IfNoneMatch;
+	extern const std::string IfRange;
+	extern const std::string IfUnmodifiedSince;
+	extern const std::string MaxForwards;
+	extern const std::string Origin;
+	extern const std::string ProxyAuthorization;
+	extern const std::string Range;
+	extern const std::string Referer;
+	extern const std::string TE;
+	extern const std::string UserAgent;
+	
+	// non-standard request fields
+	extern const std::string UpgradeInsecureRequests;
+	extern const std::string XRequestedWith;
+	extern const std::string DNT;
+	extern const std::string XCsrfToken;
+	
 	// standard response fields
 	extern const std::string AccessControlAllowOrigin;
 	extern const std::string AccessControlAllowCredentials;
@@ -109,12 +144,11 @@ namespace cpv::constants {
 	extern const std::string ContentLanguage;
 	extern const std::string ContentLength;
 	extern const std::string ContentLocation;
-	extern const std::string ContentMD5;
 	extern const std::string ContentRange;
 	extern const std::string ContentType;
 	extern const std::string Date;
 	extern const std::string DeltaBase;
-	extern const std::string Etag;
+	extern const std::string ETag;
 	extern const std::string Expires;
 	extern const std::string IM;
 	extern const std::string LastModified;
@@ -136,7 +170,9 @@ namespace cpv::constants {
 	extern const std::string Via;
 	extern const std::string Warning;
 	extern const std::string WWWAuthenticate;
-	extern const std::string XFrameOptions;
+	
+	// non-standard response fields
+	extern const std::string Refresh;
 	
 	// standard response values
 	extern const std::string Chunked;

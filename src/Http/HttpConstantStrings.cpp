@@ -89,6 +89,41 @@ namespace cpv::constants {
 	const std::string GatewayTimeout("Gateway Timeout");
 	const std::string HttpVersionNotSupported("HTTP Version Not Supported");
 	
+	// standard request fields
+	const std::string AIM("A-IM");
+	const std::string Accept("Accept");
+	const std::string AcceptCharset("Accept-Charset");
+	const std::string AcceptDatetime("Accept-Datetime");
+	const std::string AcceptEncoding("Accept-Encoding");
+	const std::string AcceptLanguage("Accept-Language");
+	const std::string AccessControlRequestMethod("Access-Control-Request-Method");
+	const std::string AccessControlRequestHeaders("Access-Control-Request-Headers");
+	const std::string Authorization("Authorization");
+	const std::string Cookie("Cookie");
+	const std::string Expect("Expect");
+	const std::string Forwarded("Forwarded");
+	const std::string From("From");
+	const std::string Host("Host");
+	const std::string Http2Settings("HTTP2-Settings");
+	const std::string IfMatch("If-Match");
+	const std::string IfModifiedSince("If-Modified-Since");
+	const std::string IfNoneMatch("If-None-Match");
+	const std::string IfRange("If-Range");
+	const std::string IfUnmodifiedSince("If-Unmodified-Since");
+	const std::string MaxForwards("Max-Forwards");
+	const std::string Origin("Origin");
+	const std::string ProxyAuthorization("Proxy-Authorization");
+	const std::string Range("Range");
+	const std::string Referer("Referer");
+	const std::string TE("TE");
+	const std::string UserAgent("User-Agent");
+	
+	// non-standard request fields
+	const std::string UpgradeInsecureRequests("Upgrade-Insecure-Requests");
+	const std::string XRequestedWith("X-Requested-With");
+	const std::string DNT("DNT");
+	const std::string XCsrfToken("X-Csrf-Token");
+	
 	// standard response fields
 	const std::string AccessControlAllowOrigin("Access-Control-Allow-Origin");
 	const std::string AccessControlAllowCredentials("Access-Control-Allow-Credentials");
@@ -113,7 +148,7 @@ namespace cpv::constants {
 	const std::string ContentType("Content-Type");
 	const std::string Date("Date");
 	const std::string DeltaBase("Delta-Base");
-	const std::string Etag("Etag");
+	const std::string ETag("ETag");
 	const std::string Expires("Expires");
 	const std::string IM("IM");
 	const std::string LastModified("Last-Modified");
@@ -136,6 +171,9 @@ namespace cpv::constants {
 	const std::string Warning("Warning");
 	const std::string WWWAuthenticate("WWW-Authenticate");
 	const std::string XFrameOptions("X-Frame-Options");
+	
+	// non-standard response fields
+	const std::string Refresh("Refresh");
 	
 	// standard response values
 	const std::string Chunked("chunked");

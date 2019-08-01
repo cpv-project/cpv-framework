@@ -2,7 +2,6 @@
 #include <seastar/core/reactor.hh>
 #include <seastar/core/sleep.hh>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
-#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/HttpServer/HttpServer.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest500Handler.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
@@ -23,26 +22,26 @@ namespace cpv::gtest {
 				[&testFunctions, &stopFlag, &error] (unsigned c) {
 				return seastar::smp::submit_to(c, [c, &testFunctions, &stopFlag, &error] {
 					// make configuration
-					cpv::HttpServerConfiguration configuration;
+					HttpServerConfiguration configuration;
 					configuration.setListenAddresses({
-						cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
-						cpv::joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
+						joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
+						joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
 					});
 					if (testFunctions.updateConfiguration != nullptr) {
 						testFunctions.updateConfiguration(configuration);
 					}
 					// make logger
-					auto logger = cpv::Logger::createConsole(cpv::LogLevel::Debug);
+					auto logger = Logger::createConsole(LogLevel::Debug);
 					// make handlers
 					HttpServerRequestHandlerCollection handlers;
-					handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
+					handlers.emplace_back(std::make_unique<HttpServerRequest500Handler>(logger));
 					if (testFunctions.makeHandlers != nullptr) {
 						auto customHandlers = testFunctions.makeHandlers();
 						std::move(customHandlers.begin(), customHandlers.end(), std::back_inserter(handlers));
 					}
-					handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
+					handlers.emplace_back(std::make_unique<HttpServerRequest404Handler>());
 					// start http server
-					cpv::HttpServer server(configuration, logger, std::move(handlers));
+					HttpServer server(configuration, logger, std::move(handlers));
 					return seastar::do_with(std::move(server),
 						[c, &testFunctions, &stopFlag, &error](auto& server) {
 						return server.start().then([c, &testFunctions, &stopFlag, &error] {
@@ -81,51 +80,46 @@ namespace cpv::gtest {
 	
 	/** Reply request url and header values in response body */
 	seastar::future<> HttpCheckHeadersHandler::handle(
-		cpv::HttpRequest& request,
-		cpv::HttpResponse& response,
-		const cpv::HttpServerRequestHandlerIterator&) const {
+		HttpRequest& request,
+		HttpResponse& response,
+		const HttpServerRequestHandlerIterator&) const {
 		using namespace cpv;
 		seastar::net::packet p;
 		p << "request method: " << request.getMethod() << "\r\n";
 		p << "request url: " << request.getUrl() << "\r\n";
 		p << "request version: " << request.getVersion() << "\r\n";
 		p << "request headers:\r\n";
-		auto& headers = request.getHeaders();
-		std::vector<std::string_view> headerFields;
-		std::transform(headers.begin(), headers.end(),
-			std::back_inserter(headerFields), [] (auto& pair) { return pair.first; });
-		std::sort(headerFields.begin(), headerFields.end());
-		for (auto& headerField : headerFields) {
-			p << "  " << headerField << ": " << headers.at(headerField) << "\r\n";
-		}
+		request.getHeaders().foreach([&p] (const auto& key, const auto& value) {
+			p << "  " << key << ": " << value << "\r\n";
+		});
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, PesudoDate);
-		extensions::setHeader(response, constants::ContentLength, p.len());
+		response.setHeader(constants::ContentLength, p.len());
 		return extensions::writeAll(response.getBodyStream(), std::move(p));
 	}
 	
 	/** Reply request body in response body */
 	seastar::future<> HttpCheckBodyHandler::handle(
-		cpv::HttpRequest& request,
-		cpv::HttpResponse& response,
-		const cpv::HttpServerRequestHandlerIterator&) const {
+		HttpRequest& request,
+		HttpResponse& response,
+		const HttpServerRequestHandlerIterator&) const {
 		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
-			response.setHeader(constants::ContentType, request.getHeaders().at(constants::ContentType));
+			response.setHeader(constants::ContentType, request.getHeaders().getHeader(constants::ContentType));
 			response.setHeader(constants::Date, PesudoDate);
-			extensions::setHeader(response, constants::ContentLength, str.size());
+			response.setHeader(constants::ContentLength, str.size());
 			return extensions::writeAll(response.getBodyStream(), std::move(str));
 		});
 	}
 	
 	/** Reply response with body but without content length header */
 	seastar::future<> HttpLengthNotFixedHandler::handle(
-		cpv::HttpRequest&,
-		cpv::HttpResponse& response,
-		const cpv::HttpServerRequestHandlerIterator&) const {
+		HttpRequest&,
+		HttpResponse& response,
+		const HttpServerRequestHandlerIterator&) const {
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
@@ -135,14 +129,14 @@ namespace cpv::gtest {
 	
 	/** Reply response with body but size not matched to content length header */
 	seastar::future<> HttpWrittenSizeNotMatchedHandler::handle(
-		cpv::HttpRequest&,
-		cpv::HttpResponse& response,
-		const cpv::HttpServerRequestHandlerIterator&) const {
+		HttpRequest&,
+		HttpResponse& response,
+		const HttpServerRequestHandlerIterator&) const {
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, PesudoDate);
-		extensions::setHeader(response, constants::ContentLength, 1);
+		response.setHeader(constants::ContentLength, 1);
 		return extensions::writeAll(response.getBodyStream(), "Written Size Not Matched");
 	}
 }
