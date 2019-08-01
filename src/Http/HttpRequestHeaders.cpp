@@ -11,6 +11,8 @@ namespace cpv {
 
 	HttpRequestHeaders::Internal::FixedMembersType HttpRequestHeaders::Internal::FixedMembers({
 		{ constants::Host, &HttpRequestHeaders::host_ },
+		{ constants::ContentType, &HttpRequestHeaders::contentType_ },
+		{ constants::ContentLength, &HttpRequestHeaders::contentLength_ },
 		{ constants::Connection, &HttpRequestHeaders::connection_ },
 		{ constants::Pragma, &HttpRequestHeaders::pragma_ },
 		{ constants::CacheControl, &HttpRequestHeaders::cacheControl_ },
@@ -67,6 +69,8 @@ namespace cpv {
 	HttpRequestHeaders::HttpRequestHeaders() :
 		remainHeaders_(),
 		host_(),
+		contentType_(),
+		contentLength_(),
 		connection_(),
 		pragma_(),
 		cacheControl_(),

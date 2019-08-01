@@ -12,6 +12,8 @@ namespace cpv {
 	public:
 		// getters and setters for fixed members
 		std::string_view getHost() const { return host_; }
+		std::string_view getContentType() const { return contentType_; }
+		std::string_view getContentLength() const { return contentLength_; }
 		std::string_view getConnection() const { return connection_; }
 		std::string_view getPragma() const { return pragma_; }
 		std::string_view getCacheControl() const { return cacheControl_; }
@@ -24,6 +26,8 @@ namespace cpv {
 		std::string_view getCookie() const { return cookie_; }
 		std::string_view getXRequestedWith() const { return xRequestedWith_; }
 		void setHost(const std::string_view& value) { host_ = value; }
+		void setContentType(const std::string_view& value) { contentType_ = value; }
+		void setContentLength(const std::string_view& value) { contentLength_ = value; }
 		void setConnection(const std::string_view& value) { connection_ = value; }
 		void setPragma(const std::string_view& value) { pragma_ = value; }
 		void setCacheControl(const std::string_view& value) { cacheControl_ = value; }
@@ -40,6 +44,8 @@ namespace cpv {
 		template <class Func>
 		void foreach(const Func& func) const {
 			if (!host_.empty()) { func(constants::Host, host_); }
+			if (!contentType_.empty()) { func(constants::ContentType, contentType_); }
+			if (!contentLength_.empty()) { func(constants::ContentLength, contentLength_); }
 			if (!connection_.empty()) { func(constants::Connection, connection_); }
 			if (!pragma_.empty()) { func(constants::Pragma, pragma_); }
 			if (!cacheControl_.empty()) { func(constants::CacheControl, cacheControl_); }
@@ -84,6 +90,8 @@ namespace cpv {
 	private:
 		StackAllocatedMap<std::string_view, std::string_view, 3> remainHeaders_;
 		std::string_view host_;
+		std::string_view contentType_;
+		std::string_view contentLength_;
 		std::string_view connection_;
 		std::string_view pragma_;
 		std::string_view cacheControl_;

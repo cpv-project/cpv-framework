@@ -121,7 +121,22 @@ TEST(TestHttpResponse, headersForeach) {
 		content.append(key).append(": ").append(value).append("\r\n");
 	});
 	ASSERT_EQ(content,
-		"Date: ");
+		"Date: TestDate\r\n"
+		"Content-Type: TestContentType\r\n"
+		"Content-Length: TestContentLength\r\n"
+		"Content-Encoding: TestContentEncoding\r\n"
+		"Transfer-Encoding: TestTransferEncoding\r\n"
+		"Connection: TestConnection\r\n"
+		"Server: TestServer\r\n"
+		"Vary: TestVary\r\n"
+		"ETag: TestETag\r\n"
+		"Cache-Control: TestCacheControl\r\n"
+		"SetCookie: TestSetCookie\r\n"
+		"Expires: TestExpires\r\n"
+		"Last-Modified: TestLastModified\r\n"
+		"AdditionA: TestAdditionA\r\n"
+		"AdditionB: TestAdditionB\r\n"
+		"AdditionC: TestAdditionC\r\n");
 }
 
 TEST(TestHttpResponse, headersNotConstructible) {

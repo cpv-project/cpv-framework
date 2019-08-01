@@ -46,6 +46,8 @@ TEST(TestHttpRequest, setHeaderWithInteger) {
 TEST(TestHttpRequest, headersBasic) {
 	cpv::HttpRequest request;
 	request.setHeader(cpv::constants::Host, "TestHost");
+	request.setHeader(cpv::constants::ContentType, "TestContentType");
+	request.setHeader(cpv::constants::ContentLength, "TestContentLength");
 	request.setHeader(cpv::constants::Connection, "TestConnection");
 	request.setHeader(cpv::constants::Pragma, "TestPragma");
 	request.setHeader(cpv::constants::CacheControl, "TestCacheControl");
@@ -61,6 +63,8 @@ TEST(TestHttpRequest, headersBasic) {
 	
 	auto& headers = request.getHeaders();
 	ASSERT_EQ(headers.getHeader(cpv::constants::Host), "TestHost");
+	ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), "TestContentType");
+	ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "TestContentLength");
 	ASSERT_EQ(headers.getHeader(cpv::constants::Connection), "TestConnection");
 	ASSERT_EQ(headers.getHeader(cpv::constants::Pragma), "TestPragma");
 	ASSERT_EQ(headers.getHeader(cpv::constants::CacheControl), "TestCacheControl");
@@ -76,6 +80,8 @@ TEST(TestHttpRequest, headersBasic) {
 	ASSERT_TRUE(headers.getHeader("NotExists").empty());
 	
 	ASSERT_EQ(headers.getHost(), "TestHost");
+	ASSERT_EQ(headers.getContentType(), "TestContentType");
+	ASSERT_EQ(headers.getContentLength(), "TestContentLength");
 	ASSERT_EQ(headers.getConnection(), "TestConnection");
 	ASSERT_EQ(headers.getPragma(), "TestPragma");
 	ASSERT_EQ(headers.getCacheControl(), "TestCacheControl");
@@ -98,6 +104,8 @@ TEST(TestHttpRequest, headersForeach) {
 	cpv::HttpRequest request;
 	auto& headers = request.getHeaders();
 	headers.setHost("TestHost");
+	headers.setContentType("TestContentType");
+	headers.setContentLength("TestContentLength");
 	headers.setConnection("TestConnection");
 	headers.setPragma("TestPragma");
 	headers.setCacheControl("TestCacheControl");
@@ -117,7 +125,23 @@ TEST(TestHttpRequest, headersForeach) {
 		content.append(key).append(": ").append(value).append("\r\n");
 	});
 	ASSERT_EQ(content,
-		"Host: ");
+		"Host: TestHost\r\n"
+		"Content-Type: TestContentType\r\n"
+		"Content-Length: TestContentLength\r\n"
+		"Connection: TestConnection\r\n"
+		"Pragma: TestPragma\r\n"
+		"Cache-Control: TestCacheControl\r\n"
+		"Upgrade-Insecure-Requests: TestUpgradeInsecureRequests\r\n"
+		"DNT: TestDNT\r\n"
+		"User-Agent: TestUserAgent\r\n"
+		"Accept: TestAccept\r\n"
+		"Accept-Encoding: TestAcceptEncoding\r\n"
+		"Accept-Language: TestAcceptLanguage\r\n"
+		"Cookie: TestCookie\r\n"
+		"X-Requested-With: TestXRequestedWith\r\n"
+		"AdditionA: TestAdditionA\r\n"
+		"AdditionB: TestAdditionB\r\n"
+		"AdditionC: TestAdditionC\r\n");
 }
 
 TEST(TestHttpRequest, headersNotConstructible) {
