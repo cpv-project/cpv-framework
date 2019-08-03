@@ -1,7 +1,6 @@
 #pragma once
 #include <optional>
 #include <seastar/core/queue.hh>
-#include <seastar/core/timer.hh>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
@@ -44,6 +43,9 @@ namespace cpv {
 		
 		/** Stop the connection immediately */
 		seastar::future<> stop() override;
+		
+		/** Invoke when timeout is detected from HttpServer's timer */
+		void onTimeout() override;
 		
 		/** Constructor */
 		Http11ServerConnection(
@@ -108,8 +110,6 @@ namespace cpv {
 		SocketHolder socket_;
 		seastar::socket_address clientAddress_;
 		Http11ServerConnectionState state_;
-		// the timer used for implement request timeout
-		seastar::timer<> shutdownInputTimer_;
 		// the queue store received requests which headers completed (notice body may not completed)
 		struct RequestEntry { HttpRequest request; std::uint32_t id; bool hasBody; };
 		seastar::queue<RequestEntry> requestQueue_;

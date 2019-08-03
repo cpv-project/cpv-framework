@@ -11,6 +11,7 @@ namespace cpv {
 			configuration, logger, std::move(handlers), connectionsWrapper->weak_from_this())),
 		listeners(),
 		listenerStoppedFutures(),
+		detectTimeoutTimer(),
 		stopping(false) { }
 }
 

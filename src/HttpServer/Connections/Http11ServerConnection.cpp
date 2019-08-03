@@ -130,8 +130,6 @@ namespace cpv {
 		auto self = shared_from_this();
 		seastar::when_all(startReceiveRequestLoop(), startReplyResponseLoop()).then(
 			[self] (std::tuple<seastar::future<>, seastar::future<>>) {
-			// cancel timer anyway in case of connection error
-			self->shutdownInputTimer_.cancel();
 			// remove self from connections collection (notice it's weak_ptr)
 			auto* connectionsPtr = self->sharedData_->connectionsWrapper.get();
 			std::size_t connectionsCount = 0;
@@ -162,6 +160,13 @@ namespace cpv {
 			[] { return seastar::sleep(std::chrono::seconds(1)); });
 	}
 	
+	/** Invoke when timeout is detected from HttpServer's timer */
+	void Http11ServerConnection::onTimeout() {
+		// shutdown connection
+		sharedData_->metricData.request_timeout_errors += 1;
+		shutdown("request timeout");
+	}
+	
 	/** Constructor */
 	Http11ServerConnection::Http11ServerConnection(
 		const seastar::lw_shared_ptr<HttpServerSharedData>& sharedData,
@@ -171,7 +176,6 @@ namespace cpv {
 		socket_(std::move(fd)),
 		clientAddress_(std::move(addr)),
 		state_(Http11ServerConnectionState::Initial),
-		shutdownInputTimer_(),
 		requestQueue_(sharedData_->configuration.getRequestQueueSize()),
 		requestBodyQueue_(sharedData_->configuration.getRequestBodyQueueSize()),
 		newRequest_(),
@@ -183,11 +187,6 @@ namespace cpv {
 		parser_(),
 		receiveLoopData_(),
 		replyLoopData_() {
-		// initialize timer
-		shutdownInputTimer_.set_callback([this] {
-			sharedData_->metricData.request_timeout_errors += 1;
-			shutdown("request timeout");
-		});
 		// initialize http parser (will initialize again for next request)
 		internal::http_parser::http_parser_init(&parser_, internal::http_parser::HTTP_REQUEST);
 	}
@@ -240,17 +239,12 @@ namespace cpv {
 			internal::http_parser::http_parser_init(&parser_, internal::http_parser::HTTP_REQUEST);
 		}
 		// receive request headers or body
-		// use custom timer instead of seastar::with_timeout for following reasons:
-		// - with_timeout will allocate a new timer and the callback function each time
-		// - delete connected_socket before read operation is finished will cause use-after-delete error
-		shutdownInputTimer_.arm(seastar::timer<>::clock::now() +
-			sharedData_->configuration.getRequestTimeout());
 		seastar::future f = (nextRequestBuffer_.size() == 0 ?
 			socket_.in().read() :
 			seastar::make_ready_future<seastar::temporary_buffer<char>>(std::move(nextRequestBuffer_)));
 		return f.then([this] (seastar::temporary_buffer<char> tempBuffer) {
-			// cancel timer
-			shutdownInputTimer_.cancel();
+			// reset detect timeout flag
+			resetDetectTimeoutFlag();
 			// store the last buffer received
 			auto& lastBuffer = receiveLoopData_.lastBuffer;
 			lastBuffer = std::move(tempBuffer);
@@ -413,6 +407,8 @@ namespace cpv {
 				processingRequest_,
 				processingResponse_,
 				sharedData_->handlers.begin() + 1).then([this] {
+				// reset detect timeout flag
+				resetDetectTimeoutFlag();
 				// send response headers if not sent before, and flush response
 				seastar::future<> result = seastar::make_ready_future<>();
 				if (replyLoopData_.responseHeadersAppended) {

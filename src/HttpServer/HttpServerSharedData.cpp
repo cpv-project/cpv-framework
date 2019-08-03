@@ -13,7 +13,7 @@ namespace cpv {
 		const HttpServerConfiguration& configurationVal,
 		const seastar::shared_ptr<Logger>& loggerVal,
 		HttpServerRequestHandlerCollection&& handlersVal,
-		seastar::weak_ptr<HttpServerConnectionsWrapper>&& connectionsWrapperVal) : 
+		seastar::weak_ptr<HttpServerConnectionsWrapper>&& connectionsWrapperVal) :
 		configuration(configurationVal),
 		logger(loggerVal),
 		handlers((

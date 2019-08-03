@@ -5,6 +5,8 @@
 namespace cpv {
 	/** Write data to stream */
 	seastar::future<> Http11ServerConnectionResponseStream::write(seastar::net::packet&& data) {
+		// reset detect timeout flag
+		connection_->resetDetectTimeoutFlag();
 		if (CPV_UNLIKELY(!static_cast<bool>(data))) {
 			// ignore empty data
 			return seastar::make_ready_future<>();

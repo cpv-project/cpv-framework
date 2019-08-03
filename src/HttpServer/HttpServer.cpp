@@ -37,6 +37,10 @@ namespace cpv {
 				std::pair<seastar::server_socket, seastar::socket_address>>(
 				std::move(listener), std::move(listenAddress)));
 		}
+		// start timer
+		data_->detectTimeoutTimer.arm(
+			seastar::timer<>::clock::now(),
+			data_->sharedData->configuration.getRequestTimeout());
 		// start listeners
 		for (const auto& listener : data_->listeners) {
 			data_->sharedData->logger->log(LogLevel::Notice,
@@ -45,7 +49,7 @@ namespace cpv {
 				[listener, connectionsWrapper=data_->connectionsWrapper, sharedData=data_->sharedData] {
 				return listener->first.accept().then(
 					[connectionsWrapper, sharedData]
-					(seastar::connected_socket fd, seastar::socket_address addr) {
+					(seastar::connected_socket fd, seastar::socket_address addr) { // TODO <- change to tuple
 					// currently only support http 1.0/1.1
 					auto connection = seastar::make_shared<Http11ServerConnection>(
 						sharedData, std::move(fd), std::move(addr));
@@ -69,6 +73,8 @@ namespace cpv {
 	/** Stop accept http connection and close all exists connections  */
 	seastar::future<> HttpServer::stop() {
 		data_->sharedData->logger->log(LogLevel::Notice, "stopping http server");
+		// stop timer
+		data_->detectTimeoutTimer.cancel();
 		// abort all listeners
 		for (const auto& listener : data_->listeners) {
 			listener->first.abort_accept();
@@ -101,7 +107,25 @@ namespace cpv {
 		const HttpServerConfiguration& configuration,
 		const seastar::shared_ptr<Logger>& logger,
 		HttpServerRequestHandlerCollection&& handlers) :
-		data_(std::make_unique<HttpServerData>(configuration, logger, std::move(handlers))) { }
+		data_(std::make_unique<HttpServerData>(configuration, logger, std::move(handlers))) {
+		// detect timeout for all connections.
+		// it's better than let connections manage their own timer,
+		// because add timer and remove timer is much heavy than just iterate connections.
+		data_->detectTimeoutTimer.set_callback([connectionsWrapper=data_->connectionsWrapper] {
+			std::vector<seastar::shared_ptr<HttpServerConnectionBase>> timeoutReached;
+			for (auto& connection : connectionsWrapper->value) {
+				if (connection->detectTimeoutFlag_) {
+					// connection didn't set this value to false since previous tick
+					timeoutReached.emplace_back(connection);
+				} else {
+					connection->detectTimeoutFlag_ = true;
+				}
+			}
+			for (auto& connection : timeoutReached) {
+				connection->onTimeout();
+			}
+		});
+	}
 	
 	/** Move constructor (for incomplete member type) */
 	HttpServer::HttpServer(HttpServer&&) = default;

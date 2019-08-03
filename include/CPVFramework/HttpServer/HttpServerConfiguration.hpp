@@ -36,13 +36,13 @@ namespace cpv {
 		 */
 		void setMaxInitialRequestPackets(std::size_t maxInitialRequestPackets);
 		
-		/** Get timeout of request in milliseconds, the default value is 30000 (30s) */
+		/** Get timeout of request in milliseconds, the default value is 60000 (60s) */
 		std::chrono::milliseconds getRequestTimeout() const;
 		
 		/**
 		 * Set timeout of request in milliseconds.
 		 * This setting will help http server close idle keep-alive connections.
-		 * This setting will apply to every read operation of request (including body).
+		 * This setting will apply to every read and write operation of request (including body).
 		 */
 		void setRequestTimeout(const std::chrono::milliseconds& requestTimeout);
 		
