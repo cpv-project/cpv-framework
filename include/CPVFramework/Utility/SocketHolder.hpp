@@ -74,7 +74,7 @@ namespace cpv {
 		/** Move assignment */
 		SocketHolder& operator=(SocketHolder&& socket) noexcept {
 			if (CPV_LIKELY(&socket != this)) {
-				close();
+				(void)close();
 				state_ = std::move(socket.state_);
 			}
 			return *this;
@@ -87,7 +87,7 @@ namespace cpv {
 		/** Destructor */
 		~SocketHolder() {
 			// ignore exceptions
-			close();
+			(void)close();
 		}
 
 	private:

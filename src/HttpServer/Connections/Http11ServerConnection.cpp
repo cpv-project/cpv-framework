@@ -128,7 +128,7 @@ namespace cpv {
 		// `this` will keep alive until `then` finished, so the loop can sure `this` is valid
 		// receive loop and reply loop will handle exception on their own
 		auto self = shared_from_this();
-		seastar::when_all(startReceiveRequestLoop(), startReplyResponseLoop()).then(
+		(void)seastar::when_all(startReceiveRequestLoop(), startReplyResponseLoop()).then(
 			[self] (std::tuple<seastar::future<>, seastar::future<>>) {
 			// remove self from connections collection (notice it's weak_ptr)
 			auto* connectionsPtr = self->sharedData_->connectionsWrapper.get();
@@ -387,7 +387,7 @@ namespace cpv {
 			return socket_.out()
 				.put(seastar::net::packet::from_static_data(
 					lastErrorResponse_.data(), lastErrorResponse_.size()))
-				.then([this] { socket_.out().flush(); })
+				.then([this] { return socket_.out().flush(); })
 				.handle_exception([] (std::exception_ptr) { });
 		}
 		// pop request from queue
