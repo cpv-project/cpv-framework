@@ -23,7 +23,7 @@ namespace cpv {
 		/** Get the socket */
 		seastar::connected_socket& socket() {
 			if (CPV_UNLIKELY(state_ == nullptr)) {
-				throw LogicException(CPV_CODEINFO, "socket is not connected");
+				throwNotConnectedError();
 			}
 			return state_->socket;
 		}
@@ -31,7 +31,7 @@ namespace cpv {
 		/** Get the input data source of the socket */
 		seastar::input_stream<char>& in() {
 			if (CPV_UNLIKELY(state_ == nullptr)) {
-				throw LogicException(CPV_CODEINFO, "socket is not connected");
+				throwNotConnectedError();
 			}
 			return state_->in;
 		}
@@ -39,7 +39,7 @@ namespace cpv {
 		/** Get the output data sink of the socket */
 		seastar::data_sink& out() {
 			if (CPV_UNLIKELY(state_ == nullptr)) {
-				throw LogicException(CPV_CODEINFO, "socket is not connected");
+				throwNotConnectedError();
 			}
 			return state_->out;
 		}
@@ -91,6 +91,10 @@ namespace cpv {
 		}
 
 	private:
+		static void throwNotConnectedError() {
+			throw LogicException(CPV_CODEINFO, "socket is not connected");
+		}
+
 		struct State {
 			seastar::connected_socket socket;
 			seastar::input_stream<char> in;

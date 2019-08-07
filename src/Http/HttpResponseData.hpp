@@ -30,7 +30,7 @@ namespace cpv {
 			version = {};
 			statusCode = {};
 			statusMessage = {};
-			headers = {};
+			headers.clear();
 			bodyStream = Reusable<OutputStreamBase>();
 			underlyingBuffers.clear();
 		}

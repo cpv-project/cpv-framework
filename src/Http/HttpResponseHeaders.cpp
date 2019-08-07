@@ -64,6 +64,24 @@ namespace cpv {
 		return Internal::FixedMembers.size() + remainHeaders_.size();
 	}
 	
+	/** Clear headers in this collection */
+	void HttpResponseHeaders::clear() {
+		remainHeaders_.clear();
+		date_ = {};
+		contentType_ = {};
+		contentLength_ = {};
+		contentEncoding_ = {};
+		transferEncoding_ = {};
+		connection_ = {};
+		server_ = {};
+		vary_ = {};
+		etag_ = {};
+		cacheControl_ = {};
+		setCookie_ = {};
+		expires_ = {};
+		lastModified_ = {};
+	}
+	
 	/** Constructor */
 	HttpResponseHeaders::HttpResponseHeaders() :
 		remainHeaders_(),

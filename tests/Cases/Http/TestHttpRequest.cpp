@@ -152,3 +152,39 @@ TEST(TestHttpRequest, headersNotConstructible) {
 	ASSERT_FALSE(std::is_move_assignable_v<cpv::HttpRequestHeaders>);
 }
 
+TEST(TestHttpRequest, headersClear) {
+	cpv::HttpRequest request;
+	auto& headers = request.getHeaders();
+	headers.setHost("TestHost");
+	headers.setContentType("TestContentType");
+	headers.setContentLength("TestContentLength");
+	headers.setConnection("TestConnection");
+	headers.setPragma("TestPragma");
+	headers.setCacheControl("TestCacheControl");
+	headers.setUpgradeInsecureRequests("TestUpgradeInsecureRequests");
+	headers.setDNT("TestDNT");
+	headers.setUserAgent("TestUserAgent");
+	headers.setAccept("TestAccept");
+	headers.setAcceptEncoding("TestAcceptEncoding");
+	headers.setAcceptLanguage("TestAcceptLanguage");
+	headers.setCookie("TestCookie");
+	headers.setXRequestedWith("TestXRequestedWith");
+	headers.setHeader("Addition", "TestAddition");
+	headers.clear();
+	ASSERT_TRUE(headers.getHost().empty());
+	ASSERT_TRUE(headers.getContentType().empty());
+	ASSERT_TRUE(headers.getContentLength().empty());
+	ASSERT_TRUE(headers.getConnection().empty());
+	ASSERT_TRUE(headers.getPragma().empty());
+	ASSERT_TRUE(headers.getCacheControl().empty());
+	ASSERT_TRUE(headers.getUpgradeInsecureRequests().empty());
+	ASSERT_TRUE(headers.getDNT().empty());
+	ASSERT_TRUE(headers.getUserAgent().empty());
+	ASSERT_TRUE(headers.getAccept().empty());
+	ASSERT_TRUE(headers.getAcceptEncoding().empty());
+	ASSERT_TRUE(headers.getAcceptLanguage().empty());
+	ASSERT_TRUE(headers.getCookie().empty());
+	ASSERT_TRUE(headers.getXRequestedWith().empty());
+	ASSERT_TRUE(headers.getHeader("Addition").empty());
+}
+

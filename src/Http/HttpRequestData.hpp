@@ -29,7 +29,7 @@ namespace cpv {
 			method = {};
 			url = {};
 			version = {};
-			headers = {};
+			headers.clear();
 			bodyStream = Reusable<InputStreamBase>();
 			underlyingBuffers.clear();
 		}

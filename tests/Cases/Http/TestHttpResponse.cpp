@@ -147,3 +147,37 @@ TEST(TestHttpResponse, headersNotConstructible) {
 	ASSERT_FALSE(std::is_move_assignable_v<cpv::HttpResponseHeaders>);
 }
 
+TEST(TestHttpResponse, headersClear) {
+	cpv::HttpResponse response;
+	auto& headers = response.getHeaders();
+	headers.setDate("TestDate");
+	headers.setContentType("TestContentType");
+	headers.setContentLength("TestContentLength");
+	headers.setContentEncoding("TestContentEncoding");
+	headers.setTransferEncoding("TestTransferEncoding");
+	headers.setConnection("TestConnection");
+	headers.setServer("TestServer");
+	headers.setVary("TestVary");
+	headers.setETag("TestETag");
+	headers.setCacheControl("TestCacheControl");
+	headers.setSetCookie("TestSetCookie");
+	headers.setExpires("TestExpires");
+	headers.setLastModified("TestLastModified");
+	headers.setHeader("Addition", "TestAddition");
+	headers.clear();
+	ASSERT_TRUE(headers.getDate().empty());
+	ASSERT_TRUE(headers.getContentType().empty());
+	ASSERT_TRUE(headers.getContentLength().empty());
+	ASSERT_TRUE(headers.getContentEncoding().empty());
+	ASSERT_TRUE(headers.getTransferEncoding().empty());
+	ASSERT_TRUE(headers.getConnection().empty());
+	ASSERT_TRUE(headers.getServer().empty());
+	ASSERT_TRUE(headers.getVary().empty());
+	ASSERT_TRUE(headers.getETag().empty());
+	ASSERT_TRUE(headers.getCacheControl().empty());
+	ASSERT_TRUE(headers.getSetCookie().empty());
+	ASSERT_TRUE(headers.getExpires().empty());
+	ASSERT_TRUE(headers.getLastModified().empty());
+	ASSERT_TRUE(headers.getHeader("Addition").empty());
+}
+

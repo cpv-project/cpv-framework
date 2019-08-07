@@ -74,6 +74,9 @@ namespace cpv {
 		/** Get maximum count of headers, may greater than actual count */
 		std::size_t maxSize() const;
 		
+		/** Clear headers in this collection  */
+		void clear();
+		
 	private:
 		/** Constructor */
 		HttpRequestHeaders();
