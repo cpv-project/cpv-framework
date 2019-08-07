@@ -2,6 +2,10 @@
 #include "./HttpResponseData.hpp"
 
 namespace cpv {
+	/** The storage of HttpResponseData */
+	template <>
+	thread_local ReusableStorage<HttpResponseData> Reusable<HttpResponseData>::Storage(28232);
+	
 	/** Get the http version string */
 	std::string_view HttpResponse::getVersion() const& {
 		return data_->version;
@@ -63,17 +67,17 @@ namespace cpv {
 	}
 	
 	/** Get response body output stream */
-	const Object<OutputStreamBase>& HttpResponse::getBodyStream() const& {
+	const Reusable<OutputStreamBase>& HttpResponse::getBodyStream() const& {
 		return data_->bodyStream;
 	}
 	
 	/** Set response body output stream */
-	void HttpResponse::setBodyStream(Object<OutputStreamBase>&& bodyStream) {
+	void HttpResponse::setBodyStream(Reusable<OutputStreamBase>&& bodyStream) {
 		data_->bodyStream = std::move(bodyStream);
 	}
 	
 	/** Constructor */
 	HttpResponse::HttpResponse() :
-		data_(makeObject<HttpResponseData>()) { }
+		data_(makeReusable<HttpResponseData>()) { }
 }
 

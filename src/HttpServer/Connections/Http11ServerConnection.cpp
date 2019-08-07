@@ -396,9 +396,9 @@ namespace cpv {
 			processingRequest_ = std::move(entry.request);
 			processingResponse_ = {};
 			processingRequest_.setBodyStream(
-				makeObject<Http11ServerConnectionRequestStream>(this).cast<InputStreamBase>());
+				makeReusable<Http11ServerConnectionRequestStream>(this).cast<InputStreamBase>());
 			processingResponse_.setBodyStream(
-				makeObject<Http11ServerConnectionResponseStream>(this).cast<OutputStreamBase>());
+				makeReusable<Http11ServerConnectionResponseStream>(this).cast<OutputStreamBase>());
 			replyLoopData_ = {};
 			replyLoopData_.requestId = entry.id;
 			replyLoopData_.requestBodyConsumed = !entry.hasBody;

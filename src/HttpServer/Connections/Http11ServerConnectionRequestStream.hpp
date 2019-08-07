@@ -1,7 +1,7 @@
 #pragma once
 #include <seastar/core/future.hh>
 #include <CPVFramework/Stream/InputStreamBase.hpp>
-#include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 
 namespace cpv {
 	/** Declare types */
@@ -16,10 +16,10 @@ namespace cpv {
 		/** Get the total size of stream */
 		std::optional<std::size_t> size() const override;
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void freeResources();
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void reset(Http11ServerConnection* connection);
 		
 		/** Constructor */
@@ -28,12 +28,6 @@ namespace cpv {
 	private:
 		// the lifetime of stream is rely on the connection
 		Http11ServerConnection* connection_;
-	};
-	
-	/** Increase free list size */
-	template <>
-	struct ObjectFreeListSize<Http11ServerConnectionRequestStream> {
-		static const constexpr std::size_t value = 65535;
 	};
 }
 

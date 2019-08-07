@@ -15,12 +15,16 @@ namespace {
 		std::string name() const override { return "ImplSimple"; }
 	};
 
-	class TestImplObject : public TestService {
+	class TestImplReusable : public TestService {
 	public:
-		std::string name() const override { return "ImplObject"; }
+		std::string name() const override { return "ImplReusable"; }
 		static void reset() { }
 		static void freeResources() { }
 	};
+	
+	template <>
+	thread_local cpv::ReusableStorage<TestImplReusable>
+		cpv::Reusable<TestImplReusable>::Storage(100);
 
 	class TestImplCustomName : public TestService {
 	public:
@@ -124,16 +128,16 @@ TEST(TestContainer, addPresistentSharedPtrServiceWithImplType) {
 	ASSERT_EQ(instanceFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addTransientObjectServiceWithImplType) {
+TEST(TestContainer, addTransientReusableServiceWithImplType) {
 	cpv::Container container;
 	container.add<
-		cpv::Object<TestService>,
-		cpv::Object<TestImplObject>>();
-	auto instanceFirst = container.get<cpv::Object<TestService>>();
-	auto instanceSecond = container.get<cpv::Object<TestService>>();
+		cpv::Reusable<TestService>,
+		cpv::Reusable<TestImplReusable>>();
+	auto instanceFirst = container.get<cpv::Reusable<TestService>>();
+	auto instanceSecond = container.get<cpv::Reusable<TestService>>();
 	ASSERT_NE(instanceFirst.get(), instanceSecond.get());
-	ASSERT_EQ(instanceFirst->name(), "ImplObject");
-	ASSERT_EQ(instanceSecond->name(), "ImplObject");
+	ASSERT_EQ(instanceFirst->name(), "ImplReusable");
+	ASSERT_EQ(instanceSecond->name(), "ImplReusable");
 }
 
 TEST(TestContainer, addPresistentServiceWithInstance) {

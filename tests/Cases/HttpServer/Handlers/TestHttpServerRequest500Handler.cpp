@@ -41,7 +41,7 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
 		handlers.emplace_back(std::make_unique<TestHandler>());
 		response.setBodyStream(
-			cpv::makeObject<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 		return handlers.at(0)->handle(request, response, handlers.begin()+1).then(
 			[&response, &str, &logger] {
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_500);

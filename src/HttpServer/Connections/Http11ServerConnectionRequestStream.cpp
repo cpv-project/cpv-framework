@@ -3,6 +3,11 @@
 #include "./Http11ServerConnection.hpp"
 
 namespace cpv {
+	/** The storage of Http11ServerConnectionRequestStream */
+	template <>
+	thread_local ReusableStorage<Http11ServerConnectionRequestStream>
+		Reusable<Http11ServerConnectionRequestStream>::Storage(28232);
+	
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> Http11ServerConnectionRequestStream::read() {
 		if (connection_->replyLoopData_.requestBodyConsumed) {
@@ -32,12 +37,12 @@ namespace cpv {
 		}
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void Http11ServerConnectionRequestStream::freeResources() {
 		connection_ = nullptr;
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void Http11ServerConnectionRequestStream::reset(Http11ServerConnection* connection) {
 		connection_ = connection;
 	}

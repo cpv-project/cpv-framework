@@ -6,38 +6,56 @@
 #include "../Exceptions/LogicException.hpp"
 
 namespace cpv {
-	/** Class used to determinate the free list size of the specified type */
+	/** The storage used to store reusable objects for the specified type */
 	template <class T>
-	struct ObjectFreeListSize {
-		// Up to 32k per type
-		static const constexpr std::size_t value = 32768/sizeof(T);
-	};
+	class ReusableStorage {
+	public:
+		/** Get the free object list */
+		std::vector<std::unique_ptr<T>>& get() { return storage_; }
 
+		/** Constructor */
+		ReusableStorage(std::size_t capacity) : storage_() {
+			storage_.reserve(capacity);
+		}
+
+	private:
+		std::vector<std::unique_ptr<T>> storage_;
+	};
+	
 	/**
-	 * Reuseable unique pointer, back to free list automatically on destruction.
+	 * Reusable unique pointer, back to free list automatically on destruction.
 	 * T should provide two functions:
 	 * - freeResources: called at deallocate
 	 * - reset: called at allocate, with forwarded parameters
-	 * Cast Object<Derived> to Object<Base> is supported (polymorphism is supported).
-	 * Cast Object<Base> to Object<Derived> is also supported (use it carefully).
+	 * And should define the storage in source file as:
+	 * // reuse up to 100 objects for each thread
+	 * template <>
+	 * thread_local ReusableStorage<X> Reusable<X>::Storage(100);
+	 *
+	 * Cast Reusable<Derived> to Reusable<Base> is supported (polymorphism is supported).
+	 * Cast Reusable<Base> to Reusable<Derived> is also supported (use it carefully).
 	 * Incomplete type is supported (however it require the complete definition on construct).
-	 * Warning: Don't keep other Object<> live after freeResources, it may cause segment fault.
+	 *
+	 * Warning: Don't keep other Reusable<> live after freeResources, it may cause segment fault.
 	 * - For example: A in freeList -> A refs B -> deallocate freeList B -> deallocate freeList A
 	 */
 	template <class T>
-	class Object {
+	class Reusable {
 	public:
-		/** Constructor */
-		explicit Object() noexcept :
-			Object(nullptr, [](void*) noexcept {}) { }
+		/** The storage, should define for specified type in somewhere */
+		static thread_local ReusableStorage<T> Storage;
 
 		/** Constructor */
-		explicit Object(std::unique_ptr<T>&& ptr) noexcept :
-			Object(ptr.release(), [](void* ptr) noexcept {
+		explicit Reusable() noexcept :
+			Reusable(nullptr, [](void*) noexcept {}) { }
+
+		/** Constructor */
+		explicit Reusable(std::unique_ptr<T>&& ptr) noexcept :
+			Reusable(ptr.release(), [](void* ptr) noexcept {
 				std::unique_ptr<T> tPtr(reinterpret_cast<T*>(ptr));
 				try {
-					auto& freeList = getFreeList();
-					if (freeList.size() < ObjectFreeListSize<T>::value) {
+					auto& freeList = Storage.get();
+					if (freeList.size() < freeList.capacity()) {
 						tPtr->freeResources();
 						freeList.emplace_back(std::move(tPtr));
 					} else {
@@ -49,13 +67,13 @@ namespace cpv {
 			}) { }
 
 		/** Move constructor */
-		Object(Object&& other) noexcept :
-			Object(other.ptr_, other.deleter_) {
+		Reusable(Reusable&& other) noexcept :
+			Reusable(other.ptr_, other.deleter_) {
 			other.ptr_ = nullptr;
 		}
 
 		/** Move assignment */
-		Object& operator=(Object&& other) noexcept {
+		Reusable& operator=(Reusable&& other) noexcept {
 			if (this != static_cast<void*>(&other)) {
 				void* ptr = ptr_;
 				if (ptr != nullptr) {
@@ -73,26 +91,26 @@ namespace cpv {
 		template <class U, std::enable_if_t<
 			std::is_base_of<T, U>::value ||
 			std::is_base_of<U, T>::value, int> = 0>
-		Object<U> cast() && {
+		Reusable<U> cast() && {
 			if (CPV_UNLIKELY(reinterpret_cast<U*>(ptr_) !=
 				static_cast<U*>(reinterpret_cast<T*>(ptr_)))) {
 				// store the original pointer would solve this problem
-				// but that will make Object to be 3 pointer size
+				// but that will make Reusable to be 3 pointer size
 				throw cpv::LogicException(CPV_CODEINFO,
 					"cast cause pointer address changed, from",
 					typeid(T).name(), "to", typeid(U).name());
 			}
 			void* ptr = ptr_;
 			ptr_ = nullptr;
-			return Object<U>(ptr, deleter_);
+			return Reusable<U>(ptr, deleter_);
 		}
 
 		/** Disallow copy */
-		Object(const Object&) = delete;
-		Object& operator=(const Object&) = delete;
+		Reusable(const Reusable&) = delete;
+		Reusable& operator=(const Reusable&) = delete;
 
 		/** Destructor */
-		~Object() {
+		~Reusable() {
 			void* ptr = ptr_;
 			if (ptr != nullptr) {
 				ptr_ = nullptr;
@@ -119,32 +137,26 @@ namespace cpv {
 		bool operator==(std::nullptr_t) const { return ptr_ == nullptr; }
 		bool operator!=(std::nullptr_t) const { return ptr_ != nullptr; }
 
-		/** Get the thread local storage of objects */
-		static std::vector<std::unique_ptr<T>>& getFreeList() {
-			static thread_local std::vector<std::unique_ptr<T>> freeList;
-			return freeList;
-		}
-
 	private:
 		/** Constructor */
-		Object(void* ptr, void(*deleter)(void*) noexcept) noexcept :
+		Reusable(void* ptr, void(*deleter)(void*) noexcept) noexcept :
 			ptr_(ptr), deleter_(deleter) { }
 
-		template <class> friend class Object;
+		template <class> friend class Reusable;
 		void* ptr_;
 		void(*deleter_)(void*) noexcept;
 	};
 
-	/** Allocate object */
+	/** Allocate reusable object */
 	template <class T, class... Args>
-	Object<T> makeObject(Args&&... args) {
-		auto& freeList = Object<T>::getFreeList();
+	Reusable<T> makeReusable(Args&&... args) {
+		auto& freeList = Reusable<T>::Storage.get();
 		if (freeList.empty()) {
-			Object<T> object(std::make_unique<T>());
+			Reusable<T> object(std::make_unique<T>());
 			object->reset(std::forward<Args>(args)...);
 			return object;
 		} else {
-			Object<T> object(std::move(freeList.back()));
+			Reusable<T> object(std::move(freeList.back()));
 			freeList.pop_back();
 			object->reset(std::forward<Args>(args)...);
 			return object;

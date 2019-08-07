@@ -1,6 +1,12 @@
 #include <CPVFramework/Stream/BufferInputStream.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 
 namespace cpv {
+	/** The storage of BufferInputStream */
+	template <>
+	thread_local ReusableStorage<BufferInputStream>
+		Reusable<BufferInputStream>::Storage(1024);
+	
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> BufferInputStream::read() {
 		if (buf_.size() > 0) {

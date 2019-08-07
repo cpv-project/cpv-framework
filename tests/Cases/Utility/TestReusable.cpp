@@ -1,4 +1,4 @@
-#include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 #include <TestUtility/GTestUtils.hpp>
 #include <seastar/core/shared_ptr.hh>
 
@@ -10,6 +10,9 @@ namespace {
 		void reset() { isReset = true; }
 	};
 
+	template <>
+	thread_local cpv::ReusableStorage<Foo> cpv::Reusable<Foo>::Storage(100);
+
 	struct Base { };
 
 	struct Derived : public Base {
@@ -18,6 +21,9 @@ namespace {
 		void reset(const seastar::shared_ptr<int>& record) { record_ = record; }
 	};
 
+	template <>
+	thread_local cpv::ReusableStorage<Derived> cpv::Reusable<Derived>::Storage(100);
+
 	struct A { int a; };
 	struct B { int b; };
 	struct C : A, B {
@@ -25,11 +31,14 @@ namespace {
 		static void freeResources() { }
 		static void reset() { }
 	};
+
+	template <>
+	thread_local cpv::ReusableStorage<C> cpv::Reusable<C>::Storage(100);
 }
 
-TEST(TestObject, Simple) {
+TEST(TestReusable, Simple) {
 	for (std::size_t i = 0; i < 3; ++i) {
-		auto foo = cpv::makeObject<Foo>();
+		auto foo = cpv::makeReusable<Foo>();
 		ASSERT_TRUE(foo.get());
 		ASSERT_TRUE(foo->isFree);
 		ASSERT_TRUE(foo->isReset);
@@ -38,45 +47,45 @@ TEST(TestObject, Simple) {
 	}
 }
 
-TEST(TestObject, UpCasting) {
+TEST(TestReusable, UpCasting) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
-			auto base = cpv::makeObject<Derived>(record).cast<Base>();
+			auto base = cpv::makeReusable<Derived>(record).cast<Base>();
 		}
 		ASSERT_EQ(*record, i+1);
 	}
 }
 
-TEST(TestObject, DownCasting) {
+TEST(TestReusable, DownCasting) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
-			auto base = cpv::makeObject<Derived>(record).cast<Base>();
+			auto base = cpv::makeReusable<Derived>(record).cast<Base>();
 			auto derived = std::move(base).cast<Derived>();
 		}
 		ASSERT_EQ(*record, i+1);
 	}
 }
 
-TEST(TestObject, InvalidCasting) {
-	cpv::makeObject<C>().cast<A>();
+TEST(TestReusable, InvalidCasting) {
+	cpv::makeReusable<C>().cast<A>();
 	ASSERT_THROWS_CONTAINS(
 		cpv::LogicException,
-		cpv::makeObject<C>().cast<B>(),
+		cpv::makeReusable<C>().cast<B>(),
 		"cast cause pointer address changed");
 }
 
-TEST(TestObject, moveAssignment) {
+TEST(TestReusable, moveAssignment) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
 		{
-			auto a = cpv::makeObject<Derived>(record);
-			auto b = cpv::Object<Derived>(nullptr).cast<Base>();
-			cpv::Object<Derived> c(nullptr);
+			auto a = cpv::makeReusable<Derived>(record);
+			auto b = cpv::Reusable<Derived>(nullptr).cast<Base>();
+			cpv::Reusable<Derived> c(nullptr);
 			b = std::move(a).cast<Base>();
 			b = std::move(b);
 			c = std::move(b).cast<Derived>();

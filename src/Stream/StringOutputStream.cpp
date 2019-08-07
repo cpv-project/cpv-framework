@@ -1,7 +1,13 @@
 #include <CPVFramework/Stream/StringOutputStream.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 #include <CPVFramework/Utility/Macros.hpp>
 
 namespace cpv {
+	/** The storage of StringOutputStream */
+	template <>
+	thread_local ReusableStorage<StringOutputStream>
+		Reusable<StringOutputStream>::Storage(1024);
+	
 	/** Write data to stream */
 	seastar::future<> StringOutputStream::write(seastar::net::packet&& data) {
 		if (CPV_LIKELY(str_.get() != nullptr && static_cast<bool>(data))) {

@@ -13,7 +13,7 @@ TEST_FUTURE(HttpServerRequest404Handler, handle) {
 		[] (auto& handlers, auto& request, auto& response, auto& str) {
 		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
 		response.setBodyStream(
-			cpv::makeObject<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 		return handlers.at(0)->handle(request, response, handlers.end()).then([&response, &str] {
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_404);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::NotFound);

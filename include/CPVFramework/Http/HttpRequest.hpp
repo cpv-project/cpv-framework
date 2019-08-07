@@ -4,7 +4,7 @@
 #include <seastar/core/temporary_buffer.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Stream/InputStreamBase.hpp"
-#include "../Utility/Object.hpp"
+#include "../Utility/Reusable.hpp"
 #include "../Utility/BufferUtils.hpp"
 #include "./HttpRequestHeaders.hpp"
 
@@ -57,16 +57,16 @@ namespace cpv {
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
 		/** Get request body input stream, must check whether is null before access */
-		const Object<InputStreamBase>& getBodyStream() const&;
+		const Reusable<InputStreamBase>& getBodyStream() const&;
 		
 		/** Set request body input stream */
-		void setBodyStream(Object<InputStreamBase>&& bodyStream);
+		void setBodyStream(Reusable<InputStreamBase>&& bodyStream);
 		
 		/** Constructor */
 		HttpRequest();
 
 	private:
-		Object<HttpRequestData> data_;
+		Reusable<HttpRequestData> data_;
 	};
 	
 	/** Set request header to integer value */

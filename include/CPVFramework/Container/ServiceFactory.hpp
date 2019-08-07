@@ -4,7 +4,7 @@
 #include <memory>
 #include <seastar/core/shared_ptr.hh>
 #include "../Exceptions/ContainerException.hpp"
-#include "../Utility/Object.hpp"
+#include "../Utility/Reusable.hpp"
 #include "./ServiceTraits.hpp"
 #include "./ServiceDescriptorBase.hpp"
 #include "./ServiceFactoryBase.hpp"
@@ -165,12 +165,12 @@ namespace cpv {
 		typename Extensions::ArrayType dependencyDescriptors_;
 	};
 	
-	/** Object version of ServiceDependencyInjectionFactory */
+	/** Reusable version of ServiceDependencyInjectionFactory */
 	template <class TService, class TImplementation>
 	class ServiceDependencyInjectionFactory<
-		Object<TService>,
-		Object<TImplementation>> :
-		public ServiceFactoryBase<Object<TService>> {
+		Reusable<TService>,
+		Reusable<TImplementation>> :
+		public ServiceFactoryBase<Reusable<TService>> {
 	public:
 		static_assert(std::is_base_of_v<TService, TImplementation>);
 		using DependencyTrait = ServiceDependencyTrait<TImplementation>;
@@ -178,7 +178,7 @@ namespace cpv {
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
 		
 		/** Create an instance of service */
-		virtual Object<TService> operator()(
+		virtual Reusable<TService> operator()(
 			const Container& container, ServiceStorage& storage) const {
 			return getServiceInstance<Container>(container, storage, Extensions::IndexSequence);
 		}
@@ -190,11 +190,11 @@ namespace cpv {
 	private:
 		/** Get instance of service */
 		template <class ContainerType, std::size_t... I>
-		Object<TService> getServiceInstance(
+		Reusable<TService> getServiceInstance(
 			const ContainerType& container,
 			ServiceStorage& storage,
 			std::index_sequence<I...>) const {
-			return makeObject<TImplementation>(Extensions::template
+			return makeReusable<TImplementation>(Extensions::template
 				getDependencyInstance<typename Extensions::template DependencyType<I>>(
 				container, storage, dependencyDescriptors_[I])...).template cast<TService>();
 		}

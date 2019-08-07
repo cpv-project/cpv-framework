@@ -1,7 +1,7 @@
 #include <seastar/core/future-util.hh>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
-#include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 #include <TestUtility/GTestUtils.hpp>
 
 TEST_FUTURE(TestOutputStreamExtensions, writeAll) {
@@ -19,8 +19,8 @@ TEST_FUTURE(TestOutputStreamExtensions, writeAll) {
 TEST_FUTURE(TestOutputStreamExtensions, writeAll_ptr) {
 	auto target = seastar::make_lw_shared<std::string>();
 	return seastar::do_with(
-		cpv::makeObject<cpv::StringOutputStream>(target).cast<cpv::OutputStreamBase>(),
-		cpv::Object<cpv::OutputStreamBase>(),
+		cpv::makeReusable<cpv::StringOutputStream>(target).cast<cpv::OutputStreamBase>(),
+		cpv::Reusable<cpv::OutputStreamBase>(),
 		target,
 		[] (auto& stream, auto& nullStream, auto& target) {
 		return cpv::extensions::writeAll(stream, std::string("test data")).then([&target] {
@@ -48,8 +48,8 @@ TEST_FUTURE(TestOutputStreamExtensions, writeAll_view_cstr) {
 TEST_FUTURE(TestOutputStreamExtensions, writeAll_view_cstr_ptr) {
 	auto target = seastar::make_lw_shared<std::string>();
 	return seastar::do_with(
-		cpv::makeObject<cpv::StringOutputStream>(target).cast<cpv::OutputStreamBase>(),
-		cpv::Object<cpv::OutputStreamBase>(),
+		cpv::makeReusable<cpv::StringOutputStream>(target).cast<cpv::OutputStreamBase>(),
+		cpv::Reusable<cpv::OutputStreamBase>(),
 		target,
 		[] (auto& stream, auto& nullStream, auto& target) {
 		return cpv::extensions::writeAll(stream, "test data").then([&target] {

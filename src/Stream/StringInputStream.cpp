@@ -1,6 +1,12 @@
 #include <CPVFramework/Stream/StringInputStream.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 
 namespace cpv {
+	/** The storage of StringInputStream */
+	template <>
+	thread_local ReusableStorage<StringInputStream>
+		Reusable<StringInputStream>::Storage(1024);
+	
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> StringInputStream::read() {
 		if (isEnd_) {

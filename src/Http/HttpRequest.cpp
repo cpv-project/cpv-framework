@@ -2,6 +2,10 @@
 #include "./HttpRequestData.hpp"
 
 namespace cpv {
+	/** The storage of HttpRequestData */
+	template <>
+	thread_local ReusableStorage<HttpRequestData> Reusable<HttpRequestData>::Storage(28232);
+	
 	/** Get the request method */
 	std::string_view HttpRequest::getMethod() const& {
 		return data_->method;
@@ -63,17 +67,17 @@ namespace cpv {
 	}
 	
 	/** Get request body input stream */
-	const Object<InputStreamBase>& HttpRequest::getBodyStream() const& {
+	const Reusable<InputStreamBase>& HttpRequest::getBodyStream() const& {
 		return data_->bodyStream;
 	}
 	
 	/** Set request body input stream */
-	void HttpRequest::setBodyStream(Object<InputStreamBase>&& bodyStream) {
+	void HttpRequest::setBodyStream(Reusable<InputStreamBase>&& bodyStream) {
 		data_->bodyStream = std::move(bodyStream);
 	}
 	
 	/** Constructor */
 	HttpRequest::HttpRequest() :
-		data_(makeObject<HttpRequestData>()) { }
+		data_(makeReusable<HttpRequestData>()) { }
 }
 

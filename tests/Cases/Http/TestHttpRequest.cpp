@@ -16,7 +16,7 @@ TEST_FUTURE(TestHttpRequest, basic) {
 	request.addUnderlyingBuffer(std::move(buf));
 	request.setHeader(key, value);
 	request.setBodyStream(
-		cpv::makeObject<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>());
+		cpv::makeReusable<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>());
 	return seastar::do_with(std::move(request), [] (auto& request) {
 		return cpv::extensions::readAll(request.getBodyStream()).then([&request] (auto&& str) {
 			ASSERT_EQ(request.getMethod(), "GET");

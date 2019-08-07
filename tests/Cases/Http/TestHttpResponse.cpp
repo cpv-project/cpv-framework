@@ -15,7 +15,7 @@ TEST_FUTURE(TestHttpResponse, all) {
 	response.addUnderlyingBuffer(std::move(buf));
 	response.setHeader(key, value);
 	auto str = seastar::make_lw_shared<std::string>();
-	response.setBodyStream(cpv::makeObject<cpv::StringOutputStream>(str).cast<cpv::OutputStreamBase>());
+	response.setBodyStream(cpv::makeReusable<cpv::StringOutputStream>(str).cast<cpv::OutputStreamBase>());
 	return seastar::do_with(std::move(response), std::move(str),
 		[] (auto& response, auto& str) {
 		return cpv::extensions::writeAll(response.getBodyStream(), "test body").then([&response, &str] {

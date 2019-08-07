@@ -3,6 +3,11 @@
 #include "./Http11ServerConnection.hpp"
 
 namespace cpv {
+	/** The storage of Http11ServerConnectionRequestStream */
+	template <>
+	thread_local ReusableStorage<Http11ServerConnectionResponseStream>
+		Reusable<Http11ServerConnectionResponseStream>::Storage(28232);
+	
 	/** Write data to stream */
 	seastar::future<> Http11ServerConnectionResponseStream::write(seastar::net::packet&& data) {
 		// reset detect timeout flag
@@ -26,12 +31,12 @@ namespace cpv {
 		}
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void Http11ServerConnectionResponseStream::freeResources() {
 		connection_ = nullptr;
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void Http11ServerConnectionResponseStream::reset(Http11ServerConnection* connection) {
 		connection_ = connection;
 	}

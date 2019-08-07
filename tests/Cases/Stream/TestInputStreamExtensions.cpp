@@ -1,7 +1,7 @@
 #include <seastar/core/future-util.hh>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Stream/StringInputStream.hpp>
-#include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 #include <TestUtility/GTestUtils.hpp>
 
 TEST_FUTURE(TestInputStreamExtensions, readAll) {
@@ -21,8 +21,8 @@ TEST_FUTURE(TestInputStreamExtensions, readAll) {
 
 TEST_FUTURE(TestInputStreamExtensions, readAll_ptr) {
 	return seastar::do_with(
-		cpv::makeObject<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>(),
-		cpv::Object<cpv::InputStreamBase>(),
+		cpv::makeReusable<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>(),
+		cpv::Reusable<cpv::InputStreamBase>(),
 		[] (auto& stream, auto& nullStream) {
 		return cpv::extensions::readAll(stream).then([] (auto&& str) {
 			ASSERT_EQ(str, "test body");

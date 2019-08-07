@@ -4,7 +4,7 @@
 #include <vector>
 #include <seastar/core/temporary_buffer.hh>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
-#include <CPVFramework/Utility/Object.hpp>
+#include <CPVFramework/Utility/Reusable.hpp>
 #include <CPVFramework/Http/HttpResponse.hpp>
 
 namespace cpv {
@@ -16,7 +16,7 @@ namespace cpv {
 		std::string_view statusCode;
 		std::string_view statusMessage;
 		HttpResponseHeaders headers;
-		Object<OutputStreamBase> bodyStream;
+		Reusable<OutputStreamBase> bodyStream;
 		
 		HttpResponseData() :
 			underlyingBuffers(),
@@ -31,17 +31,11 @@ namespace cpv {
 			statusCode = {};
 			statusMessage = {};
 			headers = {};
-			bodyStream = Object<OutputStreamBase>();
+			bodyStream = Reusable<OutputStreamBase>();
 			underlyingBuffers.clear();
 		}
 		
 		static void reset() { }
-	};
-	
-	/** Increase free list size */
-	template <>
-	struct ObjectFreeListSize<HttpResponseData> {
-		static const constexpr std::size_t value = 65535;
 	};
 }
 
