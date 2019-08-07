@@ -4,7 +4,8 @@
 namespace cpv {
 	/** The storage of HttpResponseData */
 	template <>
-	thread_local ReusableStorage<HttpResponseData> Reusable<HttpResponseData>::Storage(28232);
+	thread_local ReusableStorageType<HttpResponseData>
+		ReusableStorageInstance<HttpResponseData>;
 	
 	/** Get the http version string */
 	std::string_view HttpResponse::getVersion() const& {

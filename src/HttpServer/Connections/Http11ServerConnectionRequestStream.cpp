@@ -5,8 +5,8 @@
 namespace cpv {
 	/** The storage of Http11ServerConnectionRequestStream */
 	template <>
-	thread_local ReusableStorage<Http11ServerConnectionRequestStream>
-		Reusable<Http11ServerConnectionRequestStream>::Storage(28232);
+	thread_local ReusableStorageType<Http11ServerConnectionRequestStream>
+		ReusableStorageInstance<Http11ServerConnectionRequestStream>;
 	
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> Http11ServerConnectionRequestStream::read() {

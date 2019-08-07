@@ -13,9 +13,6 @@
 #include <CPVFramework/Utility/ConstantStrings.hpp>
 #include <CPVFramework/Utility/PacketUtils.hpp>
 
-#include <CPVFramework/Utility/Object.hpp>
-#include <CPVFramework/Stream/StringInputStream.hpp>
-
 namespace {
 	std::atomic_bool StopFlag(false);
 	
@@ -80,13 +77,6 @@ namespace {
 }
 
 int main(int argc, char** argv) {
-	/*volatile void* p;
-	for (std::size_t x = 0; x < 100000000; ++x) {
-		auto a = cpv::makeObject<cpv::StringInputStream>("");
-		p = a.get();
-	}
-	return 0;*/
-
 	seastar::app_template app;
 	app.run(argc, argv, [] {
 		seastar::engine().at_exit([] {

@@ -1,4 +1,5 @@
 #include <array>
+#include <optional>
 #include <CPVFramework/Utility/DateUtils.hpp>
 #include <CPVFramework/Exceptions/LengthException.hpp>
 
@@ -21,14 +22,9 @@ namespace cpv {
 	
 	/** Format time for http header, returns a thread local static string */
 	std::string_view formatTimeForHttpHeader(::time_t time) {
-		static thread_local ::time_t previousTime = 0;
-		static thread_local std::array<char, TimeLengthForHttpHeader+1> buf(([] {
-			// avoid empty result if the first call pass 0 as time
-			std::array<char, TimeLengthForHttpHeader+1> buf;
-			formatTimeForHttpHeader(0, buf.data(), buf.size());
-			return buf;
-		})());
-		if (CPV_UNLIKELY(time != previousTime)) {
+		static thread_local std::optional<::time_t> previousTime;
+		static thread_local std::array<char, TimeLengthForHttpHeader+1> buf;
+		if (CPV_UNLIKELY(!previousTime.has_value() || time != previousTime.value())) {
 			previousTime = time;
 			formatTimeForHttpHeader(time, buf.data(), buf.size());
 		}

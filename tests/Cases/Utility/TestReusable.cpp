@@ -10,9 +10,6 @@ namespace {
 		void reset() { isReset = true; }
 	};
 
-	template <>
-	thread_local cpv::ReusableStorage<Foo> cpv::Reusable<Foo>::Storage(100);
-
 	struct Base { };
 
 	struct Derived : public Base {
@@ -21,9 +18,6 @@ namespace {
 		void reset(const seastar::shared_ptr<int>& record) { record_ = record; }
 	};
 
-	template <>
-	thread_local cpv::ReusableStorage<Derived> cpv::Reusable<Derived>::Storage(100);
-
 	struct A { int a; };
 	struct B { int b; };
 	struct C : A, B {
@@ -31,10 +25,16 @@ namespace {
 		static void freeResources() { }
 		static void reset() { }
 	};
-
-	template <>
-	thread_local cpv::ReusableStorage<C> cpv::Reusable<C>::Storage(100);
 }
+
+template <>
+thread_local cpv::ReusableStorageType<Foo> cpv::ReusableStorageInstance<Foo>;
+
+template <>
+thread_local cpv::ReusableStorageType<Derived> cpv::ReusableStorageInstance<Derived>;
+
+template <>
+thread_local cpv::ReusableStorageType<C> cpv::ReusableStorageInstance<C>;
 
 TEST(TestReusable, Simple) {
 	for (std::size_t i = 0; i < 3; ++i) {

@@ -5,8 +5,8 @@
 namespace cpv {
 	/** The storage of StringOutputStream */
 	template <>
-	thread_local ReusableStorage<StringOutputStream>
-		Reusable<StringOutputStream>::Storage(1024);
+	thread_local ReusableStorageType<StringOutputStream>
+		ReusableStorageInstance<StringOutputStream>;
 	
 	/** Write data to stream */
 	seastar::future<> StringOutputStream::write(seastar::net::packet&& data) {

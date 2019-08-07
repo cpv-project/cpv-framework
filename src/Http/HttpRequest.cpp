@@ -4,7 +4,8 @@
 namespace cpv {
 	/** The storage of HttpRequestData */
 	template <>
-	thread_local ReusableStorage<HttpRequestData> Reusable<HttpRequestData>::Storage(28232);
+	thread_local ReusableStorageType<HttpRequestData>
+		ReusableStorageInstance<HttpRequestData>;
 	
 	/** Get the request method */
 	std::string_view HttpRequest::getMethod() const& {

@@ -21,10 +21,6 @@ namespace {
 		static void reset() { }
 		static void freeResources() { }
 	};
-	
-	template <>
-	thread_local cpv::ReusableStorage<TestImplReusable>
-		cpv::Reusable<TestImplReusable>::Storage(100);
 
 	class TestImplCustomName : public TestService {
 	public:
@@ -53,6 +49,10 @@ namespace {
 		std::vector<std::unique_ptr<int>> c_;
 	};
 }
+
+template <>
+thread_local cpv::ReusableStorageType<TestImplReusable>
+	cpv::ReusableStorageInstance<TestImplReusable>;
 
 TEST(TestContainer, addTransientServiceWithImplType) {
 	cpv::Container container;

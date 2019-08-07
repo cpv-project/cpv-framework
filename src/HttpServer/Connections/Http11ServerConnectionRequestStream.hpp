@@ -29,5 +29,10 @@ namespace cpv {
 		// the lifetime of stream is rely on the connection
 		Http11ServerConnection* connection_;
 	};
+	
+	/** Increase free list size */
+	template <>
+	const constexpr std::size_t ReusableStorageCapacity<
+		Http11ServerConnectionRequestStream> = 28232;
 }
 

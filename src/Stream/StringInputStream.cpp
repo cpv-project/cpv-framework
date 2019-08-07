@@ -4,8 +4,8 @@
 namespace cpv {
 	/** The storage of StringInputStream */
 	template <>
-	thread_local ReusableStorage<StringInputStream>
-		Reusable<StringInputStream>::Storage(1024);
+	thread_local ReusableStorageType<StringInputStream>
+		ReusableStorageInstance<StringInputStream>;
 	
 	/** Read data from stream */
 	seastar::future<InputStreamReadResult> StringInputStream::read() {

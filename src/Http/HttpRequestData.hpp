@@ -36,5 +36,9 @@ namespace cpv {
 		
 		static void reset() { }
 	};
+
+	/** Increase free list size */
+	template <>
+	const constexpr std::size_t ReusableStorageCapacity<HttpRequestData> = 28232;
 }
 

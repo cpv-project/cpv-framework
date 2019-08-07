@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <array>
 #include <memory>
 #include <type_traits>
 #include <seastar/util/log.hh>
@@ -7,30 +7,35 @@
 
 namespace cpv {
 	/** The storage used to store reusable objects for the specified type */
-	template <class T>
-	class ReusableStorage {
-	public:
-		/** Get the free object list */
-		std::vector<std::unique_ptr<T>>& get() { return storage_; }
-
-		/** Constructor */
-		ReusableStorage(std::size_t capacity) : storage_() {
-			storage_.reserve(capacity);
-		}
-
-	private:
-		std::vector<std::unique_ptr<T>> storage_;
+	template <class T, std::size_t Capacity_>
+	struct ReusableStorage {
+		// Notice: constructor is omitted to make compiler not generate tls init function
+		// don't dynamic allocate this type
+		static const constexpr std::size_t Capacity = Capacity_;
+		std::array<std::unique_ptr<T>, Capacity> freeList;
+		std::size_t size;
 	};
-	
+
+	/** The storage capacity for the specified type, by default is 32kb / size */
+	template <class T>
+	static const constexpr std::size_t ReusableStorageCapacity = 32768 / sizeof(T);
+
+	/** The storage type for the specified type */
+	template <class T>
+	using ReusableStorageType = ReusableStorage<T, ReusableStorageCapacity<T>>;
+
+	/** The storage instance for the specified type */
+	template <class T>
+	extern thread_local ReusableStorageType<T> ReusableStorageInstance;
+
 	/**
 	 * Reusable unique pointer, back to free list automatically on destruction.
 	 * T should provide two functions:
 	 * - freeResources: called at deallocate
 	 * - reset: called at allocate, with forwarded parameters
 	 * And should define the storage in source file as:
-	 * // reuse up to 100 objects for each thread
 	 * template <>
-	 * thread_local ReusableStorage<X> Reusable<X>::Storage(100);
+	 * thread_local ReusableStorageType<X> ReusableStorageInstance<X>;
 	 *
 	 * Cast Reusable<Derived> to Reusable<Base> is supported (polymorphism is supported).
 	 * Cast Reusable<Base> to Reusable<Derived> is also supported (use it carefully).
@@ -42,9 +47,6 @@ namespace cpv {
 	template <class T>
 	class Reusable {
 	public:
-		/** The storage, should define for specified type in somewhere */
-		static thread_local ReusableStorage<T> Storage;
-
 		/** Constructor */
 		explicit Reusable() noexcept :
 			Reusable(nullptr, [](void*) noexcept {}) { }
@@ -54,10 +56,12 @@ namespace cpv {
 			Reusable(ptr.release(), [](void* ptr) noexcept {
 				std::unique_ptr<T> tPtr(reinterpret_cast<T*>(ptr));
 				try {
-					auto& freeList = Storage.get();
-					if (freeList.size() < freeList.capacity()) {
+					auto& storage = ReusableStorageInstance<T>;
+					std::size_t size = storage.size;
+					if (size < ReusableStorageType<T>::Capacity) {
 						tPtr->freeResources();
-						freeList.emplace_back(std::move(tPtr));
+						storage.freeList[size] = std::move(tPtr);
+						storage.size = size + 1;
 					} else {
 						tPtr.reset(); // call the derived destructor
 					}
@@ -150,14 +154,15 @@ namespace cpv {
 	/** Allocate reusable object */
 	template <class T, class... Args>
 	Reusable<T> makeReusable(Args&&... args) {
-		auto& freeList = Reusable<T>::Storage.get();
-		if (freeList.empty()) {
+		auto& storage = ReusableStorageInstance<T>;
+		std::size_t size = storage.size;
+		if (size == 0) {
 			Reusable<T> object(std::make_unique<T>());
 			object->reset(std::forward<Args>(args)...);
 			return object;
 		} else {
-			Reusable<T> object(std::move(freeList.back()));
-			freeList.pop_back();
+			Reusable<T> object(std::move(storage.freeList[--size]));
+			storage.size = size;
 			object->reset(std::forward<Args>(args)...);
 			return object;
 		}
