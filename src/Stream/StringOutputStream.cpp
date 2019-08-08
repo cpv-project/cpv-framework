@@ -19,12 +19,12 @@ namespace cpv {
 		return seastar::make_ready_future<>();
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void StringOutputStream::freeResources() {
 		str_ = {};
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void StringOutputStream::reset(const seastar::lw_shared_ptr<std::string>& str) {
 		str_ = str;
 	}

@@ -22,13 +22,13 @@ namespace cpv {
 		return size_;
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	// cppcheck-suppress unusedFunction
 	void BufferInputStream::freeResources() {
 		buf_ = {};
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void BufferInputStream::reset(seastar::temporary_buffer<char>&& buf) {
 		buf_ = std::move(buf);
 		size_ = buf_.size();

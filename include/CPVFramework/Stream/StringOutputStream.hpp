@@ -9,10 +9,10 @@ namespace cpv {
 		/** Write data to stream */
 		seastar::future<> write(seastar::net::packet&& data) override;
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void freeResources();
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void reset(const seastar::lw_shared_ptr<std::string>& str);
 		
 		/** Constructor */

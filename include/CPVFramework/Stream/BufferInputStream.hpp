@@ -12,10 +12,10 @@ namespace cpv {
 		/** Get the total size of stream */
 		std::optional<std::size_t> size() const override;
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void freeResources();
 		
-		/** For Object<> */
+		/** For Reusable<> */
 		void reset(seastar::temporary_buffer<char>&& buf);
 		
 		/** Constructor */

@@ -25,12 +25,12 @@ namespace cpv {
 		return str_.size();
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void StringInputStream::freeResources() {
 		str_.resize(0);
 	}
 	
-	/** For Object<> */
+	/** For Reusable<> */
 	void StringInputStream::reset(std::string&& str) {
 		str_ = std::move(str);
 		isEnd_ = false;
