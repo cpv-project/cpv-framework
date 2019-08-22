@@ -48,18 +48,17 @@ namespace cpv {
 			data_->listenerStoppedFutures.emplace_back(seastar::keep_doing(
 				[listener, connectionsWrapper=data_->connectionsWrapper, sharedData=data_->sharedData] {
 				return listener->first.accept().then(
-					[connectionsWrapper, sharedData]
-					(seastar::connected_socket fd, seastar::socket_address addr) { // TODO <- change to tuple
+					[connectionsWrapper, sharedData] (seastar::accept_result ar) {
 					// currently only support http 1.0/1.1
+					sharedData->logger->log(LogLevel::Info,
+						"accepted http connection from:", ar.remote_address,
+						", connections count:", connectionsWrapper->value.size() + 1);
 					auto connection = seastar::make_shared<Http11ServerConnection>(
-						sharedData, std::move(fd), std::move(addr));
+						sharedData, std::move(ar.connection), std::move(ar.remote_address));
 					connection->start();
 					connectionsWrapper->value.emplace(std::move(connection));
 					sharedData->metricData.total_connections += 1;
 					sharedData->metricData.current_connections = connectionsWrapper->value.size();
-					sharedData->logger->log(LogLevel::Info,
-						"accepted http connection from:", addr,
-						", connections count:", connectionsWrapper->value.size());
 				});
 			}).handle_exception([listener, sharedData=data_->sharedData] (std::exception_ptr ex) {
 				sharedData->logger->log(LogLevel::Notice,
