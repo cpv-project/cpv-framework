@@ -5,6 +5,8 @@
 #include <iostream>
 #include <seastar/core/temporary_buffer.hh>
 #include <seastar/net/packet.hh>
+#include "./BufferUtils.hpp"
+#include "./ConstantStrings.hpp"
 #include "./Reusable.hpp"
 
 namespace cpv {
@@ -49,6 +51,19 @@ namespace cpv {
 				fragment(fragmentVal), deleter() { }
 			SingleFragment(const seastar::net::fragment& fragmentVal, seastar::deleter&& deleterVal) :
 				fragment(fragmentVal), deleter(std::move(deleterVal)) { }
+
+			SingleFragment(const SingleFragment&) = default;
+			SingleFragment(SingleFragment&& other) :
+				fragment(other.fragment), deleter(std::move(other.deleter)) {
+				other.fragment.size = 0;
+			}
+			SingleFragment& operator=(const SingleFragment&) = default;
+			SingleFragment& operator=(SingleFragment&& other) {
+				fragment = other.fragment;
+				deleter = std::move(other.deleter);
+				other.fragment.size = 0;
+				return *this;
+			}
 		};
 
 		/** Multiple fragments with deleter, deleter can be chained, also this class is reusable */
@@ -103,12 +118,6 @@ namespace cpv {
 		}
 
 		/** Append static string to packet */
-		template <std::size_t Size>
-		Packet& append(const char(*str)[Size]) {
-			return append(std::string_view(str, Size));
-		}
-
-		/** Append static string to packet */
 		Packet& append(const std::string_view& str) &;
 
 		/** Append dynamic string and it's deleter to packet */
@@ -120,6 +129,10 @@ namespace cpv {
 		/** Append other packet to this packet */
 		Packet& append(Packet&& other) &;
 
+		/** Append string representation of integer value to this packet */
+		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+		Packet& append(T value) &;
+
 		/** Get total size in bytes for this packet, notice it's dynamically calculated  */
 		std::size_t size() const;
 
@@ -128,11 +141,6 @@ namespace cpv {
 
 		/** Constructor */
 		Packet() : data_(SingleFragment()) { }
-
-		/** Append static string to packet */
-		template <std::size_t Size>
-		Packet(const char(*str)[Size]) :
-			data_(SingleFragment(toFragment(std::string_view(str, Size)))) { }
 
 		/** Constructor with static string */
 		Packet(const std::string_view& str) :
@@ -164,5 +172,16 @@ namespace cpv {
 	/** Increase free list size */
 	template <>
 	const constexpr std::size_t ReusableStorageCapacity<Packet::MultipleFragments> = 28232;
+
+	/** Append string representation of integer value to this packet */
+	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+	Packet& Packet::append(T value) & {
+		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
+			// optimize for small integer values
+			return append(constants::Integers[value]);
+		} else {
+			return append(convertIntToBuffer(value));
+		}
+	}
 }
 

@@ -103,8 +103,12 @@ namespace cpv {
 					thisFragments->deleter = std::move(thisPtr->deleter);
 					thisFragments->deleter.append(std::move(otherPtr->deleter));
 					data_ = std::move(thisFragments);
+					otherPtr->fragment.size = 0;
 				}
 			}
+		} else {
+			// replace valueless
+			data_ = std::move(other.data_);
 		}
 		return *this;
 	}

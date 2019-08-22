@@ -73,6 +73,7 @@ namespace cpv {
 	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
 	void HttpRequest::setHeader(const std::string_view& key, T value) {
 		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
+			// optimize for small integer values
 			setHeader(key, constants::Integers[value]);
 		} else {
 			auto buf = convertIntToBuffer(value);
