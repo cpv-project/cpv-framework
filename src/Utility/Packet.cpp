@@ -6,6 +6,23 @@ namespace cpv {
 	thread_local ReusableStorageType<Packet::MultipleFragments>
 		ReusableStorageInstance<Packet::MultipleFragments>;
 
+	/** Get MultipleFragments, or convert to MultipleFragments if it's not */
+	Packet::MultipleFragments* Packet::getOrConvertToMultiple() & {
+		if (auto ptr = getIfMultiple()) {
+			return ptr;
+		}
+		auto multipleFragments = makeReusable<Packet::MultipleFragments>();
+		if (auto ptr = getIfSingle()) {
+			if (ptr->fragment.size != 0) {
+				multipleFragments->fragments.emplace_back(ptr->fragment);
+				multipleFragments->deleter = std::move(ptr->deleter);
+			}
+		}
+		auto multiplePtr = multipleFragments.get();
+		data_ = std::move(multipleFragments);
+		return multiplePtr;
+	}
+
 	/** Append static string to packet */
 	Packet& Packet::append(const std::string_view& str) & {
 		if (auto ptr = getIfMultiple()) {
@@ -123,6 +140,16 @@ namespace cpv {
 			return size;
 		} else if (auto ptr = getIfSingle()) {
 			return ptr->fragment.size;
+		}
+		return 0;
+	}
+
+	/** Get the numnber of segments, may return 0 if empty */
+	std::size_t Packet::segments() const {
+		if (auto ptr = getIfMultiple()) {
+			return ptr->fragments.size();
+		} else if (auto ptr = getIfSingle()) {
+			return ptr->fragment.size ? 1 : 0;
 		}
 		return 0;
 	}

@@ -10,11 +10,10 @@ TEST_FUTURE(TestStringOutputStream, all) {
 		seastar::make_lw_shared<std::string>("test "),
 		[] (auto& stream, auto& str) {
 		stream.reset(str);
-		return stream.write(seastar::net::packet::from_static_data("first ", 6)).then([&stream] {
-			seastar::scattered_message<char> msg;
-			msg.append_static("second ");
-			msg.append_static("third");
-			return stream.write(std::move(msg).release());
+		return stream.write(cpv::Packet("first ")).then([&stream] {
+			cpv::Packet p;
+			p.append("second ").append(seastar::temporary_buffer<char>("third", 5));
+			return stream.write(std::move(p));
 		}).then([&str] {
 			ASSERT_EQ(*str, "test first second third");
 		});

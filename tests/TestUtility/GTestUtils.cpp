@@ -5,7 +5,6 @@
 #include <seastar/core/sleep.hh>
 #include <seastar/core/thread.hh>
 #include <seastar/net/inet_address.hh>
-#include <CPVFramework/Utility/PacketUtils.hpp>
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include "./GTestUtils.hpp"
 
@@ -29,13 +28,13 @@ namespace cpv::gtest {
 	
 	/** create tcp connection, send request then return received response as string */
 	seastar::future<std::string> tcpSendRequest(
-		const std::string& ip, std::size_t port, seastar::net::packet p) {
+		const std::string& ip, std::size_t port, Packet&& p) {
 		seastar::socket_address addr(seastar::ipv4_addr(seastar::net::inet_address(ip), port));
 		return seastar::engine().net().connect(addr).then([p=std::move(p)] (auto connection) mutable {
 			return seastar::do_with(
 				cpv::SocketHolder(std::move(connection)), std::move(p), std::string(),
 				[] (auto& s, auto& p, auto& str) {
-					return s.out().put(std::move(p)).then([&s, &str] {
+					return (s.out() << std::move(p)).then([&s, &str] {
 						return seastar::repeat([&s, &str] {
 							return s.in().read().then([&str] (auto buf) {
 								if (buf.size() > 0) {
@@ -73,9 +72,8 @@ namespace cpv::gtest {
 					return seastar::repeat([&s, &parts, &interval, &index] {
 						if (index < parts.size()) {
 							using namespace cpv;
-							seastar::net::packet p;
-							p << parts[index++];
-							return s.out().put(std::move(p)).then([&interval] {
+							Packet p(parts[index++]);
+							return (s.out() << std::move(p)).then([&interval] {
 								return seastar::sleep(interval);
 							}).then([] {
 								return seastar::stop_iteration::no;

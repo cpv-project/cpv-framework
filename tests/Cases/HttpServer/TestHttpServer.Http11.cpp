@@ -3,7 +3,6 @@
 #include <seastar/core/future-util.hh>
 #include <seastar/core/reactor.hh>
 #include <seastar/core/sleep.hh>
-#include <CPVFramework/Utility/PacketUtils.hpp>
 #include <TestUtility/GTestUtils.hpp>
 #include "./TestHttpServer.Base.hpp"
 
@@ -15,12 +14,11 @@ TEST_FUTURE(HttpServer_Http11, simple) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_headers HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_headers HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
-			"User-Agent: TestClient\r\n\r\n";
+			"User-Agent: TestClient\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -50,11 +48,10 @@ TEST_FUTURE(HttpServer_Http11, simpleHttp10) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_headers HTTP/1.0\r\n"
+		cpv::Packet p(
+			"GET /test_headers HTTP/1.0\r\n"
 			"Host: localhost\r\n"
-			"User-Agent: TestClient\r\n\r\n";
+			"User-Agent: TestClient\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -83,15 +80,14 @@ TEST_FUTURE(HttpServer_Http11, simpleWithBody) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_body HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_body HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
 			"Content-Length: 11\r\n"
 			"Content-Type: application/octet-stream\r\n"
 			"User-Agent: TestClient\r\n\r\n"
-			"Hello World";
+			"Hello World");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -115,16 +111,15 @@ TEST_FUTURE(HttpServer_Http11, pipeline) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"User-Agent: TestClient First\r\n\r\n"
 			"GET /test_second HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
-			"User-Agent: TestClient Second\r\n\r\n";
+			"User-Agent: TestClient Second\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -167,9 +162,8 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithBody) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"Content-Length: 17\r\n"
@@ -182,7 +176,7 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithBody) {
 			"Content-Length: 18\r\n"
 			"Content-Type: application/octet-stream\r\n"
 			"User-Agent: TestClient\r\n\r\n"
-			"Hello World Second";
+			"Hello World Second");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -213,13 +207,12 @@ TEST_FUTURE(HttpServer_Http11, emptyBody) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_headers HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_headers HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
 			"Content-Type: text/plain;charset=utf-8\r\n"
-			"User-Agent: TestClient\r\n\r\n";
+			"User-Agent: TestClient\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -242,9 +235,8 @@ TEST_FUTURE(HttpServer_Http11, chunkedBody) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_chunked_body HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_chunked_body HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
 			"Content-Type: application/octet-stream\r\n"
@@ -255,7 +247,7 @@ TEST_FUTURE(HttpServer_Http11, chunkedBody) {
 			"7\r\n"
 			"Chunked\r\n"
 			"0\r\n"
-			"\r\n";
+			"\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -279,9 +271,8 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithChunkedBody) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"Content-Type: application/octet-stream\r\n"
@@ -308,7 +299,7 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithChunkedBody) {
 			"6\r\n"
 			"Second\r\n"
 			"0\r\n"
-			"\r\n";
+			"\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -342,9 +333,8 @@ TEST_FUTURE(HttpServer_Http11, keepaliveTimeout) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "POST /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"POST /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"Content-Length: 17\r\n"
@@ -364,7 +354,7 @@ TEST_FUTURE(HttpServer_Http11, keepaliveTimeout) {
 			"Content-Length: 17\r\n"
 			"Content-Type: text/plain\r\n"
 			"User-Agent: TestClient\r\n\r\n"
-			"Hello World Third";
+			"Hello World Third");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -545,12 +535,11 @@ TEST_FUTURE(HttpServer_Http11, checkMaxInitialRequestBytes) {
 		configuration.setMaxInitialRequestBytes(1);
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_headers HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_headers HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
-			"User-Agent: TestClient\r\n\r\n";
+			"User-Agent: TestClient\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -659,16 +648,15 @@ TEST_FUTURE(HttpServer_Http11, closeLengthNotFixedResponse) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"User-Agent: TestClient First\r\n\r\n"
 			"GET /test_second HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
-			"User-Agent: TestClient Second\r\n\r\n";
+			"User-Agent: TestClient Second\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,
@@ -691,16 +679,15 @@ TEST_FUTURE(HttpServer_Http11, closeWrittenSizeNotMatchedResponse) {
 		return handlers;
 	};
 	testFunctions.execute = [] {
-		using namespace cpv;
-		seastar::net::packet p;
-		p << "GET /test_first HTTP/1.1\r\n"
+		cpv::Packet p(
+			"GET /test_first HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: keep-alive\r\n"
 			"User-Agent: TestClient First\r\n\r\n"
 			"GET /test_second HTTP/1.1\r\n"
 			"Host: localhost\r\n"
 			"Connection: close\r\n"
-			"User-Agent: TestClient Second\r\n\r\n";
+			"User-Agent: TestClient Second\r\n\r\n");
 		return cpv::gtest::tcpSendRequest(HTTP_SERVER_1_IP, HTTP_SERVER_1_PORT, std::move(p))
 		.then([] (std::string str) {
 			ASSERT_EQ(str,

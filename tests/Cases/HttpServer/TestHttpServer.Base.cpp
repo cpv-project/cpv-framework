@@ -7,7 +7,6 @@
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
-#include <CPVFramework/Utility/PacketUtils.hpp>
 #include "./TestHttpServer.Base.hpp"
 
 namespace cpv::gtest {
@@ -84,19 +83,19 @@ namespace cpv::gtest {
 		HttpResponse& response,
 		const HttpServerRequestHandlerIterator&) const {
 		using namespace cpv;
-		seastar::net::packet p;
-		p << "request method: " << request.getMethod() << "\r\n";
-		p << "request url: " << request.getUrl() << "\r\n";
-		p << "request version: " << request.getVersion() << "\r\n";
-		p << "request headers:\r\n";
+		Packet p;
+		p.append("request method: ").append(request.getMethod()).append("\r\n")
+			.append("request url: ").append(request.getUrl()).append("\r\n")
+			.append("request version: ").append(request.getVersion()).append("\r\n")
+			.append("request headers:\r\n");
 		request.getHeaders().foreach([&p] (const auto& key, const auto& value) {
-			p << "  " << key << ": " << value << "\r\n";
+			p.append("  ").append(key).append(": ").append(value).append("\r\n");
 		});
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, PesudoDate);
-		response.setHeader(constants::ContentLength, p.len());
+		response.setHeader(constants::ContentLength, p.size());
 		return extensions::writeAll(response.getBodyStream(), std::move(p));
 	}
 	

@@ -79,7 +79,7 @@ namespace cpv {
 		std::size_t getResponseHeadersFragmentsCount() const;
 		
 		/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
-		void appendResponseHeaders(seastar::net::packet& packet);
+		void appendResponseHeaders(Packet& packet);
 		
 		/** (for reply loop) Determine whether keep connection or not by checking connection header */
 		bool checkKeepaliveByConnnectionHeader() const;

@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <seastar/core/temporary_buffer.hh>
+#include <seastar/net/api.hh>
 #include <seastar/net/packet.hh>
 #include "./BufferUtils.hpp"
 #include "./ConstantStrings.hpp"
@@ -117,6 +118,9 @@ namespace cpv {
 			return nullptr;
 		}
 
+		/** Get MultipleFragments, or convert to MultipleFragments if it's not */
+		MultipleFragments* getOrConvertToMultiple() &;
+
 		/** Append static string to packet */
 		Packet& append(const std::string_view& str) &;
 
@@ -135,6 +139,9 @@ namespace cpv {
 
 		/** Get total size in bytes for this packet, notice it's dynamically calculated  */
 		std::size_t size() const;
+
+		/** Get the numnber of segments, may return 0 if empty */
+		std::size_t segments() const;
 
 		/** Get whether this packet is empty (size == 0) */
 		bool empty() const;
@@ -181,6 +188,17 @@ namespace cpv {
 			return append(constants::Integers[value]);
 		} else {
 			return append(convertIntToBuffer(value));
+		}
+	}
+
+	/** Write packet to seastar::data_sink */
+	static inline seastar::future<> operator<<(seastar::data_sink& out, Packet&& packet) {
+		if (auto ptr = packet.getIfSingle()) {
+			return out.put(ptr->release()); // put seastar::temporary_buffer
+		} else if (auto ptr = packet.getIfMultiple()) {
+			return out.put(ptr->release()); // put seastar::net::packet
+		} else {
+			return seastar::make_ready_future<>();
 		}
 	}
 }

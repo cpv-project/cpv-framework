@@ -1,21 +1,20 @@
 #pragma once
 #include <seastar/core/future.hh>
-#include <seastar/net/packet.hh>
+#include "../Utility/Packet.hpp"
 
 namespace cpv {
 	/**
 	 * Interface of simple output stream.
-	 * The write function will take a packet (may contains multiple segments) and
+	 * The write function will take a cpv::Packet (may contains multiple segments) and
 	 * write the data of segments to stream.
-	 * seastar::scattered_message or PacketUtils can build a packet with multiple segments with zero copy.
 	 */
 	class OutputStreamBase {
 	public:
 		/** Virtual destructor */
 		virtual ~OutputStreamBase() = default;
 		
-		/** Write data to stream, please check whether packet is empty first by cast it to bool  */
-		virtual seastar::future<> write(seastar::net::packet&& data) = 0;
+		/** Write data to stream */
+		virtual seastar::future<> write(Packet&& data) = 0;
 	};
 }
 

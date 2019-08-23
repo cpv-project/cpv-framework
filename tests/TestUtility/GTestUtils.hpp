@@ -2,7 +2,7 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <seastar/core/future.hh>
-#include <seastar/net/packet.hh>
+#include <CPVFramework/Utility/Packet.hpp>
 
 #define TEST_FUTURE(caseName, testName) \
 	static seastar::future<> caseName##_##testName##_FutureTestBody(); \
@@ -41,7 +41,7 @@ namespace cpv::gtest {
 	
 	/** create tcp connection, send request then return received response as string */
 	seastar::future<std::string> tcpSendRequest(
-		const std::string& ip, std::size_t port, seastar::net::packet p);
+		const std::string& ip, std::size_t port, Packet&& p);
 	
 	/** create tcp connection, send request partially then return received response as string */
 	seastar::future<std::string> tcpSendPartialRequest(

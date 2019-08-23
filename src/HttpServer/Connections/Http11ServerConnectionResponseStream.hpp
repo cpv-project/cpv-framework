@@ -16,7 +16,7 @@ namespace cpv {
 		 * (for performance, add size and crlf to packet may trigger unnecessary allocation)
 		 * chunked data should be encoded from writer.
 		 */
-		seastar::future<> write(seastar::net::packet&& data) override;
+		seastar::future<> write(Packet&& data) override;
 		
 		/** For Reusable<> */
 		void freeResources();

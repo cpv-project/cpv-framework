@@ -7,7 +7,7 @@ namespace cpv {
 	class StringOutputStream : public OutputStreamBase {
 	public:
 		/** Write data to stream */
-		seastar::future<> write(seastar::net::packet&& data) override;
+		seastar::future<> write(Packet&& data) override;
 		
 		/** For Reusable<> */
 		void freeResources();

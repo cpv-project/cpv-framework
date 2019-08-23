@@ -9,25 +9,20 @@ namespace cpv {
 		ReusableStorageInstance<Http11ServerConnectionResponseStream>;
 	
 	/** Write data to stream */
-	seastar::future<> Http11ServerConnectionResponseStream::write(seastar::net::packet&& data) {
+	seastar::future<> Http11ServerConnectionResponseStream::write(Packet&& data) {
 		// reset detect timeout flag
 		connection_->resetDetectTimeoutFlag();
-		if (CPV_UNLIKELY(!static_cast<bool>(data))) {
-			// ignore empty data
-			return seastar::make_ready_future<>();
-		} else if (CPV_UNLIKELY(connection_->replyLoopData_.responseHeadersAppended)) {
+		if (CPV_UNLIKELY(connection_->replyLoopData_.responseHeadersAppended)) {
 			// headers are sent, just send data
-			connection_->replyLoopData_.responseWrittenBytes += data.len();
-			return connection_->socket_.out().put(std::move(data));
+			connection_->replyLoopData_.responseWrittenBytes += data.size();
+			return connection_->socket_.out() << std::move(data);
 		} else {
 			// send headers and data in single packet (it's very important to performance)
-			std::size_t fragmentsCount = connection_->getResponseHeadersFragmentsCount();
-			fragmentsCount += data.nr_frags();
-			seastar::net::packet merged(fragmentsCount);
+			Packet merged(connection_->getResponseHeadersFragmentsCount() + data.segments());
 			connection_->appendResponseHeaders(merged);
-			connection_->replyLoopData_.responseWrittenBytes += data.len();
+			connection_->replyLoopData_.responseWrittenBytes += data.size();
 			merged.append(std::move(data));
-			return connection_->socket_.out().put(std::move(merged));
+			return connection_->socket_.out() << std::move(merged);
 		}
 	}
 	

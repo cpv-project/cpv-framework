@@ -4,16 +4,16 @@
 #include "./OutputStreamBase.hpp"
 
 namespace cpv::extensions {
-	/** Write packet to stream, must keep stream live until future resolved */
+	/** Write data to stream, must keep stream live until future resolved */
 	static inline seastar::future<> writeAll(
-		OutputStreamBase& stream, seastar::net::packet&& data) {
+		OutputStreamBase& stream, Packet&& data) {
 		return stream.write(std::move(data));
 	}
 	
-	/** Write packet to stream, must keep stream live until future resolved */
+	/** Write data to stream, must keep stream live until future resolved */
 	template <class T, std::enable_if_t<std::is_same_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
-	seastar::future<> writeAll(T& stream, seastar::net::packet&& data) {
+	seastar::future<> writeAll(T& stream, Packet&& data) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {
 			return seastar::make_exception_future<>(LogicException(
 				CPV_CODEINFO, "write to null stream"));

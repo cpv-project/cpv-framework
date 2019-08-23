@@ -1,11 +1,9 @@
 #include <seastar/core/sleep.hh>
-#include <seastar/net/packet.hh>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/ConstantStrings.hpp>
 #include <CPVFramework/Utility/DateUtils.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>
-#include <CPVFramework/Utility/PacketUtils.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
 #include "./Http11ServerConnection.hpp"
 #include "./Http11ServerConnectionRequestStream.hpp"
@@ -384,9 +382,7 @@ namespace cpv {
 			if (CPV_LIKELY(lastErrorResponse_.empty() || !socket_.isConnected())) {
 				return seastar::make_ready_future<>();
 			}
-			return socket_.out()
-				.put(seastar::net::packet::from_static_data(
-					lastErrorResponse_.data(), lastErrorResponse_.size()))
+			return (socket_.out() << Packet(lastErrorResponse_))
 				.then([this] { return socket_.out().flush(); })
 				.handle_exception([] (std::exception_ptr) { });
 		}
@@ -414,11 +410,10 @@ namespace cpv {
 				if (replyLoopData_.responseHeadersAppended) {
 					result = socket_.out().flush();
 				} else {
-					seastar::net::packet data(getResponseHeadersFragmentsCount());
+					Packet data(getResponseHeadersFragmentsCount());
 					appendResponseHeaders(data);
-					result = socket_.out().put(std::move(data)).then([this] {
-						return socket_.out().flush();
-					});
+					result = (socket_.out() << std::move(data))
+						.then([this] { return socket_.out().flush(); });
 				}
 				// check keepalive again
 				if (CPV_LIKELY(replyLoopData_.keepConnection)) {
@@ -456,7 +451,7 @@ namespace cpv {
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
-	void Http11ServerConnection::appendResponseHeaders(seastar::net::packet& packet) {
+	void Http11ServerConnection::appendResponseHeaders(Packet& packet) {
 		// check flag
 		if (CPV_UNLIKELY(replyLoopData_.responseHeadersAppended)) {
 			return;
@@ -507,13 +502,24 @@ namespace cpv {
 			}
 		}
 		// append response headers to packet
-		packet << version << constants::Space <<
-			processingResponse_.getStatusCode() << constants::Space <<
-			processingResponse_.getStatusMessage() << constants::CRLF;
-		responseHeaders.foreach([&packet] (const auto& key, const auto& value) {
-			packet << key << constants::ColonSpace << value << constants::CRLF;
+		// manipulate fragments vector directly to avoid variant and boundary checks
+		auto& fragments = packet.getOrConvertToMultiple()->fragments;
+		std::size_t index = fragments.size();
+		fragments.resize(index + getResponseHeadersFragmentsCount());
+		fragments[index++] = Packet::toFragment(version);
+		fragments[index++] = Packet::toFragment(constants::Space);
+		fragments[index++] = Packet::toFragment(processingResponse_.getStatusCode());
+		fragments[index++] = Packet::toFragment(constants::Space);
+		fragments[index++] = Packet::toFragment(processingResponse_.getStatusMessage());
+		fragments[index++] = Packet::toFragment(constants::CRLF);
+		responseHeaders.foreach([&fragments, &index] (const auto& key, const auto& value) {
+			fragments[index++] = Packet::toFragment(key);
+			fragments[index++] = Packet::toFragment(constants::ColonSpace);
+			fragments[index++] = Packet::toFragment(value);
+			fragments[index++] = Packet::toFragment(constants::CRLF);
 		});
-		packet << constants::CRLF;
+		fragments[index++] = Packet::toFragment(constants::CRLF);
+		fragments.resize(index); // reduce to actual fragments count
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
