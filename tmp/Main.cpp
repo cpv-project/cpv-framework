@@ -11,7 +11,6 @@
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/ConstantStrings.hpp>
-#include <CPVFramework/Utility/PacketUtils.hpp>
 
 namespace {
 	std::atomic_bool StopFlag(false);
