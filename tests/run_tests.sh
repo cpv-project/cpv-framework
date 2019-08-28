@@ -17,6 +17,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug \
 make V=1 --jobs=$(printf "%d\n4" $(nproc) | sort -n | head -1)
 
 ASAN_OPTIONS="detect_leaks=1" \
-	./CPVFrameworkTests --task-quota-ms=20
-
+	./CPVFrameworkTests \
+	--task-quota-ms=20 \
+	--reactor-backend epoll
 

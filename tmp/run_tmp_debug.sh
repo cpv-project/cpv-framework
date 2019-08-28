@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-BUILDDIR=../build/cpvframework-tmp
+BUILDDIR=../build/cpvframework-tmp-debug
 
 mkdir -p ${BUILDDIR}
 cd ${BUILDDIR}
@@ -12,6 +12,7 @@ cmake -DCMAKE_BUILD_TYPE=Debug \
 make V=1 --jobs=$(printf "%d\n4" $(nproc) | sort -n | head -1)
 
 ASAN_OPTIONS="detect_leaks=1" \
-	./CPVFrameworkTmp --task-quota-ms=20
-
+	./CPVFrameworkTmp \
+	--task-quota-ms=20 \
+	--reactor-backend epoll
 
