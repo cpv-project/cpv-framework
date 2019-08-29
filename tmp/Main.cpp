@@ -18,10 +18,11 @@ namespace {
 	class CustomHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest& request,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override {
 			using namespace cpv;
+			auto& request = context.request;
+			auto& response = context.response;
 			Packet p;
 			p.append("request method: ").append(request.getMethod()).append("\r\n")
 				.append("request url: ").append(request.getUrl()).append("\r\n")
@@ -41,10 +42,10 @@ namespace {
 	class HelloHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest&,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override {
 			using namespace cpv;
+			auto& response = context.response;
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
 			response.setHeader(constants::ContentType, constants::TextPlainUtf8);
@@ -56,13 +57,23 @@ namespace {
 	seastar::future<> service_loop() {
 		cpv::HttpServerConfiguration configuration;
 		configuration.setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
+
 		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Notice);
-		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>> handlers;
-		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
-		// handlers.emplace_back(std::make_unique<CustomHandler>());
-		handlers.emplace_back(std::make_unique<HelloHandler>());
-		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
-		cpv::HttpServer server(configuration, logger, std::move(handlers));
+
+		cpv::HttpServerRequestHandlerCollection handlers;
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>(logger));
+		// handlers.emplace_back(seastar::make_shared<CustomHandler>());
+		handlers.emplace_back(seastar::make_shared<HelloHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest404Handler>());
+
+		cpv::Container container;
+		container.add(configuration);
+		container.add(logger);
+		for (auto& handler : handlers) {
+			container.add(handler);
+		}
+
+		cpv::HttpServer server(container);
 		return seastar::do_with(std::move(server), [](auto& server) {
 			return server.start().then([] {
 				return seastar::do_until(
