@@ -6,15 +6,15 @@
 
 TEST_FUTURE(HttpServerRequest404Handler, handle) {
 	return seastar::do_with(
-		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>>(),
-		cpv::HttpRequest(),
-		cpv::HttpResponse(),
+		cpv::HttpServerRequestHandlerCollection(),
+		cpv::HttpContext(),
 		seastar::make_lw_shared<std::string>(),
-		[] (auto& handlers, auto& request, auto& response, auto& str) {
-		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest404Handler>());
-		response.setBodyStream(
+		[] (auto& handlers, auto& context, auto& str) {
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest404Handler>());
+		context.response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
-		return handlers.at(0)->handle(request, response, handlers.end()).then([&response, &str] {
+		return handlers.at(0)->handle(context, handlers.end()).then([&context, &str] {
+			auto& response = context.response;
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_404);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::NotFound);
 			auto& headers = response.getHeaders();

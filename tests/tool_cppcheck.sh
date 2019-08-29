@@ -2,7 +2,6 @@
 cppcheck --enable=all --inconclusive --std=posix \
 	--inline-suppr --quiet \
 	--template='{file}:{line},{severity},{id},{message}' -I../include \
-	--suppress='postfixOperator:../tests/*' \
 	--suppress='accessMoved:../tests/*' \
 	../include ../src ../tests \
 	2>&1 \

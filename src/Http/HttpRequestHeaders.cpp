@@ -27,6 +27,7 @@ namespace cpv {
 	});
 
 	/** Set header value */
+	// cppcheck-suppress unusedFunction
 	void HttpRequestHeaders::setHeader(const std::string_view& key, const std::string_view& value) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
@@ -37,6 +38,7 @@ namespace cpv {
 	}
 	
 	/** Get header value */
+	// cppcheck-suppress unusedFunction
 	std::string_view HttpRequestHeaders::getHeader(const std::string_view& key) const {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
@@ -51,6 +53,7 @@ namespace cpv {
 	}
 	
 	/** Remove header */
+	// cppcheck-suppress unusedFunction
 	void HttpRequestHeaders::removeHeader(const std::string_view& key) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
@@ -61,6 +64,7 @@ namespace cpv {
 	}
 	
 	/** Get maximum count of headers, may greater than actual count */
+	// cppcheck-suppress unusedFunction
 	std::size_t HttpRequestHeaders::maxSize() const {
 		return Internal::FixedMembers.size() + remainHeaders_.size();
 	}

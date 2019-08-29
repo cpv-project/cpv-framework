@@ -16,8 +16,7 @@ namespace cpv::gtest {
 	class HttpCheckHeadersHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest& request,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override;
 	};
 	
@@ -25,8 +24,7 @@ namespace cpv::gtest {
 	class HttpCheckBodyHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest& request,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override;
 	};
 	
@@ -34,8 +32,7 @@ namespace cpv::gtest {
 	class HttpLengthNotFixedHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest& request,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override;
 	};
 	
@@ -43,8 +40,7 @@ namespace cpv::gtest {
 	class HttpWrittenSizeNotMatchedHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest& request,
-			cpv::HttpResponse& response,
+			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const override;
 	};
 }

@@ -2,6 +2,7 @@
 #include <unordered_set>
 #include <seastar/core/weak_ptr.hh>
 #include <seastar/core/metrics_registration.hh>
+#include <CPVFramework/Container/Container.hpp>
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequestHandlerBase.hpp>
 #include <CPVFramework/Logging/Logger.hpp>
@@ -25,12 +26,11 @@ namespace cpv {
 	public:
 		/** Constructor */
 		HttpServerSharedData(
-			const HttpServerConfiguration& configurationVal,
-			const seastar::shared_ptr<Logger>& loggerVal,
-			HttpServerRequestHandlerCollection&& handlersVal,
+			const Container& containerVal,
 			seastar::weak_ptr<HttpServerConnectionsWrapper>&& connectionsWrapperVal);
 		
 	public:
+		const Container container;
 		const HttpServerConfiguration configuration;
 		const seastar::shared_ptr<Logger> logger;
 		const HttpServerRequestHandlerCollection handlers;

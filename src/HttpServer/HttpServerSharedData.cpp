@@ -10,16 +10,18 @@ namespace cpv {
 	
 	/** Constructor */
 	HttpServerSharedData::HttpServerSharedData(
-		const HttpServerConfiguration& configurationVal,
-		const seastar::shared_ptr<Logger>& loggerVal,
-		HttpServerRequestHandlerCollection&& handlersVal,
+		const Container& containerVal,
 		seastar::weak_ptr<HttpServerConnectionsWrapper>&& connectionsWrapperVal) :
-		configuration(configurationVal),
-		logger(loggerVal),
-		handlers((
-			// add real last handler to handler list
-			handlersVal.emplace_back(std::make_unique<HttpServerRequestRealLastHandler>()),
-			std::move(handlersVal))),
+		container(containerVal),
+		configuration(container.get<HttpServerConfiguration>()),
+		logger(container.get<seastar::shared_ptr<Logger>>()),
+		handlers([] (const Container& container) {
+			HttpServerRequestHandlerCollection handlers;
+			container.getMany(handlers);
+			// add real last handler to handler list to avoid crash when last handler invoke next
+			handlers.emplace_back(seastar::make_shared<HttpServerRequestRealLastHandler>());
+			return handlers;
+		}(container)),
 		connectionsWrapper(std::move(connectionsWrapperVal)),
 		metricData(),
 		metricGroups_() {

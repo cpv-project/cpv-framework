@@ -13,10 +13,7 @@ namespace cpv {
 	class HttpServerData {
 	public:
 		/** Constructor */
-		HttpServerData(
-			const HttpServerConfiguration& configuration,
-			const seastar::shared_ptr<Logger>& logger,
-			HttpServerRequestHandlerCollection&& handlers);
+		HttpServerData(const Container& container);
 		
 	public:
 		seastar::lw_shared_ptr<HttpServerConnectionsWrapper> connectionsWrapper;

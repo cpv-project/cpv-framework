@@ -5,14 +5,13 @@
 namespace cpv {
 	/** Return 404 not found */
 	seastar::future<> HttpServerRequest404Handler::handle(
-		HttpRequest&,
-		HttpResponse& response,
+		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
+		auto& response = context.response;
 		response.setStatusCode(constants::_404);
 		response.setStatusMessage(constants::NotFound);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-		response.setHeader(constants::ContentLength,
-			constants::Integers.at(constants::NotFound.size()));
+		response.setHeader(constants::ContentLength, constants::NotFound.size());
 		return extensions::writeAll(response.getBodyStream(), constants::NotFound);
 	}
 }

@@ -2,9 +2,10 @@
 #include <memory>
 #include <vector>
 #include <seastar/core/future.hh>
+#include "../Container/Container.hpp"
 #include "../Logging/Logger.hpp"
-#include "./HttpServerConfiguration.hpp"
 #include "./Handlers/HttpServerRequestHandlerBase.hpp"
+#include "./HttpServerConfiguration.hpp"
 
 namespace cpv {
 	/** Members of HttpServer */
@@ -23,17 +24,20 @@ namespace cpv {
 		seastar::future<> stop();
 		
 		/**
-		 * Constructor.
+		 * Constructor
+		 *
+		 * Container should contains following services:
+		 * - HttpServerConfiguration
+		 * - seastar::shared_ptr<Logger>
+		 * - one or more std::shared_ptr<HttpServerRequestHandlerBase>, order is matter
+		 *
 		 * Rules about handler list:
 		 *	The first handler should be a 500 handler. (e.g. HttpServerRequest500Handler)
 		 *	The last handler should be a 404 handler. (e.g. HttpServerRequest404Handler)
 		 *	The last handler must not call the next handler, there is a real last handler
 		 *		but only returns exception future.
 		 */
-		HttpServer(
-			const HttpServerConfiguration& configuration,
-			const seastar::shared_ptr<Logger>& logger,
-			HttpServerRequestHandlerCollection&& handlers);
+		HttpServer(const Container& container);
 		
 		/** Move constructor (for incomplete member type) */
 		HttpServer(HttpServer&&);

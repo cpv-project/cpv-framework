@@ -11,6 +11,9 @@ namespace cpv {
 		
 		/** Set the service instance with associated key */
 		void set(std::uintptr_t key, std::any&& value);
+
+		/** Clear all instances store in this storage */
+		void clear();
         
 	private:
 		/** Store service instances with lifetime StoragePresistent, key is pointer of descriptor */

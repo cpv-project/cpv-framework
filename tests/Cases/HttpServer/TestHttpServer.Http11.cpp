@@ -10,7 +10,7 @@ TEST_FUTURE(HttpServer_Http11, simple) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckHeadersHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckHeadersHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -44,7 +44,7 @@ TEST_FUTURE(HttpServer_Http11, simpleHttp10) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckHeadersHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckHeadersHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -76,7 +76,7 @@ TEST_FUTURE(HttpServer_Http11, simpleWithBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -107,7 +107,7 @@ TEST_FUTURE(HttpServer_Http11, pipeline) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckHeadersHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckHeadersHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -158,7 +158,7 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -203,7 +203,7 @@ TEST_FUTURE(HttpServer_Http11, emptyBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -231,7 +231,7 @@ TEST_FUTURE(HttpServer_Http11, chunkedBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -267,7 +267,7 @@ TEST_FUTURE(HttpServer_Http11, pipelineWithChunkedBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -329,7 +329,7 @@ TEST_FUTURE(HttpServer_Http11, keepaliveTimeout) {
 	};
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -388,7 +388,7 @@ TEST_FUTURE(HttpServer_Http11, partialRequestCheckHeaders) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckHeadersHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckHeadersHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -456,7 +456,7 @@ TEST_FUTURE(HttpServer_Http11, partialRequestCheckBody) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckBodyHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckBodyHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -603,7 +603,7 @@ TEST_FUTURE(HttpServer_Http11, closeIncompletedRequest) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpCheckHeadersHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpCheckHeadersHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -644,7 +644,7 @@ TEST_FUTURE(HttpServer_Http11, closeLengthNotFixedResponse) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpLengthNotFixedHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpLengthNotFixedHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {
@@ -675,7 +675,7 @@ TEST_FUTURE(HttpServer_Http11, closeWrittenSizeNotMatchedResponse) {
 	cpv::gtest::HttpServerTestFunctions testFunctions;
 	testFunctions.makeHandlers = [] {
 		cpv::HttpServerRequestHandlerCollection handlers;
-		handlers.emplace_back(std::make_unique<cpv::gtest::HttpWrittenSizeNotMatchedHandler>());
+		handlers.emplace_back(seastar::make_shared<cpv::gtest::HttpWrittenSizeNotMatchedHandler>());
 		return handlers;
 	};
 	testFunctions.execute = [] {

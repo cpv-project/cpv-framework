@@ -23,7 +23,6 @@ namespace cpv {
 	}
 	
 	/** For Reusable<> */
-	// cppcheck-suppress unusedFunction
 	void BufferInputStream::freeResources() {
 		buf_ = {};
 	}

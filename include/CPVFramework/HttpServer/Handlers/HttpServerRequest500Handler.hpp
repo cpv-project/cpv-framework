@@ -12,8 +12,7 @@ namespace cpv {
 	public:
 		/** Return 500 internal server error */
 		seastar::future<> handle(
-			HttpRequest& request,
-			HttpResponse& response,
+			HttpContext& context,
 			const HttpServerRequestHandlerIterator& next) const override;
 		
 		/** Constructor */

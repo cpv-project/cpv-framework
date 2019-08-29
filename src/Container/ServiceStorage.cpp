@@ -15,5 +15,10 @@ namespace cpv {
 	void ServiceStorage::set(std::uintptr_t key, std::any&& value) {
 		instances_.insert_or_assign(key, std::move(value));
 	}
+
+	/** Clear all instances store in this storage */
+	void ServiceStorage::clear() {
+		instances_.clear();
+	}
 }
 

@@ -1187,7 +1187,6 @@ reexecute:
 
         SET_ERRNO(HPE_INVALID_VERSION);
         goto error;
-        break;
       }
 
       /* end of request line */

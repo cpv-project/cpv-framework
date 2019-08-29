@@ -9,8 +9,7 @@ namespace {
 	class TestHandler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(
-			cpv::HttpRequest&,
-			cpv::HttpResponse&,
+			cpv::HttpContext&,
 			const cpv::HttpServerRequestHandlerIterator&) const override {
 			return seastar::make_exception_future<>(cpv::FormatException(
 				CPV_CODEINFO, "test exception"));
@@ -32,18 +31,17 @@ namespace {
 
 TEST_FUTURE(HttpServerRequest500Handler, handle) {
 	return seastar::do_with(
-		std::vector<std::unique_ptr<cpv::HttpServerRequestHandlerBase>>(),
-		cpv::HttpRequest(),
-		cpv::HttpResponse(),
+		cpv::HttpServerRequestHandlerCollection(),
+		cpv::HttpContext(),
 		seastar::make_lw_shared<std::string>(),
 		seastar::make_shared<TestLogger>(),
-		[] (auto& handlers, auto& request, auto& response, auto& str, auto& logger) {
-		handlers.emplace_back(std::make_unique<cpv::HttpServerRequest500Handler>(logger));
-		handlers.emplace_back(std::make_unique<TestHandler>());
-		response.setBodyStream(
+		[] (auto& handlers, auto& context, auto& str, auto& logger) {
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>(logger));
+		handlers.emplace_back(seastar::make_shared<TestHandler>());
+		context.response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
-		return handlers.at(0)->handle(request, response, handlers.begin()+1).then(
-			[&response, &str, &logger] {
+		return handlers.at(0)->handle(context, handlers.begin()+1).then([&context, &str, &logger] {
+			auto& response = context.response;
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_500);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::InternalServerError);
 			auto& headers = response.getHeaders();

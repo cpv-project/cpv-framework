@@ -25,7 +25,7 @@ namespace {
 	class TestImplCustomName : public TestService {
 	public:
 		std::string name() const override { return name_; }
-		TestImplCustomName(std::string name) : name_(std::move(name)) { }
+		explicit TestImplCustomName(std::string name) : name_(std::move(name)) { }
 	private:
 		std::string name_;
 	};
@@ -41,7 +41,7 @@ namespace {
 			}
 			return s.str();
 		}
-		TestImplInject(int a, std::string b, std::vector<std::unique_ptr<int>> c) :
+		explicit TestImplInject(int a, std::string b, std::vector<std::unique_ptr<int>> c) :
 			a_(a), b_(std::move(b)), c_(std::move(c)) { }
 	private:
 		int a_;

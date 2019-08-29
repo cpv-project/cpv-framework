@@ -184,7 +184,7 @@ namespace cpv {
 		}
 	
 		/** Constructor **/
-		ServiceDependencyInjectionFactory(Container& container) :
+		explicit ServiceDependencyInjectionFactory(Container& container) :
 			dependencyDescriptors_(Extensions::getDependencyDescriptors(container)) { }
 		
 	private:
@@ -267,7 +267,7 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		explicit ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
 		
 	private:
 		TFunc func_;
@@ -285,7 +285,7 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		ServiceExceptionFactory(const char* message) : message_(message) { }
+		explicit ServiceExceptionFactory(const char* message) : message_(message) { }
 		
 	private:
 		const char* message_;

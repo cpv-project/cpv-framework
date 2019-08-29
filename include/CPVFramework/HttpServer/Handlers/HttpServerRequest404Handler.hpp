@@ -7,8 +7,7 @@ namespace cpv {
 	public:
 		/** Return 404 not found */
 		seastar::future<> handle(
-			HttpRequest&,
-			HttpResponse& response,
+			HttpContext& context,
 			const HttpServerRequestHandlerIterator&) const override;
 	};
 }

@@ -264,7 +264,11 @@ namespace cpv {
 			return *this;
 		}
 		void clear() {
-			// release hashtable to make allocated count in storage reach to 0
+			if (Base::empty()) {
+				// fast path
+				return;
+			}
+			// release hashtable to make allocated count in storage reach 0
 			Base empty(Allocator(*this));
 			Base::operator=(std::move(empty));
 			this->reserve(InitialSize);

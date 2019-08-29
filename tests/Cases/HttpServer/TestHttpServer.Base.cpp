@@ -33,14 +33,21 @@ namespace cpv::gtest {
 					auto logger = Logger::createConsole(LogLevel::Debug);
 					// make handlers
 					HttpServerRequestHandlerCollection handlers;
-					handlers.emplace_back(std::make_unique<HttpServerRequest500Handler>(logger));
+					handlers.emplace_back(seastar::make_shared<HttpServerRequest500Handler>(logger));
 					if (testFunctions.makeHandlers != nullptr) {
 						auto customHandlers = testFunctions.makeHandlers();
 						std::move(customHandlers.begin(), customHandlers.end(), std::back_inserter(handlers));
 					}
-					handlers.emplace_back(std::make_unique<HttpServerRequest404Handler>());
+					handlers.emplace_back(seastar::make_shared<HttpServerRequest404Handler>());
+					// make container
+					Container container;
+					container.add(configuration);
+					container.add(logger);
+					for (auto& handler : handlers) {
+						container.add(handler);
+					}
 					// start http server
-					HttpServer server(configuration, logger, std::move(handlers));
+					HttpServer server(container);
 					return seastar::do_with(std::move(server),
 						[c, &testFunctions, &stopFlag, &error](auto& server) {
 						return server.start().then([c, &testFunctions, &stopFlag, &error] {
@@ -79,10 +86,11 @@ namespace cpv::gtest {
 	
 	/** Reply request url and header values in response body */
 	seastar::future<> HttpCheckHeadersHandler::handle(
-		HttpRequest& request,
-		HttpResponse& response,
+		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
 		using namespace cpv;
+		auto& request = context.request;
+		auto& response = context.response;
 		Packet p;
 		p.append("request method: ").append(request.getMethod()).append("\r\n")
 			.append("request url: ").append(request.getUrl()).append("\r\n")
@@ -101,9 +109,10 @@ namespace cpv::gtest {
 	
 	/** Reply request body in response body */
 	seastar::future<> HttpCheckBodyHandler::handle(
-		HttpRequest& request,
-		HttpResponse& response,
+		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
+		auto& request = context.request;
+		auto& response = context.response;
 		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
@@ -116,9 +125,9 @@ namespace cpv::gtest {
 	
 	/** Reply response with body but without content length header */
 	seastar::future<> HttpLengthNotFixedHandler::handle(
-		HttpRequest&,
-		HttpResponse& response,
+		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
+		auto& response = context.response;
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
@@ -128,9 +137,9 @@ namespace cpv::gtest {
 	
 	/** Reply response with body but size not matched to content length header */
 	seastar::future<> HttpWrittenSizeNotMatchedHandler::handle(
-		HttpRequest&,
-		HttpResponse& response,
+		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
+		auto& response = context.response;
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);

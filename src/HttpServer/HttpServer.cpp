@@ -29,6 +29,7 @@ namespace cpv {
 		// parse listen addresses and create listeners
 		seastar::listen_options listenOptions;
 		listenOptions.reuse_address = true;
+		// cppcheck-suppress ConfigurationNotChecked
 		listenOptions.listen_backlog = CPV_HTTP_SERVER_LISTEN_BACKLOG;
 		for (const auto& listenAddressStr : data_->sharedData->configuration.getListenAddresses()) {
 			auto listenAddress = parseListenAddress(listenAddressStr);
@@ -102,11 +103,8 @@ namespace cpv {
 	}
 	
 	/** Constructor */
-	HttpServer::HttpServer(
-		const HttpServerConfiguration& configuration,
-		const seastar::shared_ptr<Logger>& logger,
-		HttpServerRequestHandlerCollection&& handlers) :
-		data_(std::make_unique<HttpServerData>(configuration, logger, std::move(handlers))) {
+	HttpServer::HttpServer(const Container& container) :
+		data_(std::make_unique<HttpServerData>(container)) {
 		// detect timeout for all connections.
 		// it's better than let connections manage their own timer,
 		// because add timer and remove timer is much heavy than just iterate connections.

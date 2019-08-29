@@ -108,7 +108,6 @@ namespace cpv {
 	private:
 		seastar::lw_shared_ptr<HttpServerSharedData> sharedData_;
 		SocketHolder socket_;
-		seastar::socket_address clientAddress_;
 		Http11ServerConnectionState state_;
 		// the queue store received requests which headers completed (notice body may not completed)
 		struct RequestEntry { HttpRequest request; std::uint32_t id; bool hasBody; };
@@ -120,9 +119,8 @@ namespace cpv {
 		HttpRequest newRequest_;
 		// the rest of buffer for next request received from pipeline
 		seastar::temporary_buffer<char> nextRequestBuffer_;
-		// the request and response processing now
-		HttpRequest processingRequest_;
-		HttpResponse processingResponse_;
+		// the http context handling now
+		HttpContext processingContext_;
 		// the error response send to client before close connection
 		// usually it's cause by invalid format or headers too large
 		std::string_view lastErrorResponse_;
