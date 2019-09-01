@@ -4,7 +4,11 @@
 [![Build Status](https://travis-ci.org/cpv-project/cpv-framework.svg?branch=master)](https://travis-ci.org/cpv-project/cpv-framework)
 [![license](https://img.shields.io/github/license/cpv-project/cpv-framework.svg)]() 
 
-TODO
+This project still work in progress, more details and documents will be published when release 0.1.
+
+Project concept, progress and roadmap (for alpha stage):
+
+https://github.com/cpv-project/cpv-framework/issues/12
 
 ## Features
 
