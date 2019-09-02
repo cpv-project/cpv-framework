@@ -4,7 +4,7 @@
 
 namespace cpv {
 	/**
-	 * Module to provide logger instance
+	 * Module used to provide logger
 	 *
 	 * By default, it uses console logger with Notice level,
 	 * you can set custom logger by using custom initialize function:

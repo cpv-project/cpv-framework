@@ -30,13 +30,16 @@ namespace {
 }
 
 TEST_FUTURE(HttpServerRequest500Handler, handle) {
+	auto logger = seastar::make_shared<TestLogger>();
+	cpv::Container container;
+	container.add<seastar::shared_ptr<cpv::Logger>>(logger);
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
-		cpv::HttpContext(),
+		cpv::HttpContext(container),
 		seastar::make_lw_shared<std::string>(),
-		seastar::make_shared<TestLogger>(),
+		std::move(logger),
 		[] (auto& handlers, auto& context, auto& str, auto& logger) {
-		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>(logger));
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>());
 		handlers.emplace_back(seastar::make_shared<TestHandler>());
 		context.response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());

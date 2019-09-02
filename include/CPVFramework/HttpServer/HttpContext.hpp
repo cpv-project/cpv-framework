@@ -32,9 +32,17 @@ namespace cpv {
 			serviceStorage() { }
 
 		/** Constructor */
+		HttpContext(const Container& containerVal) :
+			request(),
+			response(),
+			clientAddress(seastar::make_ipv4_address(0, 0)),
+			container(containerVal),
+			serviceStorage() { }
+
+		/** Constructor */
 		HttpContext(
-			seastar::socket_address&& clientAddressVal,
-			const Container& containerVal) :
+			const Container& containerVal,
+			seastar::socket_address&& clientAddressVal) :
 			request(),
 			response(),
 			clientAddress(std::move(clientAddressVal)),

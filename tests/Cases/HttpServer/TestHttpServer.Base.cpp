@@ -29,23 +29,20 @@ namespace cpv::gtest {
 					if (testFunctions.updateConfiguration != nullptr) {
 						testFunctions.updateConfiguration(configuration);
 					}
-					// make logger
-					auto logger = Logger::createConsole(LogLevel::Debug);
-					// make handlers
-					HttpServerRequestHandlerCollection handlers;
-					handlers.emplace_back(seastar::make_shared<HttpServerRequest500Handler>(logger));
-					if (testFunctions.makeHandlers != nullptr) {
-						auto customHandlers = testFunctions.makeHandlers();
-						std::move(customHandlers.begin(), customHandlers.end(), std::back_inserter(handlers));
-					}
-					handlers.emplace_back(seastar::make_shared<HttpServerRequest404Handler>());
 					// make container
 					Container container;
 					container.add(configuration);
-					container.add(logger);
-					for (auto& handler : handlers) {
-						container.add(handler);
+					container.add(Logger::createConsole(LogLevel::Debug));
+					container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(
+						seastar::make_shared<HttpServerRequest500Handler>());
+					if (testFunctions.makeHandlers != nullptr) {
+						auto customHandlers = testFunctions.makeHandlers();
+						for (auto& handler : customHandlers) {
+							container.add(handler);
+						}
 					}
+					container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(
+						seastar::make_shared<HttpServerRequest404Handler>());
 					// start http server
 					HttpServer server(container);
 					return seastar::do_with(std::move(server),

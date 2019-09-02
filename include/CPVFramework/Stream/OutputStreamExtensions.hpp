@@ -11,7 +11,7 @@ namespace cpv::extensions {
 	}
 	
 	/** Write data to stream, must keep stream live until future resolved */
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
 	seastar::future<> writeAll(T& stream, Packet&& data) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {
@@ -25,7 +25,7 @@ namespace cpv::extensions {
 	seastar::future<> writeAll(OutputStreamBase& stream, std::string&& str);
 	
 	/** Write string (rvalue) to stream, must keep stream live until future resolved */
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
 	seastar::future<> writeAll(T& stream, std::string&& str) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {
@@ -39,7 +39,7 @@ namespace cpv::extensions {
 	seastar::future<> writeAll(OutputStreamBase& stream, const std::string_view& str);
 	
 	/** Write string view to stream, must keep stream live until future resolved */
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
 	seastar::future<> writeAll(T& stream, const std::string_view& str) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {
@@ -57,7 +57,7 @@ namespace cpv::extensions {
 	}
 	
 	/** Write constant c string to stream, must keep stream live until future resolved */
-	template <std::size_t Size, class T, std::enable_if_t<std::is_same_v<
+	template <std::size_t Size, class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), OutputStreamBase*>>* = nullptr>
 	seastar::future<> writeAll(T& stream, const char(&str)[Size]) {
 		static_assert(Size > 0, "size of c string should not be 0");

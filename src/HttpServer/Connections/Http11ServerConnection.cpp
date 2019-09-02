@@ -177,7 +177,7 @@ namespace cpv {
 		requestBodyQueue_(sharedData_->configuration.getRequestBodyQueueSize()),
 		newRequest_(),
 		nextRequestBuffer_(),
-		processingContext_(std::move(addr), sharedData_->container),
+		processingContext_(sharedData_->container, std::move(addr)),
 		lastErrorResponse_(),
 		shutdownReason_("not set"),
 		parser_(),

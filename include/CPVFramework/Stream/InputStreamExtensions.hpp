@@ -9,7 +9,7 @@ namespace cpv::extensions {
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str);
 	
 	/** Read all data from stream and append to given string, must keep stream live until future resolved */
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), InputStreamBase*>>* = nullptr>
 	seastar::future<> readAll(const T& stream, std::string& str) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {
@@ -22,7 +22,7 @@ namespace cpv::extensions {
 	seastar::future<std::string> readAll(InputStreamBase& stream);
 	
 	/** Read all data from stream and return it as string, must keep stream live until future resolved*/
-	template <class T, std::enable_if_t<std::is_same_v<
+	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), InputStreamBase*>>* = nullptr>
 	seastar::future<std::string> readAll(const T& stream) {
 		if (CPV_UNLIKELY(stream.get() == nullptr)) {

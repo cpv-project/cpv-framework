@@ -41,6 +41,9 @@ namespace cpv {
 		
 		/** Move constructor (for incomplete member type) */
 		HttpServer(HttpServer&&);
+
+		/** Move assign operator (for incomplete member type) */
+		HttpServer& operator=(HttpServer&&);
 		
 		/** Destructor (for incomplete member type) */
 		~HttpServer();

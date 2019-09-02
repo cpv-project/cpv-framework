@@ -32,9 +32,8 @@ namespace cpv {
 	private:
 		/** Get a service factory that invoke original descriptor and wrap result with func */
 		template <class TContainer, class TFunc,
-			std::enable_if_t<std::is_convertible_v<
-				std::invoke_result_t<TFunc,
-					const TContainer&, ServiceStorage&, TService&&>, TService>, int> = 0>
+			std::enable_if_t<std::is_invocable_r_v<
+				TService, TFunc, const TContainer&, ServiceStorage&, TService&&>, int> = 0>
 		static std::unique_ptr<ServiceFactoryBase<TService>> getPatchedServiceFactory(
 			ServiceDescriptorPtr&& original, TFunc&& func) {
 			auto patchFunc = [o=std::move(original), f=std::move(func)] (
@@ -47,8 +46,8 @@ namespace cpv {
 		
 		/** Get a service factory that invoke original descriptor and wrap result with func */
 		template <class TContainer, class TFunc,
-			std::enable_if_t<std::is_convertible_v<
-				std::invoke_result_t<TFunc, const TContainer&, TService&&>, TService>, int> = 0>
+			std::enable_if_t<std::is_invocable_r_v<
+				TService, TFunc, const TContainer&, TService&&>, int> = 0>
 		static std::unique_ptr<ServiceFactoryBase<TService>> getPatchedServiceFactory(
 			ServiceDescriptorPtr&& original, TFunc&& func) {
 			auto patchFunc = [o=std::move(original), f=std::move(func)] (
@@ -61,8 +60,8 @@ namespace cpv {
 		
 		/** Get a service factory that invoke original descriptor and wrap result with func */
 		template <class TContainer, class TFunc,
-			std::enable_if_t<std::is_convertible_v<
-				std::invoke_result_t<TFunc, TService&&>, TService>, int> = 0>
+			std::enable_if_t<std::is_invocable_r_v<
+				TService, TFunc, TService&&>, int> = 0>
 		static std::unique_ptr<ServiceFactoryBase<TService>> getPatchedServiceFactory(
 			ServiceDescriptorPtr&& original, TFunc&& func) {
 			auto patchFunc = [o=std::move(original), f=std::move(func)] (

@@ -127,6 +127,9 @@ namespace cpv {
 	/** Move constructor (for incomplete member type) */
 	HttpServer::HttpServer(HttpServer&&) = default;
 	
+	/** Move assign operator (for incomplete member type) */
+	HttpServer& HttpServer::operator=(HttpServer&&) = default;
+
 	/** Destructor (for incomplete type HttpServerData) */
 	HttpServer::~HttpServer() = default;
 }

@@ -214,8 +214,8 @@ namespace cpv {
 	class ServiceFunctionFactory<
 		TService,
 		TFunc,
-		std::enable_if_t<std::is_convertible_v<
-			std::invoke_result_t<TFunc, const Container&, ServiceStorage&>, TService>>> :
+		std::enable_if_t<std::is_invocable_r_v<
+			TService, TFunc, const Container&, ServiceStorage&>>> :
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
@@ -236,8 +236,7 @@ namespace cpv {
 	class ServiceFunctionFactory<
 		TService,
 		TFunc,
-		std::enable_if_t<std::is_convertible_v<
-			std::invoke_result_t<TFunc, const Container&>, TService>>> :
+		std::enable_if_t<std::is_invocable_r_v<TService, TFunc, const Container&>>> :
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
@@ -257,8 +256,7 @@ namespace cpv {
 	class ServiceFunctionFactory<
 		TService,
 		TFunc,
-		std::enable_if_t<std::is_convertible_v<
-			std::invoke_result_t<TFunc>, TService>>> :
+		std::enable_if_t<std::is_invocable_r_v<TService, TFunc>>> :
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
