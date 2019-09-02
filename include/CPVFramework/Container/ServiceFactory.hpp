@@ -68,7 +68,7 @@ namespace cpv {
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
 		
 		/** Create an instance of service */
-		virtual TService operator()(const Container& container, ServiceStorage& storage) const {
+		TService operator()(const Container& container, ServiceStorage& storage) const override {
 			return getServiceInstance<Container>(container, storage, Extensions::IndexSequence);
 		}
 	
@@ -104,8 +104,8 @@ namespace cpv {
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
 		
 		/** Create an instance of service */
-		virtual std::unique_ptr<TService> operator()(
-			const Container& container, ServiceStorage& storage) const {
+		std::unique_ptr<TService> operator()(
+			const Container& container, ServiceStorage& storage) const override {
 			return getServiceInstance<Container>(container, storage, Extensions::IndexSequence);
 		}
 	
@@ -141,8 +141,8 @@ namespace cpv {
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
 		
 		/** Create an instance of service */
-		virtual seastar::shared_ptr<TService> operator()(
-			const Container& container, ServiceStorage& storage) const {
+		seastar::shared_ptr<TService> operator()(
+			const Container& container, ServiceStorage& storage) const override {
 			return getServiceInstance<Container>(container, storage, Extensions::IndexSequence);
 		}
 	
@@ -178,8 +178,8 @@ namespace cpv {
 		using Extensions = DependencyTypesExtensions<DependencyTypes, Container>;
 		
 		/** Create an instance of service */
-		virtual Reusable<TService> operator()(
-			const Container& container, ServiceStorage& storage) const {
+		Reusable<TService> operator()(
+			const Container& container, ServiceStorage& storage) const override {
 			return getServiceInstance<Container>(container, storage, Extensions::IndexSequence);
 		}
 	
@@ -219,8 +219,8 @@ namespace cpv {
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
-		virtual TService operator()(
-			const Container& container, ServiceStorage& storage) const {
+		TService operator()(
+			const Container& container, ServiceStorage& storage) const override {
 			return func_(container, storage);
 		}
 		
@@ -241,7 +241,7 @@ namespace cpv {
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
-		virtual TService operator()(const Container& container, ServiceStorage&) const {
+		TService operator()(const Container& container, ServiceStorage&) const override {
 			return func_(container);
 		}
 		
@@ -262,7 +262,7 @@ namespace cpv {
 		public ServiceFactoryBase<TService> {
 	public:
 		/** Create an instance of service */
-		virtual TService operator()(const Container&, ServiceStorage&) const {
+		TService operator()(const Container&, ServiceStorage&) const override {
 			return func_();
 		}
 		
@@ -278,7 +278,7 @@ namespace cpv {
 	class ServiceExceptionFactory : public ServiceFactoryBase<TService> {
 	public:
 		/** Throw the exception */
-		virtual TService operator()(const Container&, ServiceStorage&) const {
+		TService operator()(const Container&, ServiceStorage&) const override {
 			throw ContainerException(CPV_CODEINFO,
 				"get instance of service type [", typeid(TService).name(),
 				"] error:", message_);
