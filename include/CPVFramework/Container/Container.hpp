@@ -30,7 +30,7 @@ namespace cpv {
 				std::move(instance),
 				std::make_unique<ServiceExceptionFactory<TService>>(
 					"it's registered with instance but still try to invoke factory"),
-				ServiceLifetime::Presistent));
+				ServiceLifetime::Persistent));
 		}
 		
 		/** Register service with function that returns instance of service */

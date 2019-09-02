@@ -20,7 +20,7 @@ namespace cpv {
 		/** The container shared by all concurrent requests on the same core */
 		const Container container;
 
-		/** The storage used only in this request for storage presistent services */
+		/** The storage used only in this request for storage persistent services */
 		ServiceStorage serviceStorage;
 
 		/** Constructor */

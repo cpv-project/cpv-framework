@@ -61,13 +61,13 @@ TEST(TestContainer, addTransientServiceWithImplType) {
 	ASSERT_EQ(instance.name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPresistentServiceWithImplType) {
+TEST(TestContainer, addPersistentServiceWithImplType) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	container.add<
 		seastar::shared_ptr<TestService>,
 		seastar::shared_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::Presistent);
+		cpv::ServiceLifetime::Persistent);
 	auto instanceFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceSecond = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceThird = container.get<seastar::shared_ptr<TestService>>(storageP);
@@ -77,14 +77,14 @@ TEST(TestContainer, addPresistentServiceWithImplType) {
 	ASSERT_EQ(instanceFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addStoragePresistentServiceWithImplType) {
+TEST(TestContainer, addStoragePersistentServiceWithImplType) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
 	container.add<
 		seastar::shared_ptr<TestService>,
 		seastar::shared_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::StoragePresistent);
+		cpv::ServiceLifetime::StoragePersistent);
 	auto instanceBuiltinFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceBuiltinSecond = container.get<seastar::shared_ptr<TestService>>();
 	auto instancePFirst = container.get<seastar::shared_ptr<TestService>>(storageP);
@@ -115,12 +115,12 @@ TEST(TestContainer, addTransientUniquePtrServiceWithImplType) {
 	ASSERT_EQ(instanceSecond->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPresistentSharedPtrServiceWithImplType) {
+TEST(TestContainer, addPersistentSharedPtrServiceWithImplType) {
 	cpv::Container container;
 	container.add<
 		seastar::shared_ptr<TestService>,
 		seastar::shared_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::Presistent);
+		cpv::ServiceLifetime::Persistent);
 	auto instanceFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceSecond = container.get<seastar::shared_ptr<TestService>>();
 	ASSERT_TRUE(instanceFirst.get() != nullptr);
@@ -140,16 +140,16 @@ TEST(TestContainer, addTransientReusableServiceWithImplType) {
 	ASSERT_EQ(instanceSecond->name(), "ImplReusable");
 }
 
-TEST(TestContainer, addPresistentServiceWithInstance) {
+TEST(TestContainer, addPersistentServiceWithInstance) {
 	cpv::Container container;
 	container.add<seastar::shared_ptr<TestService>>(
 		seastar::make_shared<TestImplCustomName>(
-			"TestAddPresistentServiceWithInstance"));
+			"TestAddPersistentServiceWithInstance"));
 	auto instanceFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceSecond = container.get<seastar::shared_ptr<TestService>>();
 	ASSERT_TRUE(instanceFirst.get() != nullptr);
 	ASSERT_EQ(instanceFirst.get(), instanceSecond.get());
-	ASSERT_EQ(instanceFirst->name(), "TestAddPresistentServiceWithInstance");
+	ASSERT_EQ(instanceFirst->name(), "TestAddPersistentServiceWithInstance");
 }
 
 TEST(TestContainer, addTransientServiceWithFunc2Args) {
@@ -158,7 +158,7 @@ TEST(TestContainer, addTransientServiceWithFunc2Args) {
 	container.add<
 		seastar::shared_ptr<TestImplSimple>,
 		seastar::shared_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::StoragePresistent);
+		cpv::ServiceLifetime::StoragePersistent);
 	container.add<seastar::shared_ptr<TestService>>(
 		[] (const cpv::Container& container, cpv::ServiceStorage& storage) {
 			return container.get<seastar::shared_ptr<TestImplSimple>>(storage);
@@ -176,7 +176,7 @@ TEST(TestContainer, addTransientServiceWithFunc2Args) {
 	ASSERT_EQ(instancePFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPresistentServiceWithFunc1Args) {
+TEST(TestContainer, addPersistentServiceWithFunc1Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	container.add<
@@ -185,7 +185,7 @@ TEST(TestContainer, addPresistentServiceWithFunc1Args) {
 	container.add<seastar::shared_ptr<TestService>>(
 		[] (const cpv::Container& container) {
 			return container.get<seastar::shared_ptr<TestImplSimple>>();
-		}, cpv::ServiceLifetime::Presistent);
+		}, cpv::ServiceLifetime::Persistent);
 	auto instanceFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceSecond = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceThird = container.get<seastar::shared_ptr<TestImplSimple>>();
@@ -196,14 +196,14 @@ TEST(TestContainer, addPresistentServiceWithFunc1Args) {
 	ASSERT_EQ(instanceThird->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addStoragePresistentServiceWithFunc0Args) {
+TEST(TestContainer, addStoragePersistentServiceWithFunc0Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
 	container.add<seastar::shared_ptr<TestService>>(
 		[] {
 			return seastar::make_shared<TestImplSimple>();
-		}, cpv::ServiceLifetime::StoragePresistent);
+		}, cpv::ServiceLifetime::StoragePersistent);
 	auto instanceBuiltinFirst = container.get<seastar::shared_ptr<TestService>>();
 	auto instanceBuiltinSecond = container.get<seastar::shared_ptr<TestService>>();
 	auto instancePFirst = container.get<seastar::shared_ptr<TestService>>(storageP);
@@ -251,7 +251,7 @@ TEST(TestContainer, getManyServiceIntoVector) {
 		[] {
 			return seastar::make_shared<TestImplCustomName>(
 				"TestGetManyServiceIntoVector");
-		}, cpv::ServiceLifetime::Presistent);
+		}, cpv::ServiceLifetime::Persistent);
 	std::vector<seastar::shared_ptr<TestService>> instancesFirst;
 	std::vector<seastar::shared_ptr<TestService>> instancesSecond;
 	container.getMany(instancesFirst);
@@ -276,12 +276,12 @@ TEST(TestContainer, getManyServiceIntoStackAllocatedVectorWithStorage) {
 	container.add<
 		seastar::shared_ptr<TestService>,
 		seastar::shared_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::Presistent);
+		cpv::ServiceLifetime::Persistent);
 	container.add<seastar::shared_ptr<TestService>>(
 		[] {
 			return seastar::make_shared<TestImplCustomName>(
 				"TestGetManyServiceIntoVector");
-		}, cpv::ServiceLifetime::StoragePresistent);
+		}, cpv::ServiceLifetime::StoragePersistent);
 	VectorType instancesBuiltinFirst;
 	VectorType instancesBuiltinSecond;
 	VectorType instancesPFirst;
@@ -362,28 +362,28 @@ TEST(TestContainer, errorWhenGetServiceMultipleRegistered) {
 		"failed: registered multiple times");
 }
 
-TEST(TestContainer, errorWhenGetPresistentServiceNotCopyConstructible) {
+TEST(TestContainer, errorWhenGetPersistentServiceNotCopyConstructible) {
 	cpv::Container container;
 	container.add<
 		std::unique_ptr<TestService>,
 		std::unique_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::Presistent);
+		cpv::ServiceLifetime::Persistent);
 	ASSERT_THROWS_CONTAINS(
 		cpv::ContainerException,
 		container.get<std::unique_ptr<TestService>>(),
-		"error: lifetime is presistent but not copy constructible");
+		"error: lifetime is Persistent but not copy constructible");
 }
 
-TEST(TestContainer, errorWhenGetStoragePresistentServiceNotCopyConstructible) {
+TEST(TestContainer, errorWhenGetStoragePersistentServiceNotCopyConstructible) {
 	cpv::Container container;
 	container.add<
 		std::unique_ptr<TestService>,
 		std::unique_ptr<TestImplSimple>>(
-		cpv::ServiceLifetime::StoragePresistent);
+		cpv::ServiceLifetime::StoragePersistent);
 	ASSERT_THROWS_CONTAINS(
 		cpv::ContainerException,
 		container.get<std::unique_ptr<TestService>>(),
-		"error: lifetime is storage presistent but not copy constructible");
+		"error: lifetime is storage persistent but not copy constructible");
 }
 
 TEST(TestContainer, patchTransientServiceWithFunc0Args) {
@@ -403,12 +403,12 @@ TEST(TestContainer, patchTransientServiceWithFunc0Args) {
 	ASSERT_EQ(*count, 2U);
 }
 
-TEST(TestContainer, patchPresistentServiceWithFunc1Args) {
+TEST(TestContainer, patchPersistentServiceWithFunc1Args) {
 	cpv::Container container;
 	container.add<int>(100);
 	container.add<seastar::shared_ptr<int>>([] {
 		return seastar::make_shared<int>(1);
-	}, cpv::ServiceLifetime::Presistent);
+	}, cpv::ServiceLifetime::Persistent);
 	auto count = seastar::make_shared<std::size_t>(0);
 	cpv::ServicePatcher<seastar::shared_ptr<int>>::patch(
 		container, [count] (const cpv::Container& c, seastar::shared_ptr<int> v) {
@@ -421,16 +421,16 @@ TEST(TestContainer, patchPresistentServiceWithFunc1Args) {
 	ASSERT_EQ(*count, 1U);
 }
 
-TEST(TestContainer, patchStoragePresistentServiceWithFunc2Args) {
+TEST(TestContainer, patchStoragePersistentServiceWithFunc2Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
 	container.add<int>([v=seastar::make_shared<int>(0)] {
 		return ++*v;
-	}, cpv::ServiceLifetime::StoragePresistent);
+	}, cpv::ServiceLifetime::StoragePersistent);
 	container.add<seastar::shared_ptr<int>>([] {
 		return seastar::make_shared<int>(100);
-	}, cpv::ServiceLifetime::StoragePresistent);
+	}, cpv::ServiceLifetime::StoragePersistent);
 	auto count = seastar::make_shared<std::size_t>(0);
 	cpv::ServicePatcher<seastar::shared_ptr<int>>::patch(
 		container, [count] (

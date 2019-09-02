@@ -3,7 +3,7 @@
 #include "../Allocators/StackAllocator.hpp"
 
 namespace cpv {
-	/** The storage used to store instance of services with ServiceLifetime::StoragePresistent */
+	/** The storage used to store instance of services with ServiceLifetime::StoragePersistent */
 	class ServiceStorage {
 	public:
 		/** Get the service instance with associated key, may return empty object */
@@ -16,7 +16,7 @@ namespace cpv {
 		void clear();
         
 	private:
-		/** Store service instances with lifetime StoragePresistent, key is pointer of descriptor */
+		/** Store service instances with lifetime StoragePersistent, key is pointer of descriptor */
 		StackAllocatedUnorderedMap<std::uintptr_t, std::any, 16> instances_;
 	};
 }

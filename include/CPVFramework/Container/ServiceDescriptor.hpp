@@ -8,14 +8,14 @@
 namespace cpv {
 	class Container;
 	
-	/** Manage the factory and the presistent instance for a given service implementation */
+	/** Manage the factory and the persistent instance for a given service implementation */
 	template <class TService>
 	class ServiceDescriptor : public ServiceDescriptorBase {
 	public:
 		/** Get an instance of this service */
 		TService getInstance(const Container& container, ServiceStorage& storage) const {
 			try {
-				if (lifetime_ == ServiceLifetime::Presistent) {
+				if (lifetime_ == ServiceLifetime::Persistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
 						if (CPV_UNLIKELY(!instance_.has_value())) {
 							instance_ = (*factory_)(container, storage);
@@ -24,11 +24,11 @@ namespace cpv {
 					} else {
 						throw ContainerException(CPV_CODEINFO,
 							"get instance of service type [", typeid(TService).name(),
-							"] error: lifetime is presistent but not copy constructible");
+							"] error: lifetime is persistent but not copy constructible");
 					}
 				} else if (lifetime_ == ServiceLifetime::Transient) {
 					return (*factory_)(container, storage);
-				} else if (lifetime_ == ServiceLifetime::StoragePresistent) {
+				} else if (lifetime_ == ServiceLifetime::StoragePersistent) {
 					if constexpr (std::is_copy_constructible_v<TService>) {
 						std::uintptr_t key = reinterpret_cast<std::uintptr_t>(this);
 						std::any anyInstance = storage.get(key);
@@ -42,7 +42,7 @@ namespace cpv {
 					} else {
 						throw ContainerException(CPV_CODEINFO,
 							"get instance of service type [", typeid(TService).name(),
-							"] error: lifetime is storage presistent but not copy constructible");
+							"] error: lifetime is storage persistent but not copy constructible");
 					}
 				} else {
 					throw ContainerException(CPV_CODEINFO,
@@ -89,7 +89,7 @@ namespace cpv {
 			lifetime_(lifetime) { }
 		
 	private:
-		mutable std::optional<TService> instance_; // only for ServiceLifetime::Presistent
+		mutable std::optional<TService> instance_; // only for ServiceLifetime::Persistent
 		std::unique_ptr<ServiceFactoryBase<TService>> factory_;
 		ServiceLifetime lifetime_;
 	};
