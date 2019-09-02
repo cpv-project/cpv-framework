@@ -371,7 +371,7 @@ TEST(TestContainer, errorWhenGetPersistentServiceNotCopyConstructible) {
 	ASSERT_THROWS_CONTAINS(
 		cpv::ContainerException,
 		container.get<std::unique_ptr<TestService>>(),
-		"error: lifetime is Persistent but not copy constructible");
+		"error: lifetime is persistent but not copy constructible");
 }
 
 TEST(TestContainer, errorWhenGetStoragePersistentServiceNotCopyConstructible) {
