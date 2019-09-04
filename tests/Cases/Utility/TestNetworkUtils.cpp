@@ -2,7 +2,7 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Exceptions/FormatException.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestNetworkUtils, parseListenAddress) {
 	ASSERT_EQ(cpv::joinString("", cpv::parseListenAddress("192.168.0.1:1000")), "192.168.0.1:1000");

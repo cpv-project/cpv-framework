@@ -2,7 +2,7 @@
 #include <string>
 #include <gtest/gtest.h>
 #include <seastar/core/future.hh>
-#include <CPVFramework/Utility/Packet.hpp>
+#include "../Utility/Packet.hpp"
 
 #define TEST_FUTURE(caseName, testName) \
 	static seastar::future<> caseName##_##testName##_FutureTestBody(); \

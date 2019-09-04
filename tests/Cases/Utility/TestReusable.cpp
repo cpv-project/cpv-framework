@@ -1,5 +1,5 @@
 #include <CPVFramework/Utility/Reusable.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 #include <seastar/core/shared_ptr.hh>
 
 namespace {

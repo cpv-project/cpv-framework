@@ -1,6 +1,6 @@
 #include <functional>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestStackAllocator, allocate) {
 	static constexpr const std::size_t Size = sizeof(int)*4;

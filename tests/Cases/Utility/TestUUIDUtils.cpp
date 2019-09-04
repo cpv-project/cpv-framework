@@ -1,5 +1,5 @@
 #include <CPVFramework/Utility/UUIDUtils.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestUUIDUtils, strToUUID) {
 	cpv::UUIDDataType uuid = cpv::strToUUID("00112233-4455-6677-8899-aabbccddeeff");

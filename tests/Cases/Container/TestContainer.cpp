@@ -1,7 +1,7 @@
 #include <sstream>
 #include <CPVFramework/Container/Container.hpp>
 #include <CPVFramework/Container/ServicePatcher.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	class TestService {

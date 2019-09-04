@@ -3,7 +3,7 @@
 #include <CPVFramework/Http/HttpRequest.hpp>
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestHttpRequest, basic) {
 	cpv::HttpRequest request;

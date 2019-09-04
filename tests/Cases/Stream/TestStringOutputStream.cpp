@@ -2,7 +2,7 @@
 #include <seastar/core/future-util.hh>
 #include <seastar/core/scattered_message.hh>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestStringOutputStream, all) {
 	return seastar::do_with(

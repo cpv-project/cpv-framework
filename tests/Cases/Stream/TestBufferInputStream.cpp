@@ -2,7 +2,7 @@
 #include <string_view>
 #include <seastar/core/future-util.hh>
 #include <CPVFramework/Stream/BufferInputStream.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestBufferInputStream, all) {
 	return seastar::do_with (

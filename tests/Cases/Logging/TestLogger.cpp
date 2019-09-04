@@ -1,5 +1,5 @@
 #include <CPVFramework/Logging/Logger.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestLogger, logLevel) {
 	auto logger = cpv::Logger::createConsole(cpv::LogLevel::Warning);

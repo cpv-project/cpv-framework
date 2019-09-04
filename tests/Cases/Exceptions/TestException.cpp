@@ -1,5 +1,5 @@
 #include <CPVFramework/Exceptions/Exception.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestException, construct) {
 	cpv::Exception exception(CPV_CODEINFO, "some error");

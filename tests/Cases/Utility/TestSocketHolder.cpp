@@ -1,6 +1,6 @@
 #include <seastar/core/reactor.hh>
 #include <CPVFramework/Utility/SocketHolder.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestSocketHolder, all) {
 	// TODO: use httpd here

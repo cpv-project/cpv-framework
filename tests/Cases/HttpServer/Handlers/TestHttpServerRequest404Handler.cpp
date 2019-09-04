@@ -2,7 +2,7 @@
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(HttpServerRequest404Handler, handle) {
 	return seastar::do_with(

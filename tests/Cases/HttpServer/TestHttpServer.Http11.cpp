@@ -3,7 +3,7 @@
 #include <seastar/core/future-util.hh>
 #include <seastar/core/reactor.hh>
 #include <seastar/core/sleep.hh>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 #include "./TestHttpServer.Base.hpp"
 
 TEST_FUTURE(HttpServer_Http11, simple) {

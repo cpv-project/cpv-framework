@@ -1,6 +1,6 @@
 #include <functional>
 #include <CPVFramework/Allocators/DebugAllocator.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	template <class T>

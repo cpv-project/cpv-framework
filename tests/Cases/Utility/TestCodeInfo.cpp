@@ -1,5 +1,5 @@
 #include <CPVFramework/Utility/CodeInfo.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestCodeInfo, construct) {
 	auto codeInfo = CPV_CODEINFO;

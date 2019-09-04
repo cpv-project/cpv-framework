@@ -1,5 +1,5 @@
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestHttpServerConfiguration, all) {
 	cpv::HttpServerConfiguration configuration;

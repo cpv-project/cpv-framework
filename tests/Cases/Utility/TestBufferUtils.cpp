@@ -1,7 +1,7 @@
 #include <limits>
 #include <CPVFramework/Exceptions/OverflowException.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestBufferUtils, mergeContent) {
 	seastar::temporary_buffer<char> buf;

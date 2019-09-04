@@ -2,7 +2,7 @@
 #include <CPVFramework/Http/HttpResponse.hpp>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestHttpResponse, all) {
 	cpv::HttpResponse response;

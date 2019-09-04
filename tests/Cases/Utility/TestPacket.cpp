@@ -1,6 +1,6 @@
 #include <CPVFramework/Utility/Packet.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestPacket, construct) {
 	{

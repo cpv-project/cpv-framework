@@ -1,6 +1,6 @@
 #include <functional>
 #include <CPVFramework/Allocators/StackAllocator.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	template <template <class, std::size_t> class VectorType>

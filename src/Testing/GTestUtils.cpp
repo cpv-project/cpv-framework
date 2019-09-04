@@ -6,7 +6,7 @@
 #include <seastar/core/thread.hh>
 #include <seastar/net/inet_address.hh>
 #include <CPVFramework/Utility/SocketHolder.hpp>
-#include "./GTestUtils.hpp"
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace cpv::gtest {
 	/** the main function of test executable */

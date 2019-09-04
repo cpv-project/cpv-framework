@@ -2,7 +2,7 @@
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Utility/Reusable.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestInputStreamExtensions, readAll) {
 	return seastar::do_with(

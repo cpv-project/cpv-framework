@@ -1,6 +1,6 @@
 #include <CPVFramework/HttpServer/HttpContext.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestHttpContext, all) {
 	{

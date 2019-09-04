@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <CPVFramework/Utility/FileUtils.hpp>
 #include <CPVFramework/Exceptions/FileSystemException.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	static const std::string path("/tmp/cpv-framework-test-file-utils.txt");

@@ -3,7 +3,7 @@
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Exceptions/FormatException.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	class TestHandler : public cpv::HttpServerRequestHandlerBase {

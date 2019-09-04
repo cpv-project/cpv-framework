@@ -3,7 +3,7 @@
 #include <array>
 #include <CPVFramework/Utility/DateUtils.hpp>
 #include <CPVFramework/Exceptions/LengthException.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST(TestDateUtils, formatTimeForHttpHeader) {
 	// time_t always in utc

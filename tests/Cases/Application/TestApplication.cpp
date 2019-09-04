@@ -4,7 +4,7 @@
 #include <seastar/core/reactor.hh>
 #include <CPVFramework/Application/Application.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace {
 	class TestHandleStatesModule : public cpv::ModuleBase {

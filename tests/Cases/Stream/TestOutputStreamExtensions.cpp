@@ -2,7 +2,7 @@
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Utility/Reusable.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 TEST_FUTURE(TestOutputStreamExtensions, writeAll) {
 	return seastar::do_with(

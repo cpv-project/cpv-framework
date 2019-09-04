@@ -1,6 +1,6 @@
 #include <CPVFramework/Utility/EnumUtils.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
-#include <TestUtility/GTestUtils.hpp>
+#include <CPVFramework/Testing/GTestUtils.hpp>
 
 namespace cpv {
 	enum class MyTestEnum {
