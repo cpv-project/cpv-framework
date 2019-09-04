@@ -20,6 +20,12 @@ namespace cpv {
 		http500Handler_ = handler;
 	}
 
+	/** Add custom handler between 404 and 500 handler */
+	void HttpServerModule::addCustomHandler(
+		const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler) {
+		customHandlers_.emplace_back(handler);
+	}
+
 	/** Do some work for given application state */
 	seastar::future<> HttpServerModule::handle(
 		Container& container, ApplicationState state) {
@@ -27,12 +33,17 @@ namespace cpv {
 			if (!http500Handler_) {
 				http500Handler_ = seastar::make_shared<HttpServerRequest500Handler>();
 			}
-			container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(http500Handler_);
+			container.add(http500Handler_);
+		} else if (state == ApplicationState::RegisterServices) {
+			container.add<HttpServerConfiguration>(config_);
+			for (auto& customHandler : customHandlers_) {
+				container.add(customHandler);
+			}
 		} else if (state == ApplicationState::RegisterTailServices) {
 			if (!http404Handler_) {
 				http404Handler_ = seastar::make_shared<HttpServerRequest404Handler>();
 			}
-			container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(http404Handler_);
+			container.add(http404Handler_);
 		} else if (state == ApplicationState::AfterServicesRegistered) {
 			server_ = HttpServer(container);
 		} else if (state == ApplicationState::Starting) {
@@ -48,6 +59,7 @@ namespace cpv {
 		config_(),
 		http404Handler_(),
 		http500Handler_(),
+		customHandlers_(),
 		server_() { }
 }
 

@@ -1,12 +1,13 @@
 #include <seastar/core/future-util.hh>
 #include <seastar/core/reactor.hh>
 #include <seastar/core/sleep.hh>
+#include <CPVFramework/Application/Application.hpp>
+#include <CPVFramework/Application/Modules/LoggingModule.hpp>
+#include <CPVFramework/Application/Modules/HttpServerModule.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
-#include <CPVFramework/HttpServer/HttpServer.hpp>
-#include <CPVFramework/HttpServer/Handlers/HttpServerRequest500Handler.hpp>
-#include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
+#include <CPVFramework/Utility/StringUtils.hpp>
 #include "./TestHttpServer.Base.hpp"
 
 namespace cpv::gtest {
@@ -14,64 +15,39 @@ namespace cpv::gtest {
 	seastar::future<> runHttpServerTest(HttpServerTestFunctions&& testFunctions) {
 		return seastar::do_with(
 			std::move(testFunctions),
-			std::make_unique<std::atomic_bool>(false),
 			std::exception_ptr(),
-			[] (auto& testFunctions, auto& stopFlag, auto& error) {
-			return seastar::parallel_for_each(boost::irange<unsigned>(0, seastar::smp::count),
-				[&testFunctions, &stopFlag, &error] (unsigned c) {
-				return seastar::smp::submit_to(c, [c, &testFunctions, &stopFlag, &error] {
-					// make configuration
-					HttpServerConfiguration configuration;
-					configuration.setListenAddresses({
-						joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
-						joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
-					});
-					if (testFunctions.updateConfiguration != nullptr) {
-						testFunctions.updateConfiguration(configuration);
-					}
-					// make container
-					Container container;
-					container.add(configuration);
-					container.add(Logger::createConsole(LogLevel::Debug));
-					container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(
-						seastar::make_shared<HttpServerRequest500Handler>());
-					if (testFunctions.makeHandlers != nullptr) {
-						auto customHandlers = testFunctions.makeHandlers();
-						for (auto& handler : customHandlers) {
-							container.add(handler);
-						}
-					}
-					container.add<seastar::shared_ptr<HttpServerRequestHandlerBase>>(
-						seastar::make_shared<HttpServerRequest404Handler>());
-					// start http server
-					HttpServer server(container);
-					return seastar::do_with(std::move(server),
-						[c, &testFunctions, &stopFlag, &error](auto& server) {
-						return server.start().then([c, &testFunctions, &stopFlag, &error] {
-							// target function will run on core 0
-							if (c == 0) {
-								return testFunctions.execute().then([&stopFlag] {
-									stopFlag->store(true);
-								}).handle_exception([&stopFlag, &error] (std::exception_ptr ex) {
-									error = std::move(ex);
-									stopFlag->store(true);
-								});
-							} else {
-								return seastar::do_until(
-									[&stopFlag] { return stopFlag->load(); },
-									[] { return seastar::sleep(std::chrono::milliseconds(50)); });
-							}
-						}).then([&server] {
-							return server.stop();
-						}).then([&error] {
-							if (error == nullptr) {
-								return seastar::make_ready_future<>();
-							} else {
-								return seastar::make_exception_future<>(std::move(error));
-							}
-						});
-					});
+			[] (auto& testFunctions, auto& error) {
+			Application application;
+			application.add<LoggingModule>();
+			application.add<HttpServerModule>([&testFunctions] (auto& module) {
+				auto& config = module.getConfig();
+				config.setListenAddresses({
+					joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
+					joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
 				});
+				if (testFunctions.updateConfiguration != nullptr) {
+					testFunctions.updateConfiguration(config);
+				}
+				if (testFunctions.makeHandlers != nullptr) {
+					auto customHandlers = testFunctions.makeHandlers();
+					for (auto& handler : customHandlers) {
+						module.addCustomHandler(handler);
+					}
+				}
+			});
+			return application.start().then([&testFunctions, &error] {
+				return testFunctions.execute()
+					.handle_exception([&error] (std::exception_ptr ex) {
+						error = std::move(ex);
+					});
+			}).then([application] () mutable {
+				return application.stop();
+			}).then([&error] {
+				if (error == nullptr) {
+					return seastar::make_ready_future<>();
+				} else {
+					return seastar::make_exception_future<>(std::move(error));
+				}
 			});
 		});
 	}

@@ -16,7 +16,7 @@ namespace cpv {
 		}
 
 		/** Constructor */
-		HttpServerRequestFunctionHandler(Func func) :
+		explicit HttpServerRequestFunctionHandler(Func func) :
 			func_(std::move(func)) { }
 
 	private:

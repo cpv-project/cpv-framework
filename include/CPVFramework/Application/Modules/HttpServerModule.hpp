@@ -12,6 +12,7 @@ namespace cpv {
 	 * By default, it listens on 127.0.0.1:8000 and use built-in handlers for 404 and 500,
 	 * you can change the configuration by using custom initialize function:
 	 * ```
+	 * application.add<LoggingModule>();
 	 * application.add<HttpServerModule>(auto& module) {
 	 *     auto& config = module.getConfig();
 	 *     config.setListenAddresses({ "0.0.0.0:80" }); // listen on 80 for all hosts
@@ -23,12 +24,20 @@ namespace cpv {
 	 *     // you could see src/HttpServer/Handlers/HttpServerRequest500Handler.cpp
 	 *     // if you want to write a custom 500 handler.
 	 *     module.set500Handler(seastar::make_shared<My500Handler>());
+	 *     // custom handler is for simple application or testing purpose
+	 *     // usually you should use RoutingModule for most cases,
+	 *     // or add a new module to register handles to container
+	 *     module.addCustomHandler(seastar::make_shared<MyHandler>());
 	 * });
 	 * ```
 	 *
 	 * This module will make the http server start when application start,
 	 * and make the http server stop when application stop, on each cpu cores,
 	 * no addition code are required.
+	 *
+	 * Notice:
+	 * This module require seastar::shared_ptr<Logger> registered in container,
+	 * please also add LoggingModule to application.
 	 */
 	class HttpServerModule : public ModuleBase {
 	public:
@@ -43,13 +52,26 @@ namespace cpv {
 			std::is_base_of_v<
 				HttpServerRequestHandlerBase,
 				HttpServerRequestFunctionHandler<Func>>, int> = 0>
-		void set404Handler(Func&& func) {
+		void set404Handler(Func func) {
 			set404Handler(seastar::make_shared<
-				HttpServerRequestFunctionHandler>(std::forward<Func>(func)));
+				HttpServerRequestFunctionHandler<Func>>(std::move(func)));
 		}
 
 		/** Set the request handler for exception (usually be the first handler) */
 		void set500Handler(const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler);
+
+		/** Add custom handler between 404 and 500 handler */
+		void addCustomHandler(const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler);
+
+		/** Add custom handler between 404 and 500 handler */
+		template <class Func, std::enable_if_t<
+			std::is_base_of_v<
+				HttpServerRequestHandlerBase,
+				HttpServerRequestFunctionHandler<Func>>, int> = 0>
+		void addCustomHandler(Func func) {
+			addCustomHandler(seastar::make_shared<
+				HttpServerRequestFunctionHandler<Func>>(std::move(func)));
+		}
 
 		/** Do some work for given application state */
 		seastar::future<> handle(Container& container, ApplicationState state) override;
@@ -61,6 +83,7 @@ namespace cpv {
 		HttpServerConfiguration config_;
 		seastar::shared_ptr<HttpServerRequestHandlerBase> http404Handler_;
 		seastar::shared_ptr<HttpServerRequestHandlerBase> http500Handler_;
+		HttpServerRequestHandlerCollection customHandlers_;
 		std::optional<HttpServer> server_; // lazy initialized
 	};
 }
