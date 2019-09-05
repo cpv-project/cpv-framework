@@ -68,6 +68,9 @@ namespace cpv {
 		/** Constructor */
 		HttpResponse();
 		
+		/** Constructor for null response */
+		explicit HttpResponse(nullptr_t);
+		
 	private:
 		Reusable<HttpResponseData> data_;
 	};

@@ -1,6 +1,8 @@
 #pragma once
 #include <seastar/net/api.hh>
 #include "../Container/Container.hpp"
+#include "../Container/Container.hpp"
+#include "../Container/ServiceStorage.hpp"
 #include "../Http/HttpRequest.hpp"
 #include "../Http/HttpResponse.hpp"
 
@@ -8,46 +10,72 @@ namespace cpv {
 	/** The context type for handling single http request on http server */
 	class HttpContext {
 	public:
-		/** The request received from client */
-		HttpRequest request;
+		/** Get the request received from http client */
+		HttpRequest& getRequest() & { return request_; }
+		const HttpRequest& getRequest() const& { return request_; }
 
-		/** The response reply to client */
-		HttpResponse response;
+		/** Get the response reply to http client */
+		HttpResponse& getResponse() & { return response_; }
+		const HttpResponse& getResponse() const& { return response_; }
 
-		/** The socket address of client */
-		seastar::socket_address clientAddress;
+		/** Get the socket address of http client */
+		const seastar::socket_address& getClientAddress() const& { return clientAddress_; }
 
-		/** The container shared by all concurrent requests on the same core */
-		const Container container;
+		/** Get service instance with service storage associated with this context */
+		template <class TService>
+		TService getService() const {
+			return container_.get<TService>(serviceStorage_);
+		}
 
-		/** The storage used only in this request for storage persistent services */
-		ServiceStorage serviceStorage;
+		/** Get service instances with service storage associated with this context */
+		template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
+		std::size_t getManyServices(T& collection) const {
+			return container_.getMany<T>(collection, serviceStorage_);
+		}
+
+		/** Update the request and the response in this context */
+		void setRequestResponse(HttpRequest&& request, HttpResponse&& response) {
+			request_ = std::move(request);
+			response_ = std::move(response);
+		}
+
+		/** Set the socket address of http client */
+		void setClientAddress(seastar::socket_address&& clientAddress) {
+			clientAddress_ = std::move(clientAddress);
+		}
+
+		/** Update the container in this context */
+		void setContainer(const Container& container) {
+			container_ = container;
+		}
+
+		/** Clear the service storage, usually you should call it after setRequestResponse */
+		void clearServiceStorage()	{
+			serviceStorage_.clear();
+		}
 
 		/** Constructor */
 		HttpContext() :
-			request(),
-			response(),
-			clientAddress(seastar::make_ipv4_address(0, 0)),
-			container(),
-			serviceStorage() { }
+			request_(),
+			response_(),
+			clientAddress_(seastar::make_ipv4_address(0, 0)),
+			container_(),
+			serviceStorage_() { }
 
-		/** Constructor */
-		HttpContext(const Container& containerVal) :
-			request(),
-			response(),
-			clientAddress(seastar::make_ipv4_address(0, 0)),
-			container(containerVal),
-			serviceStorage() { }
+		/** Constructor for null context, should set members later */
+		HttpContext(nullptr_t) :
+			request_(nullptr),
+			response_(nullptr),
+			clientAddress_(),
+			container_(nullptr),
+			serviceStorage_() { }
 
-		/** Constructor */
-		HttpContext(
-			const Container& containerVal,
-			seastar::socket_address&& clientAddressVal) :
-			request(),
-			response(),
-			clientAddress(std::move(clientAddressVal)),
-			container(containerVal),
-			serviceStorage() { }
+	private:
+		HttpRequest request_;
+		HttpResponse response_;
+		seastar::socket_address clientAddress_;
+		Container container_;
+		mutable ServiceStorage serviceStorage_;
 	};
 }
 

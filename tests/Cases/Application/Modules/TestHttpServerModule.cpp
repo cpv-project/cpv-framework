@@ -14,7 +14,7 @@ namespace {
 			return seastar::futurize_apply([&context, &next] {
 				return (*next)->handle(context, next + 1);
 			}).handle_exception([&context] (std::exception_ptr) {
-				auto& response = context.response;
+				auto& response = context.getResponse();
 				response.setStatusCode(cpv::constants::_500);
 				response.setStatusMessage("Custom Internal Server Error");
 				return seastar::make_ready_future<>();
@@ -102,7 +102,7 @@ TEST_FUTURE(TestHttpServerModule, set404Handler) {
 			cpv::joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
 		});
 		module.set404Handler([] (cpv::HttpContext& context) {
-			auto& response = context.response;
+			auto& response = context.getResponse();
 			response.setStatusCode(cpv::constants::_404);
 			response.setStatusMessage("Custom Not Found");
 			return seastar::make_ready_future<>();
@@ -162,7 +162,7 @@ TEST_FUTURE(TestHttpServerModule, addCustomHandler) {
 			cpv::joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),
 		});
 		module.addCustomHandler([] (cpv::HttpContext& context) {
-			auto& response = context.response;
+			auto& response = context.getResponse();
 			response.setStatusCode(cpv::constants::_200);
 			response.setStatusMessage("Custom OK");
 			return seastar::make_ready_future<>();

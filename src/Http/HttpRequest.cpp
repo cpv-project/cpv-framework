@@ -80,5 +80,9 @@ namespace cpv {
 	/** Constructor */
 	HttpRequest::HttpRequest() :
 		data_(makeReusable<HttpRequestData>()) { }
+	
+	/** Constructor for null request */
+	HttpRequest::HttpRequest(nullptr_t) :
+		data_(Reusable<HttpRequestData>()) { }
 }
 

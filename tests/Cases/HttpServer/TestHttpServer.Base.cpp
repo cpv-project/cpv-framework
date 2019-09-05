@@ -62,8 +62,8 @@ namespace cpv::gtest {
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
 		using namespace cpv;
-		auto& request = context.request;
-		auto& response = context.response;
+		auto& request = context.getRequest();
+		auto& response = context.getResponse();
 		Packet p;
 		p.append("request method: ").append(request.getMethod()).append("\r\n")
 			.append("request url: ").append(request.getUrl()).append("\r\n")
@@ -84,8 +84,8 @@ namespace cpv::gtest {
 	seastar::future<> HttpCheckBodyHandler::handle(
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
-		auto& request = context.request;
-		auto& response = context.response;
+		auto& request = context.getRequest();
+		auto& response = context.getResponse();
 		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
 			response.setStatusCode(constants::_200);
 			response.setStatusMessage(constants::OK);
@@ -100,7 +100,7 @@ namespace cpv::gtest {
 	seastar::future<> HttpLengthNotFixedHandler::handle(
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
-		auto& response = context.response;
+		auto& response = context.getResponse();
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
@@ -112,7 +112,7 @@ namespace cpv::gtest {
 	seastar::future<> HttpWrittenSizeNotMatchedHandler::handle(
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
-		auto& response = context.response;
+		auto& response = context.getResponse();
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);

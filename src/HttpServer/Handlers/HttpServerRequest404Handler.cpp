@@ -7,7 +7,7 @@ namespace cpv {
 	seastar::future<> HttpServerRequest404Handler::handle(
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
-		auto& response = context.response;
+		auto& response = context.getResponse();
 		response.setStatusCode(constants::_404);
 		response.setStatusMessage(constants::NotFound);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);

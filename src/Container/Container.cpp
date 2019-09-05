@@ -6,6 +6,10 @@ namespace cpv {
 	Container::Container() :
 		data_(seastar::make_shared<ContainerData>()) { }
 	
+	/** Constructor for null container */
+	Container::Container(std::nullptr_t) :
+		data_(nullptr) { }
+	
 	/** Associate a descriptor to given service type */
 	void Container::addDescriptor(
 		const std::type_index& serviceType, ServiceDescriptorPtr&& serviceDescriptor) {

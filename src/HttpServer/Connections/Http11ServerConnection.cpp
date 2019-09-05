@@ -138,7 +138,7 @@ namespace cpv {
 			}
 			// log and update state to closed
 			self->sharedData_->logger->log(LogLevel::Info,
-				"closed http connection from:", self->processingContext_.clientAddress,
+				"closed http connection from:", self->processingContext_.getClientAddress(),
 				", reason:", self->shutdownReason_,
 				", remain connections count:", connectionsCount);
 			self->state_ = Http11ServerConnectionState::Closed;
@@ -177,7 +177,7 @@ namespace cpv {
 		requestBodyQueue_(sharedData_->configuration.getRequestBodyQueueSize()),
 		newRequest_(),
 		nextRequestBuffer_(),
-		processingContext_(sharedData_->container, std::move(addr)),
+		processingContext_(nullptr),
 		lastErrorResponse_(),
 		shutdownReason_("not set"),
 		parser_(),
@@ -185,6 +185,9 @@ namespace cpv {
 		replyLoopData_() {
 		// initialize http parser (will initialize again for next request)
 		internal::http_parser::http_parser_init(&parser_, internal::http_parser::HTTP_REQUEST);
+		// initialize processing context
+		processingContext_.setClientAddress(std::move(addr));
+		processingContext_.setContainer(sharedData_->container);
 	}
 	
 	/** Shutdown connection, break receive and reply loop */
@@ -215,7 +218,7 @@ namespace cpv {
 			sharedData_->metricData.request_errors += 1;
 			sharedData_->logger->log(LogLevel::Info,
 				"exception occurs when receive http request from",
-				processingContext_.clientAddress, ":", ex);
+				processingContext_.getClientAddress(), ":", ex);
 			shutdown("exception occurs when receive request");
 		});
 	}
@@ -292,7 +295,7 @@ namespace cpv {
 					sharedData_->metricData.request_invalid_format_errors += 1;
 					lastErrorResponse_ = InvalidHttpRequestFormat;
 					sharedData_->logger->log(LogLevel::Info,
-						"http request format error from client", processingContext_.clientAddress,
+						"http request format error from client", processingContext_.getClientAddress(),
 						", error:", internal::http_parser::http_errno_name(err),
 						", description:", internal::http_parser::http_errno_description(err),
 						", state:", state_);
@@ -368,7 +371,7 @@ namespace cpv {
 			sharedData_->metricData.request_errors += 1;
 			sharedData_->logger->log(LogLevel::Info,
 				"exception occurs when reply http response to",
-				processingContext_.clientAddress, ":", ex);
+				processingContext_.getClientAddress(), ":", ex);
 			shutdown("exception occurs when reply response");
 			return replyResponseLoop(); // send error response
 		});
@@ -388,18 +391,18 @@ namespace cpv {
 		}
 		// pop request from queue
 		return requestQueue_.pop_eventually().then([this] (RequestEntry entry) {
-			// setup request and response
-			processingContext_.request = std::move(entry.request);
-			processingContext_.response = {};
-			processingContext_.request.setBodyStream(
+			// setup processing context
+			HttpResponse response;
+			entry.request.setBodyStream(
 				makeReusable<Http11ServerConnectionRequestStream>(this).cast<InputStreamBase>());
-			processingContext_.response.setBodyStream(
+			response.setBodyStream(
 				makeReusable<Http11ServerConnectionResponseStream>(this).cast<OutputStreamBase>());
+			processingContext_.setRequestResponse(std::move(entry.request), std::move(response));
+			processingContext_.clearServiceStorage();
+			// reset reply loop data
 			replyLoopData_ = {};
 			replyLoopData_.requestId = entry.id;
 			replyLoopData_.requestBodyConsumed = !entry.hasBody;
-			// clear service storage
-			processingContext_.serviceStorage.clear();
 			// invoke the first handler
 			return sharedData_->handlers.front()->handle(
 				processingContext_,
@@ -448,7 +451,7 @@ namespace cpv {
 		// +4: connection header, colon + space, header value, crlf
 		// + headers count * 4
 		// +1: crlf
-		return 19 + processingContext_.response.getHeaders().maxSize() * 4;
+		return 19 + processingContext_.getResponse().getHeaders().maxSize() * 4;
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
@@ -458,27 +461,28 @@ namespace cpv {
 			return;
 		}
 		replyLoopData_.responseHeadersAppended = true;
+		auto& response = processingContext_.getResponse();
 		// set protocol version
-		std::string_view version = processingContext_.response.getVersion();
+		std::string_view version = response.getVersion();
 		if (CPV_LIKELY(version.empty())) {
 			// copy version from request
-			version = processingContext_.request.getVersion();
+			version = processingContext_.getRequest().getVersion();
 			if (CPV_UNLIKELY(version.empty())) {
 				// request version is unsupported
 				version = constants::Http10;
 			}
 			// store version for keepalive determination later
-			processingContext_.response.setVersion(version);
+			response.setVersion(version);
 		}
 		// return a special status code for handler didn't set it
 		if (CPV_UNLIKELY(
-			processingContext_.response.getStatusCode().empty() ||
-			processingContext_.response.getStatusMessage().empty())) {
-			processingContext_.response.setStatusCode("0");
-			processingContext_.response.setStatusMessage("Status code or status message not set");
+			response.getStatusCode().empty() ||
+			response.getStatusMessage().empty())) {
+			response.setStatusCode("0");
+			response.setStatusMessage("Status code or status message not set");
 		}
 		// set date header
-		auto& responseHeaders = processingContext_.response.getHeaders();
+		auto& responseHeaders = response.getHeaders();
 		if (CPV_LIKELY(responseHeaders.getDate().empty())) {
 			responseHeaders.setDate(formatNowForHttpHeader());
 		}
@@ -509,9 +513,9 @@ namespace cpv {
 		fragments.resize(index + getResponseHeadersFragmentsCount());
 		fragments[index++] = Packet::toFragment(version);
 		fragments[index++] = Packet::toFragment(constants::Space);
-		fragments[index++] = Packet::toFragment(processingContext_.response.getStatusCode());
+		fragments[index++] = Packet::toFragment(response.getStatusCode());
 		fragments[index++] = Packet::toFragment(constants::Space);
-		fragments[index++] = Packet::toFragment(processingContext_.response.getStatusMessage());
+		fragments[index++] = Packet::toFragment(response.getStatusMessage());
 		fragments[index++] = Packet::toFragment(constants::CRLF);
 		responseHeaders.foreach([&fragments, &index] (const auto& key, const auto& value) {
 			fragments[index++] = Packet::toFragment(key);
@@ -525,7 +529,7 @@ namespace cpv {
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
 	bool Http11ServerConnection::checkKeepaliveByConnnectionHeader() const {
-		auto& requestHeaders = processingContext_.request.getHeaders();
+		auto& requestHeaders = processingContext_.getRequest().getHeaders();
 		auto connectionValue = requestHeaders.getConnection();
 		if (CPV_LIKELY(connectionValue == constants::Keepalive)) {
 			// client wants to keepalive
@@ -535,7 +539,7 @@ namespace cpv {
 			// client doesn't want to keepalive
 			// it may be "close" or other unsupported string literal
 			return false;
-		} else if (processingContext_.response.getVersion() == constants::Http10) {
+		} else if (processingContext_.getResponse().getVersion() == constants::Http10) {
 			// for http 1.0, keepalive is disabled by default
 			return false;
 		} else {
@@ -547,7 +551,7 @@ namespace cpv {
 	/** (for reply loop) Determine whether keep connection or not by checking content length */
 	bool Http11ServerConnection::checkKeepaliveByContentLength() const {
 		// check whether content length is fixed or chunked
-		auto& responseHeaders = processingContext_.response.getHeaders();
+		auto& responseHeaders = processingContext_.getResponse().getHeaders();
 		auto contentLengthValue = responseHeaders.getContentLength();
 		if (CPV_UNLIKELY(contentLengthValue.empty())) {
 			// content length did not set, check transfer encoding
@@ -562,14 +566,14 @@ namespace cpv {
 				contentLengthValue.data(), contentLengthValue.size(), contentLength))) {
 				sharedData_->logger->log(LogLevel::Warning,
 					"going to close inconsistent connection from",
-					processingContext_.clientAddress,
+					processingContext_.getClientAddress(),
 					"because content length of response isn't integer");
 				return false;
 			}
 			if (CPV_UNLIKELY(contentLength != replyLoopData_.responseWrittenBytes)) {
 				sharedData_->logger->log(LogLevel::Warning,
 					"going to close inconsistent connection from",
-					processingContext_.clientAddress,
+					processingContext_.getClientAddress(),
 					"because content length of response doesn't matched to written size");
 				return false;
 			}

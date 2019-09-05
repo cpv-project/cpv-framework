@@ -7,6 +7,17 @@ namespace cpv::constants {
 	extern const std::string Http11;
 	extern const std::string Http12;
 	
+	// methods
+	extern const std::string GET;
+	extern const std::string HEAD;
+	extern const std::string POST;
+	extern const std::string PUT;
+	extern const std::string DELETE;
+	extern const std::string CONNECT;
+	extern const std::string OPTIONS;
+	extern const std::string TRACE;
+	extern const std::string PATCH;
+	
 	// status codes
 	extern const std::string _100;
 	extern const std::string _101;

@@ -64,6 +64,9 @@ namespace cpv {
 		
 		/** Constructor */
 		HttpRequest();
+		
+		/** Constructor for null request */
+		explicit HttpRequest(nullptr_t);
 
 	private:
 		Reusable<HttpRequestData> data_;

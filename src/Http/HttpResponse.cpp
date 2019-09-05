@@ -80,5 +80,9 @@ namespace cpv {
 	/** Constructor */
 	HttpResponse::HttpResponse() :
 		data_(makeReusable<HttpResponseData>()) { }
+	
+	/** Constructor for null response */
+	HttpResponse::HttpResponse(nullptr_t) :
+		data_(Reusable<HttpResponseData>()) { }
 }
 

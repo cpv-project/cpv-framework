@@ -8,8 +8,8 @@ namespace cpv {
 		seastar::future<> reply500Response(
 			HttpContext& context,
 			std::exception_ptr ex) {
-			auto& response = context.response;
-			auto logger = context.container.get<seastar::shared_ptr<Logger>>();
+			auto& response = context.getResponse();
+			auto logger = context.getService<seastar::shared_ptr<Logger>>();
 			// generate a time uuid as error id
 			std::string uuidStr(uuidToStr(makeTimeUUID()));
 			// log error

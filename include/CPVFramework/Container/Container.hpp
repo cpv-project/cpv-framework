@@ -82,6 +82,9 @@ namespace cpv {
 		/** Constructor */
 		Container();
 		
+		/** Constructor for null container */
+		explicit Container(std::nullptr_t);
+		
 	private:
 		template <class DependencyTypes, class ContainerType>
 		friend struct DependencyTypesExtensions;

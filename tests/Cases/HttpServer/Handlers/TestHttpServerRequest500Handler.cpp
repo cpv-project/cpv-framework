@@ -30,21 +30,21 @@ namespace {
 }
 
 TEST_FUTURE(HttpServerRequest500Handler, handle) {
-	auto logger = seastar::make_shared<TestLogger>();
-	cpv::Container container;
-	container.add<seastar::shared_ptr<cpv::Logger>>(logger);
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
-		cpv::HttpContext(container),
+		cpv::HttpContext(),
 		seastar::make_lw_shared<std::string>(),
-		std::move(logger),
+		seastar::make_shared<TestLogger>(),
 		[] (auto& handlers, auto& context, auto& str, auto& logger) {
+		cpv::Container container;
+		container.add<seastar::shared_ptr<cpv::Logger>>(logger);
+		context.setContainer(container);
+		context.getResponse().setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>());
 		handlers.emplace_back(seastar::make_shared<TestHandler>());
-		context.response.setBodyStream(
-			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 		return handlers.at(0)->handle(context, handlers.begin()+1).then([&context, &str, &logger] {
-			auto& response = context.response;
+			auto& response = context.getResponse();
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_500);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::InternalServerError);
 			auto& headers = response.getHeaders();

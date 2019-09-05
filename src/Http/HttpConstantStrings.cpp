@@ -6,6 +6,17 @@ namespace cpv::constants {
 	const std::string Http11("HTTP/1.1");
 	const std::string Http12("HTTP/1.2");
 	
+	// methods
+	const std::string GET("GET");
+	const std::string HEAD("HEAD");
+	const std::string POST("POST");
+	const std::string PUT("PUT");
+	const std::string DELETE("DELETE");
+	const std::string CONNECT("CONNECT");
+	const std::string OPTIONS("OPTIONS");
+	const std::string TRACE("TRACE");
+	const std::string PATCH("PATCH");
+
 	// status codes
 	const std::string _100("100");
 	const std::string _101("101");
