@@ -18,7 +18,9 @@ namespace cpv::gtest {
 			std::exception_ptr(),
 			[] (auto& testFunctions, auto& error) {
 			Application application;
-			application.add<LoggingModule>();
+			application.add<LoggingModule>([] (auto& module) {
+				module.setLogger(Logger::createNoop());
+			});
 			application.add<HttpServerModule>([&testFunctions] (auto& module) {
 				auto& config = module.getConfig();
 				config.setListenAddresses({

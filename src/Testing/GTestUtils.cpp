@@ -77,8 +77,8 @@ namespace cpv::gtest {
 								return seastar::sleep(interval);
 							}).then([] {
 								return seastar::stop_iteration::no;
-							}).handle_exception([] (std::exception_ptr ex) {
-								std::cerr << "<Test> send partial request failed: " << ex << std::endl;
+							}).handle_exception([] (std::exception_ptr) {
+								// ignore error for limitation testing
 								return seastar::stop_iteration::yes;
 							});
 						} else {

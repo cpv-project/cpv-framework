@@ -25,7 +25,9 @@ namespace {
 
 TEST_FUTURE(TestHttpServerModule, startStop) {
 	cpv::Application application;
-	application.add<cpv::LoggingModule>();
+	application.add<cpv::LoggingModule>([] (auto& module) {
+		module.setLogger(cpv::Logger::createNoop());
+	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
@@ -39,7 +41,9 @@ TEST_FUTURE(TestHttpServerModule, startStop) {
 
 TEST_FUTURE(TestHttpServerModule, default404Handler) {
 	cpv::Application application;
-	application.add<cpv::LoggingModule>();
+	application.add<cpv::LoggingModule>([] (auto& module) {
+		module.setLogger(cpv::Logger::createNoop());
+	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
@@ -65,7 +69,6 @@ TEST_FUTURE(TestHttpServerModule, default404Handler) {
 TEST_FUTURE(TestHttpServerModule, default500Handler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
-		// ignore error message
 		module.setLogger(cpv::Logger::createNoop());
 	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
@@ -95,7 +98,9 @@ TEST_FUTURE(TestHttpServerModule, default500Handler) {
 
 TEST_FUTURE(TestHttpServerModule, set404Handler) {
 	cpv::Application application;
-	application.add<cpv::LoggingModule>();
+	application.add<cpv::LoggingModule>([] (auto& module) {
+		module.setLogger(cpv::Logger::createNoop());
+	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
@@ -126,7 +131,9 @@ TEST_FUTURE(TestHttpServerModule, set404Handler) {
 
 TEST_FUTURE(TestHttpServerModule, set500Handler) {
 	cpv::Application application;
-	application.add<cpv::LoggingModule>();
+	application.add<cpv::LoggingModule>([] (auto& module) {
+		module.setLogger(cpv::Logger::createNoop());
+	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
@@ -155,7 +162,9 @@ TEST_FUTURE(TestHttpServerModule, set500Handler) {
 
 TEST_FUTURE(TestHttpServerModule, addCustomHandler) {
 	cpv::Application application;
-	application.add<cpv::LoggingModule>();
+	application.add<cpv::LoggingModule>([] (auto& module) {
+		module.setLogger(cpv::Logger::createNoop());
+	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
