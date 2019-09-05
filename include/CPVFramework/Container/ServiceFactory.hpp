@@ -225,7 +225,8 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		explicit ServiceFunctionFactory(TFunc func) :
+			func_(std::move(func)) { }
 		
 	private:
 		TFunc func_;
@@ -245,7 +246,8 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		explicit ServiceFunctionFactory(TFunc func) :
+			func_(std::move(func)) { }
 		
 	private:
 		TFunc func_;
@@ -265,7 +267,8 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		explicit ServiceFunctionFactory(TFunc&& func) : func_(std::move(func)) { }
+		explicit ServiceFunctionFactory(TFunc func) :
+			func_(std::move(func)) { }
 		
 	private:
 		TFunc func_;
@@ -283,7 +286,8 @@ namespace cpv {
 		}
 		
 		/** Constructor **/
-		explicit ServiceExceptionFactory(const char* message) : message_(message) { }
+		explicit ServiceExceptionFactory(const char* message) :
+			message_(message) { }
 		
 	private:
 		const char* message_;
