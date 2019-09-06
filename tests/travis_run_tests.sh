@@ -28,6 +28,7 @@ docker run \
   --privileged \
   --net host \
   --volume "${PROJECT_DIR}:/project" \
+  --sysctl net.core.somaxconn=65535 \
   ubuntu:18.04 \
   bash -c "$Command"
 
