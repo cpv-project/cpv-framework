@@ -97,17 +97,17 @@ namespace cpv {
 	}
 
 	/**
-	 * Convert fixed size (sizeof(IntType)*2) hex string to integer.
+	 * Convert dynamic size hex string to integer.
 	 * Return whether the coversion is successful.
 	 */
 	template <class IntType>
-	bool loadIntFromHex(const char* hex, IntType& value) {
-		static const std::size_t hexLen = sizeof(IntType) * 2;
+	bool loadIntFromHex(const char* hex, std::size_t hexLen, IntType& value) {
 		using UnsignedIntType = std::make_unsigned_t<IntType>;
 		std::uint8_t diff = 0;
 		UnsignedIntType uvalue = 0; // avoid sanitizer warning: left shift of negative value
-		for (std::size_t i = 0; i < hexLen; ++i) {
-			std::uint8_t c = static_cast<std::uint8_t>(hex[i]);
+		const char* hexEnd = hex + hexLen;
+		for (; hex < hexEnd; ++hex) {
+			std::uint8_t c = static_cast<std::uint8_t>(*hex);
 			if (c == 0) {
 				return false;
 			} else if ((diff = c - '0') <= 9) {
@@ -122,6 +122,15 @@ namespace cpv {
 		}
 		value = static_cast<IntType>(uvalue);
 		return true;
+	}
+
+	/**
+	 * Convert fixed size (sizeof(IntType)*2) hex string to integer.
+	 * Return whether the coversion is successful.
+	 */
+	template <class IntType>
+	bool loadIntFromHex(const char* hex, IntType& value) {
+		return loadIntFromHex<IntType>(hex, sizeof(IntType)*2, value);
 	}
 
 	/**
