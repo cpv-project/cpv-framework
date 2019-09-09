@@ -104,7 +104,7 @@ namespace cpv {
 
 	/** Get the enum value from it's description string */
 	template <class T, std::enable_if_t<sizeof(EnumDescriptions<T>::get()), int> = 0>
-	T enumFromString(const std::string_view& str, T defaultValue = {}) {
+	T enumFromString(std::string_view str, T defaultValue = {}) {
 		auto& descriptions = EnumDescriptions<T>::get();
 		for (const auto& pair : descriptions) {
 			if (str == pair.second) {

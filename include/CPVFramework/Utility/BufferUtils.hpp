@@ -15,7 +15,7 @@ namespace cpv {
 	void mergeContent(
 		seastar::temporary_buffer<char>& buffer,
 		std::string_view& existsContent,
-		const std::string_view& newContent);
+		std::string_view newContent);
 	
 	/** Convert unsigned integer to string and return a temporary buffer store the string */
 	seastar::temporary_buffer<char> convertIntToBuffer(std::uintmax_t value);

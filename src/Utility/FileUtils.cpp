@@ -7,7 +7,7 @@
 
 namespace cpv {
 	/** A shortcut function to read file contents */
-	std::string readFile(const std::string_view& filename) {
+	std::string readFile(std::string_view filename) {
 		std::ifstream file(
 			std::string(filename), // replace to std::filesystem::u8path?
 			std::ios::in | std::ios::binary);
@@ -25,7 +25,7 @@ namespace cpv {
 	}
 
 	/** A shortcut function to write file contents */
-	void writeFile(const std::string_view& filename, const std::string_view& contents) {
+	void writeFile(std::string_view filename, std::string_view contents) {
 		std::ofstream file(
 			std::string(filename), // replace to std::filesystem::u8path?
 			std::ios::out | std::ios::binary);

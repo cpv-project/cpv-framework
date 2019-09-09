@@ -33,7 +33,7 @@ namespace cpv {
 	void mergeContent(
 		seastar::temporary_buffer<char>& buffer,
 		std::string_view& existsContent,
-		const std::string_view& newContent) {
+		std::string_view newContent) {
 		if (CPV_UNLIKELY(std::numeric_limits<std::size_t>::max() - existsContent.size() < newContent.size())) {
 			throw OverflowException(CPV_CODEINFO, "size of existsContent + newContent overflowed");
 		}

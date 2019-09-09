@@ -24,7 +24,7 @@ namespace cpv {
 	}
 
 	/** Append static string to packet */
-	Packet& Packet::append(const std::string_view& str) & {
+	Packet& Packet::append(std::string_view str) & {
 		if (auto ptr = getIfMultiple()) {
 			ptr->fragments.emplace_back(Packet::toFragment(str));
 		} else if (auto ptr = getIfSingle()) {
@@ -47,7 +47,7 @@ namespace cpv {
 	}
 
 	/** Append dynamic string and it's deleter to packet */
-	Packet& Packet::append(const std::string_view& str, seastar::deleter&& deleter) & {
+	Packet& Packet::append(std::string_view str, seastar::deleter&& deleter) & {
 		if (auto ptr = getIfMultiple()) {
 			ptr->fragments.emplace_back(Packet::toFragment(str));
 			ptr->deleter.append(std::move(deleter));

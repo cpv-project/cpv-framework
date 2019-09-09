@@ -24,13 +24,13 @@ namespace cpv {
 		std::string_view getVersion() const&;
 		
 		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(const std::string_view& version);
+		void setVersion(std::string_view version);
 		
 		/** Get the status code, e.g. "404" */
 		std::string_view getStatusCode() const&;
 		
 		/** Set the status code, must add underlying buffer first unless it's static string */
-		void setStatusCode(const std::string_view& statusCode);
+		void setStatusCode(std::string_view statusCode);
 		
 		/** Get the reason message of status code, e.g. "Not Found" */
 		std::string_view getStatusMessage() const&;
@@ -39,18 +39,18 @@ namespace cpv {
 		 * Set the reason message of status code,
 		 *	must add underlying buffer first unless it's static string.
 		 */
-		void setStatusMessage(const std::string_view& statusMessage);
+		void setStatusMessage(std::string_view statusMessage);
 		
 		/** Get response headers */
 		HttpResponseHeaders& getHeaders() &;
 		const HttpResponseHeaders& getHeaders() const&;
 		
 		/** Set response header, must add underlying buffer first unless it's a static string */
-		void setHeader(const std::string_view& key, const std::string_view& value);
+		void setHeader(std::string_view key, std::string_view value);
 		
 		/** Set response header to integer value */
 		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-		void setHeader(const std::string_view& key, T value);
+		void setHeader(std::string_view key, T value);
 		
 		/** Get underlying buffers */
 		UnderlyingBuffersType& getUnderlyingBuffers() &;
@@ -77,7 +77,7 @@ namespace cpv {
 	
 	/** Set response header to integer value */
 	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	void HttpResponse::setHeader(const std::string_view& key, T value) {
+	void HttpResponse::setHeader(std::string_view key, T value) {
 		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
 			setHeader(key, constants::Integers[value]);
 		} else {

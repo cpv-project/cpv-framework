@@ -24,19 +24,19 @@ namespace cpv {
 		std::string_view getSetCookie() const { return setCookie_; }
 		std::string_view getExpires() const { return expires_; }
 		std::string_view getLastModified() const { return lastModified_; }
-		void setDate(const std::string_view& value) { date_ = value; }
-		void setContentType(const std::string_view& value) { contentType_ = value; }
-		void setContentLength(const std::string_view& value) { contentLength_ = value; }
-		void setContentEncoding(const std::string_view& value) { contentEncoding_ = value; }
-		void setTransferEncoding(const std::string_view& value) { transferEncoding_ = value; }
-		void setConnection(const std::string_view& value) { connection_ = value; }
-		void setServer(const std::string_view& value) { server_ = value; }
-		void setVary(const std::string_view& value) { vary_ = value; }
-		void setETag(const std::string_view& value) { etag_ = value; }
-		void setCacheControl(const std::string_view& value) { cacheControl_ = value; }
-		void setSetCookie(const std::string_view& value) { setCookie_ = value; }
-		void setExpires(const std::string_view& value) { expires_ = value; }
-		void setLastModified(const std::string_view& value) { lastModified_ = value; }
+		void setDate(std::string_view value) { date_ = value; }
+		void setContentType(std::string_view value) { contentType_ = value; }
+		void setContentLength(std::string_view value) { contentLength_ = value; }
+		void setContentEncoding(std::string_view value) { contentEncoding_ = value; }
+		void setTransferEncoding(std::string_view value) { transferEncoding_ = value; }
+		void setConnection(std::string_view value) { connection_ = value; }
+		void setServer(std::string_view value) { server_ = value; }
+		void setVary(std::string_view value) { vary_ = value; }
+		void setETag(std::string_view value) { etag_ = value; }
+		void setCacheControl(std::string_view value) { cacheControl_ = value; }
+		void setSetCookie(std::string_view value) { setCookie_ = value; }
+		void setExpires(std::string_view value) { expires_ = value; }
+		void setLastModified(std::string_view value) { lastModified_ = value; }
 		
 		/** Apply function to all headers */
 		template <class Func>
@@ -60,13 +60,13 @@ namespace cpv {
 		}
 		
 		/** Set header value */
-		void setHeader(const std::string_view& key, const std::string_view& value);
+		void setHeader(std::string_view key, std::string_view value);
 		
 		/** Get header value */
-		std::string_view getHeader(const std::string_view& key) const;
+		std::string_view getHeader(std::string_view key) const;
 		
 		/** Remove header */
-		void removeHeader(const std::string_view& key);
+		void removeHeader(std::string_view key);
 		
 		/** Get maximum count of headers, may greater than actual count */
 		std::size_t maxSize() const;

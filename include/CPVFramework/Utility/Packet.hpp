@@ -32,7 +32,7 @@ namespace cpv {
 		 * Convert std::string_view to seastar::net::fragment
 		 * To compatible with c socket api, const_cast is used, the bytes will not be modified anyway.
 		 */
-		static inline seastar::net::fragment toFragment(const std::string_view& str) {
+		static inline seastar::net::fragment toFragment(std::string_view str) {
 			return { const_cast<char*>(str.data()), str.size() };
 		}
 		
@@ -122,10 +122,10 @@ namespace cpv {
 		MultipleFragments* getOrConvertToMultiple() &;
 
 		/** Append static string to packet */
-		Packet& append(const std::string_view& str) &;
+		Packet& append(std::string_view str) &;
 
 		/** Append dynamic string and it's deleter to packet */
-		Packet& append(const std::string_view& str, seastar::deleter&& deleter) &;
+		Packet& append(std::string_view str, seastar::deleter&& deleter) &;
 
 		/** Append temporary_buffer to packet */
 		Packet& append(seastar::temporary_buffer<char>&& buf) &;
@@ -150,11 +150,11 @@ namespace cpv {
 		Packet() : data_(SingleFragment()) { }
 
 		/** Constructor with static string */
-		Packet(const std::string_view& str) :
+		Packet(std::string_view str) :
 			data_(SingleFragment(toFragment(str))) { }
 
 		/** Constructor with dynamic string and it's deleter to packet */
-		Packet(const std::string_view& str, seastar::deleter&& deleter) :
+		Packet(std::string_view str, seastar::deleter&& deleter) :
 			data_(SingleFragment(toFragment(str), std::move(deleter))) { }
 
 		/** Constructor with temporary_buffer */

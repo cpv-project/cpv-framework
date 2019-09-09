@@ -26,7 +26,7 @@ namespace cpv {
 	});
 	
 	/** Set header value */
-	void HttpResponseHeaders::setHeader(const std::string_view& key, const std::string_view& value) {
+	void HttpResponseHeaders::setHeader(std::string_view key, std::string_view value) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
 			this->*(it->second) = value;
@@ -36,7 +36,7 @@ namespace cpv {
 	}
 	
 	/** Get header value */
-	std::string_view HttpResponseHeaders::getHeader(const std::string_view& key) const {
+	std::string_view HttpResponseHeaders::getHeader(std::string_view key) const {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
 			return this->*(it->second);
@@ -50,7 +50,7 @@ namespace cpv {
 	}
 	
 	/** Remove header */
-	void HttpResponseHeaders::removeHeader(const std::string_view& key) {
+	void HttpResponseHeaders::removeHeader(std::string_view key) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
 			this->*(it->second) = { };

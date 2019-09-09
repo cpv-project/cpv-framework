@@ -25,20 +25,20 @@ namespace cpv {
 		std::string_view getAcceptLanguage() const { return acceptLanguage_; }
 		std::string_view getCookie() const { return cookie_; }
 		std::string_view getXRequestedWith() const { return xRequestedWith_; }
-		void setHost(const std::string_view& value) { host_ = value; }
-		void setContentType(const std::string_view& value) { contentType_ = value; }
-		void setContentLength(const std::string_view& value) { contentLength_ = value; }
-		void setConnection(const std::string_view& value) { connection_ = value; }
-		void setPragma(const std::string_view& value) { pragma_ = value; }
-		void setCacheControl(const std::string_view& value) { cacheControl_ = value; }
-		void setUpgradeInsecureRequests(const std::string_view& value) { upgradeInsecureRequests_ = value; }
-		void setDNT(const std::string_view& value) { dnt_ = value; }
-		void setUserAgent(const std::string_view& value) { userAgent_ = value; }
-		void setAccept(const std::string_view& value) { accept_ = value; }
-		void setAcceptEncoding(const std::string_view& value) { acceptEncoding_ = value; }
-		void setAcceptLanguage(const std::string_view& value) { acceptLanguage_ = value; }
-		void setCookie(const std::string_view& value) { cookie_ = value; }
-		void setXRequestedWith(const std::string_view& value) { xRequestedWith_ = value; }
+		void setHost(std::string_view value) { host_ = value; }
+		void setContentType(std::string_view value) { contentType_ = value; }
+		void setContentLength(std::string_view value) { contentLength_ = value; }
+		void setConnection(std::string_view value) { connection_ = value; }
+		void setPragma(std::string_view value) { pragma_ = value; }
+		void setCacheControl(std::string_view value) { cacheControl_ = value; }
+		void setUpgradeInsecureRequests(std::string_view value) { upgradeInsecureRequests_ = value; }
+		void setDNT(std::string_view value) { dnt_ = value; }
+		void setUserAgent(std::string_view value) { userAgent_ = value; }
+		void setAccept(std::string_view value) { accept_ = value; }
+		void setAcceptEncoding(std::string_view value) { acceptEncoding_ = value; }
+		void setAcceptLanguage(std::string_view value) { acceptLanguage_ = value; }
+		void setCookie(std::string_view value) { cookie_ = value; }
+		void setXRequestedWith(std::string_view value) { xRequestedWith_ = value; }
 		
 		/** Apply function to all headers */
 		template <class Func>
@@ -63,13 +63,13 @@ namespace cpv {
 		}
 		
 		/** Set header value */
-		void setHeader(const std::string_view& key, const std::string_view& value);
+		void setHeader(std::string_view key, std::string_view value);
 		
 		/** Get header value */
-		std::string_view getHeader(const std::string_view& key) const;
+		std::string_view getHeader(std::string_view key) const;
 		
 		/** Remove header */
-		void removeHeader(const std::string_view& key);
+		void removeHeader(std::string_view key);
 		
 		/** Get maximum count of headers, may greater than actual count */
 		std::size_t maxSize() const;

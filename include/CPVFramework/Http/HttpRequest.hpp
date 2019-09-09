@@ -24,30 +24,30 @@ namespace cpv {
 		std::string_view getMethod() const&;
 		
 		/* Set the request method, must add underlying buffer first unless it's static string */
-		void setMethod(const std::string_view& method);
+		void setMethod(std::string_view method);
 		
 		/** Get the request url, e.g. "/test" */
 		std::string_view getUrl() const&;
 		
 		/** Set the request url, must add underlying buffer first unless it's static string */
-		void setUrl(const std::string_view& url);
+		void setUrl(std::string_view url);
 		
 		/** Get the http version string, e.g. "HTTP/1.1" */
 		std::string_view getVersion() const&;
 		
 		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(const std::string_view& version);
+		void setVersion(std::string_view version);
 		
 		/** Get request headers */
 		HttpRequestHeaders& getHeaders() &;
 		const HttpRequestHeaders& getHeaders() const&;
 		
 		/** Set request header, must add underlying buffer first unless it's a static string */
-		void setHeader(const std::string_view& key, const std::string_view& value);
+		void setHeader(std::string_view key, std::string_view value);
 		
 		/** Set request header to integer value */
 		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-		void setHeader(const std::string_view& key, T value);
+		void setHeader(std::string_view key, T value);
 		
 		/** Get underlying buffers */
 		UnderlyingBuffersType& getUnderlyingBuffers() &;
@@ -74,7 +74,7 @@ namespace cpv {
 	
 	/** Set request header to integer value */
 	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	void HttpRequest::setHeader(const std::string_view& key, T value) {
+	void HttpRequest::setHeader(std::string_view key, T value) {
 		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
 			// optimize for small integer values
 			setHeader(key, constants::Integers[value]);

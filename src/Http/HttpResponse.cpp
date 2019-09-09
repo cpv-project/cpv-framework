@@ -13,7 +13,7 @@ namespace cpv {
 	}
 	
 	/** Set the http version string */
-	void HttpResponse::setVersion(const std::string_view& version) {
+	void HttpResponse::setVersion(std::string_view version) {
 		data_->version = version;
 	}
 	
@@ -23,7 +23,7 @@ namespace cpv {
 	}
 	
 	/** Set the status code */
-	void HttpResponse::setStatusCode(const std::string_view& statusCode) {
+	void HttpResponse::setStatusCode(std::string_view statusCode) {
 		data_->statusCode = statusCode;
 	}
 	
@@ -33,7 +33,7 @@ namespace cpv {
 	}
 	
 	/** Set the reason message of status code */
-	void HttpResponse::setStatusMessage(const std::string_view& statusMessage) {
+	void HttpResponse::setStatusMessage(std::string_view statusMessage) {
 		data_->statusMessage = statusMessage;
 	}
 	
@@ -48,7 +48,7 @@ namespace cpv {
 	}
 	
 	/** Set response header */
-	void HttpResponse::setHeader(const std::string_view& key, const std::string_view& value) {
+	void HttpResponse::setHeader(std::string_view key, std::string_view value) {
 		data_->headers.setHeader(key, value);
 	}
 	

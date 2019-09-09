@@ -2,7 +2,7 @@
 
 namespace cpv {
 	/** Compare two string case insensitive */
-	bool caseInsensitiveEquals(const std::string_view& a, const std::string_view& b) {
+	bool caseInsensitiveEquals(std::string_view a, std::string_view b) {
 		std::size_t size = a.size();
 		if (size != b.size()) {
 			return false;
