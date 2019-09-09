@@ -3,193 +3,195 @@
 
 namespace cpv::constants {
 	// protocols
-	extern const std::string Http10;
-	extern const std::string Http11;
-	extern const std::string Http12;
+	static const constexpr std::string_view Http10("HTTP/1.0");
+	static const constexpr std::string_view Http11("HTTP/1.1");
+	static const constexpr std::string_view Http12("HTTP/1.2");
 	
 	// methods
-	extern const std::string GET;
-	extern const std::string HEAD;
-	extern const std::string POST;
-	extern const std::string PUT;
-	extern const std::string DELETE;
-	extern const std::string CONNECT;
-	extern const std::string OPTIONS;
-	extern const std::string TRACE;
-	extern const std::string PATCH;
-	
+	static const constexpr std::string_view GET("GET");
+	static const constexpr std::string_view HEAD("HEAD");
+	static const constexpr std::string_view POST("POST");
+	static const constexpr std::string_view PUT("PUT");
+	static const constexpr std::string_view DELETE("DELETE");
+	static const constexpr std::string_view CONNECT("CONNECT");
+	static const constexpr std::string_view OPTIONS("OPTIONS");
+	static const constexpr std::string_view TRACE("TRACE");
+	static const constexpr std::string_view PATCH("PATCH");
+
 	// status codes
-	extern const std::string _100;
-	extern const std::string _101;
-	extern const std::string _200;
-	extern const std::string _201;
-	extern const std::string _202;
-	extern const std::string _203;
-	extern const std::string _204;
-	extern const std::string _205;
-	extern const std::string _206;
-	extern const std::string _300;
-	extern const std::string _301;
-	extern const std::string _302;
-	extern const std::string _304;
-	extern const std::string _305;
-	extern const std::string _307;
-	extern const std::string _400;
-	extern const std::string _401;
-	extern const std::string _402;
-	extern const std::string _403;
-	extern const std::string _404;
-	extern const std::string _405;
-	extern const std::string _406;
-	extern const std::string _407;
-	extern const std::string _408;
-	extern const std::string _409;
-	extern const std::string _410;
-	extern const std::string _411;
-	extern const std::string _412;
-	extern const std::string _413;
-	extern const std::string _414;
-	extern const std::string _415;
-	extern const std::string _416;
-	extern const std::string _417;
-	extern const std::string _500;
-	extern const std::string _501;
-	extern const std::string _502;
-	extern const std::string _503;
-	extern const std::string _504;
-	extern const std::string _505;
+	static const constexpr std::string_view _100("100");
+	static const constexpr std::string_view _101("101");
+	static const constexpr std::string_view _200("200");
+	static const constexpr std::string_view _201("201");
+	static const constexpr std::string_view _202("202");
+	static const constexpr std::string_view _203("203");
+	static const constexpr std::string_view _204("204");
+	static const constexpr std::string_view _205("205");
+	static const constexpr std::string_view _206("206");
+	static const constexpr std::string_view _300("300");
+	static const constexpr std::string_view _301("301");
+	static const constexpr std::string_view _302("302");
+	static const constexpr std::string_view _304("304");
+	static const constexpr std::string_view _305("305");
+	static const constexpr std::string_view _307("307");
+	static const constexpr std::string_view _400("400");
+	static const constexpr std::string_view _401("401");
+	static const constexpr std::string_view _402("402");
+	static const constexpr std::string_view _403("403");
+	static const constexpr std::string_view _404("404");
+	static const constexpr std::string_view _405("405");
+	static const constexpr std::string_view _406("406");
+	static const constexpr std::string_view _407("407");
+	static const constexpr std::string_view _408("408");
+	static const constexpr std::string_view _409("409");
+	static const constexpr std::string_view _410("410");
+	static const constexpr std::string_view _411("411");
+	static const constexpr std::string_view _412("412");
+	static const constexpr std::string_view _413("413");
+	static const constexpr std::string_view _414("414");
+	static const constexpr std::string_view _415("415");
+	static const constexpr std::string_view _416("416");
+	static const constexpr std::string_view _417("417");
+	static const constexpr std::string_view _500("500");
+	static const constexpr std::string_view _501("501");
+	static const constexpr std::string_view _502("502");
+	static const constexpr std::string_view _503("503");
+	static const constexpr std::string_view _504("504");
+	static const constexpr std::string_view _505("505");
 	
 	// status messages
-	extern const std::string Continue; // 100
-	extern const std::string SwitchingProtocols; // 101
-	extern const std::string OK; // 200
-	extern const std::string Created; // 201
-	extern const std::string Accepted; // 202
-	extern const std::string NonAuthoritativeInformation; // 203
-	extern const std::string NoContent; // 204
-	extern const std::string ResetContent; // 205
-	extern const std::string PartialContent; // 206
-	extern const std::string MultipleChoices; // 300
-	extern const std::string MovedPermanently; // 301
-	extern const std::string Found; // 302
-	extern const std::string SeeOther; // 303
-	extern const std::string NotModified; // 304
-	extern const std::string UseProxy; // 305
-	extern const std::string TemporaryRedirect; // 307
-	extern const std::string BadRequest; // 400
-	extern const std::string Unauthorized; // 401
-	extern const std::string PaymentRequired; // 402
-	extern const std::string Forbidden; // 403
-	extern const std::string NotFound; // 404
-	extern const std::string MethodNotAllowed; // 405
-	extern const std::string NotAcceptable; // 406
-	extern const std::string ProxyAuthenticationRequired; // 407
-	extern const std::string RequestTimeout; // 408
-	extern const std::string Conflict; // 409
-	extern const std::string Gone; // 410
-	extern const std::string LengthRequired; // 411
-	extern const std::string PreconditionFailed; // 412
-	extern const std::string RequstEntityTooLarge; // 413
-	extern const std::string RequestURITooLong; // 414
-	extern const std::string UnsupportedMediaType; // 415
-	extern const std::string RequestedRangeNotSatisfiable; // 416
-	extern const std::string ExpectationFailed; // 417
-	extern const std::string InternalServerError; // 500
-	extern const std::string NotImplemented; // 501
-	extern const std::string BadGateway; // 502
-	extern const std::string ServiceUnavailable; // 503
-	extern const std::string GatewayTimeout; // 504
-	extern const std::string HttpVersionNotSupported; // 505
+	static const constexpr std::string_view Continue("Continue");
+	static const constexpr std::string_view SwitchingProtocols("Switching Protocols");
+	static const constexpr std::string_view OK("OK");
+	static const constexpr std::string_view Created("Created");
+	static const constexpr std::string_view Accepted("Accepted");
+	static const constexpr std::string_view NonAuthoritativeInformation("Non-Authoritative Information");
+	static const constexpr std::string_view NoContent("No Content");
+	static const constexpr std::string_view ResetContent("Reset Content");
+	static const constexpr std::string_view PartialContent("Partial Content");
+	static const constexpr std::string_view MultipleChoices("Multiple Choices");
+	static const constexpr std::string_view MovedPermanently("Moved Permanently");
+	static const constexpr std::string_view Found("Found");
+	static const constexpr std::string_view SeeOther("See Other");
+	static const constexpr std::string_view NotModified("Not Modified");
+	static const constexpr std::string_view UseProxy("Use Proxy");
+	static const constexpr std::string_view TemporaryRedirect("Temporary Redirect");
+	static const constexpr std::string_view BadRequest("Bad Request");
+	static const constexpr std::string_view Unauthorized("Unauthorized");
+	static const constexpr std::string_view PaymentRequired("Payment Required");
+	static const constexpr std::string_view Forbidden("Forbidden");
+	static const constexpr std::string_view NotFound("Not Found");
+	static const constexpr std::string_view MethodNotAllowed("Method Not Allowed");
+	static const constexpr std::string_view NotAcceptable("Not Acceptable");
+	static const constexpr std::string_view ProxyAuthenticationRequired("Proxy Authentication Required");
+	static const constexpr std::string_view RequestTimeout("Request Timeout");
+	static const constexpr std::string_view Conflict("Conflict");
+	static const constexpr std::string_view Gone("Gone");
+	static const constexpr std::string_view LengthRequired("Length Required");
+	static const constexpr std::string_view PreconditionFailed("Precondition Failed");
+	static const constexpr std::string_view RequstEntityTooLarge("Requst Entity Too Large");
+	static const constexpr std::string_view RequestURITooLong("Request-URI Too Long");
+	static const constexpr std::string_view UnsupportedMediaType("Unsupported Media Type");
+	static const constexpr std::string_view RequestedRangeNotSatisfiable("Requested Range Not Satisfiable");
+	static const constexpr std::string_view ExpectationFailed("Expectation Failed");
+	static const constexpr std::string_view InternalServerError("Internal Server Error");
+	static const constexpr std::string_view NotImplemented("Not Implemented");
+	static const constexpr std::string_view BadGateway("Bad Gateway");
+	static const constexpr std::string_view ServiceUnavailable("Service Unavailable");
+	static const constexpr std::string_view GatewayTimeout("Gateway Timeout");
+	static const constexpr std::string_view HttpVersionNotSupported("HTTP Version Not Supported");
 	
 	// standard request fields
-	extern const std::string AIM;
-	extern const std::string Accept;
-	extern const std::string AcceptCharset;
-	extern const std::string AcceptDatetime;
-	extern const std::string AcceptEncoding;
-	extern const std::string AcceptLanguage;
-	extern const std::string AccessControlRequestMethod;
-	extern const std::string AccessControlRequestHeaders;
-	extern const std::string Authorization;
-	extern const std::string Cookie;
-	extern const std::string Expect;
-	extern const std::string Forwarded;
-	extern const std::string From;
-	extern const std::string Host;
-	extern const std::string Http2Settings;
-	extern const std::string IfMatch;
-	extern const std::string IfModifiedSince;
-	extern const std::string IfNoneMatch;
-	extern const std::string IfRange;
-	extern const std::string IfUnmodifiedSince;
-	extern const std::string MaxForwards;
-	extern const std::string Origin;
-	extern const std::string ProxyAuthorization;
-	extern const std::string Range;
-	extern const std::string Referer;
-	extern const std::string TE;
-	extern const std::string UserAgent;
+	static const constexpr std::string_view AIM("A-IM");
+	static const constexpr std::string_view Accept("Accept");
+	static const constexpr std::string_view AcceptCharset("Accept-Charset");
+	static const constexpr std::string_view AcceptDatetime("Accept-Datetime");
+	static const constexpr std::string_view AcceptEncoding("Accept-Encoding");
+	static const constexpr std::string_view AcceptLanguage("Accept-Language");
+	static const constexpr std::string_view AccessControlRequestMethod("Access-Control-Request-Method");
+	static const constexpr std::string_view AccessControlRequestHeaders("Access-Control-Request-Headers");
+	static const constexpr std::string_view Authorization("Authorization");
+	static const constexpr std::string_view Cookie("Cookie");
+	static const constexpr std::string_view Expect("Expect");
+	static const constexpr std::string_view Forwarded("Forwarded");
+	static const constexpr std::string_view From("From");
+	static const constexpr std::string_view Host("Host");
+	static const constexpr std::string_view Http2Settings("HTTP2-Settings");
+	static const constexpr std::string_view IfMatch("If-Match");
+	static const constexpr std::string_view IfModifiedSince("If-Modified-Since");
+	static const constexpr std::string_view IfNoneMatch("If-None-Match");
+	static const constexpr std::string_view IfRange("If-Range");
+	static const constexpr std::string_view IfUnmodifiedSince("If-Unmodified-Since");
+	static const constexpr std::string_view MaxForwards("Max-Forwards");
+	static const constexpr std::string_view Origin("Origin");
+	static const constexpr std::string_view ProxyAuthorization("Proxy-Authorization");
+	static const constexpr std::string_view Range("Range");
+	static const constexpr std::string_view Referer("Referer");
+	static const constexpr std::string_view TE("TE");
+	static const constexpr std::string_view UserAgent("User-Agent");
 	
 	// non-standard request fields
-	extern const std::string UpgradeInsecureRequests;
-	extern const std::string XRequestedWith;
-	extern const std::string DNT;
-	extern const std::string XCsrfToken;
+	static const constexpr std::string_view UpgradeInsecureRequests("Upgrade-Insecure-Requests");
+	static const constexpr std::string_view XRequestedWith("X-Requested-With");
+	static const constexpr std::string_view DNT("DNT");
+	static const constexpr std::string_view XCsrfToken("X-Csrf-Token");
 	
 	// standard response fields
-	extern const std::string AccessControlAllowOrigin;
-	extern const std::string AccessControlAllowCredentials;
-	extern const std::string AccessControlExposeHeaders;
-	extern const std::string AccessControlMaxAge;
-	extern const std::string AccessControlAllowMethods;
-	extern const std::string AccessControlAllowHeaders;
-	extern const std::string AcceptPatch;
-	extern const std::string AcceptRanges;
-	extern const std::string Age;
-	extern const std::string Allow;
-	extern const std::string AltSvc;
-	extern const std::string CacheControl;
-	extern const std::string Connection;
-	extern const std::string ContentDisposition;
-	extern const std::string ContentEncoding;
-	extern const std::string ContentLanguage;
-	extern const std::string ContentLength;
-	extern const std::string ContentLocation;
-	extern const std::string ContentRange;
-	extern const std::string ContentType;
-	extern const std::string Date;
-	extern const std::string DeltaBase;
-	extern const std::string ETag;
-	extern const std::string Expires;
-	extern const std::string IM;
-	extern const std::string LastModified;
-	extern const std::string Link;
-	extern const std::string Location;
-	extern const std::string P3P;
-	extern const std::string Pragma;
-	extern const std::string ProxyAuthenticate;
-	extern const std::string PublicKeyPins;
-	extern const std::string RetryAfter;
-	extern const std::string Server;
-	extern const std::string SetCookie;
-	extern const std::string StrictTransportSecurity;
-	extern const std::string Trailer;
-	extern const std::string TransferEncoding;
-	extern const std::string Tk;
-	extern const std::string Upgrade;
-	extern const std::string Vary;
-	extern const std::string Via;
-	extern const std::string Warning;
-	extern const std::string WWWAuthenticate;
+	static const constexpr std::string_view AccessControlAllowOrigin("Access-Control-Allow-Origin");
+	static const constexpr std::string_view AccessControlAllowCredentials("Access-Control-Allow-Credentials");
+	static const constexpr std::string_view AccessControlExposeHeaders("Access-Control-Expose-Headers");
+	static const constexpr std::string_view AccessControlMaxAge("Access-Control-Max-Age");
+	static const constexpr std::string_view AccessControlAllowMethods("Access-Control-Allow-Methods");
+	static const constexpr std::string_view AccessControlAllowHeaders("Access-Control-Allow-Headers");
+	static const constexpr std::string_view AcceptPatch("Accept-Patch");
+	static const constexpr std::string_view AcceptRanges("Accept-Ranges");
+	static const constexpr std::string_view Age("Age");
+	static const constexpr std::string_view Allow("Allow");
+	static const constexpr std::string_view AltSvc("Alt-Svc");
+	static const constexpr std::string_view CacheControl("Cache-Control");
+	static const constexpr std::string_view Connection("Connection");
+	static const constexpr std::string_view ContentDisposition("Content-Disposition");
+	static const constexpr std::string_view ContentEncoding("Content-Encoding");
+	static const constexpr std::string_view ContentLanguage("Content-Language");
+	static const constexpr std::string_view ContentLength("Content-Length");
+	static const constexpr std::string_view ContentLocation("Content-Location");
+	static const constexpr std::string_view ContentMD5("Content-MD5");
+	static const constexpr std::string_view ContentRange("Content-Range");
+	static const constexpr std::string_view ContentType("Content-Type");
+	static const constexpr std::string_view Date("Date");
+	static const constexpr std::string_view DeltaBase("Delta-Base");
+	static const constexpr std::string_view ETag("ETag");
+	static const constexpr std::string_view Expires("Expires");
+	static const constexpr std::string_view IM("IM");
+	static const constexpr std::string_view LastModified("Last-Modified");
+	static const constexpr std::string_view Link("Link");
+	static const constexpr std::string_view Location("Location");
+	static const constexpr std::string_view P3P("P3P");
+	static const constexpr std::string_view Pragma("Pragma");
+	static const constexpr std::string_view ProxyAuthenticate("Proxy-Authenticate");
+	static const constexpr std::string_view PublicKeyPins("Public-Key-Pins");
+	static const constexpr std::string_view RetryAfter("Retry-After");
+	static const constexpr std::string_view Server("Server");
+	static const constexpr std::string_view SetCookie("SetCookie");
+	static const constexpr std::string_view StrictTransportSecurity("Strict-Transport-Security");
+	static const constexpr std::string_view Trailer("Trailer");
+	static const constexpr std::string_view TransferEncoding("Transfer-Encoding");
+	static const constexpr std::string_view Tk("Tk");
+	static const constexpr std::string_view Upgrade("Upgrade");
+	static const constexpr std::string_view Vary("Vary");
+	static const constexpr std::string_view Via("Via");
+	static const constexpr std::string_view Warning("Warning");
+	static const constexpr std::string_view WWWAuthenticate("WWW-Authenticate");
+	static const constexpr std::string_view XFrameOptions("X-Frame-Options");
 	
 	// non-standard response fields
-	extern const std::string Refresh;
+	static const constexpr std::string_view Refresh("Refresh");
 	
 	// standard response values
-	extern const std::string Chunked;
-	extern const std::string Keepalive;
-	extern const std::string Close;
-	extern const std::string TextPlainUtf8;
-	extern const std::string ApplicationJsonUtf8;
+	static const constexpr std::string_view Chunked("chunked");
+	static const constexpr std::string_view Keepalive("keep-alive");
+	static const constexpr std::string_view Close("close");
+	static const constexpr std::string_view TextPlainUtf8("text/plain;charset=utf-8");
+	static const constexpr std::string_view ApplicationJsonUtf8("application/json;charset=utf-8");
 }
 
