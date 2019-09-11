@@ -1,6 +1,5 @@
 #include <CPVFramework/Utility/ConstantStrings.hpp>
 #include <CPVFramework/Utility/HttpUtils.hpp>
-#include <CPVFramework/Utility/Macros.hpp>
 #include <CPVFramework/Utility/Uri.hpp>
 
 namespace cpv {

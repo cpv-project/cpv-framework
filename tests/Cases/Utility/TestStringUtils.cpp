@@ -1,31 +1,82 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestStringUtils, split) {
-	std::vector<std::string> results;
-	std::size_t countRecord = 0;
-	std::string str("aaa \tb  c\nd eee");
-	cpv::splitString(str,
-		[&results, &countRecord, &str](auto startIndex, auto endIndex, auto count) {
-			ASSERT_EQ(countRecord, count);
-			++countRecord;
-			results.emplace_back(str, startIndex, endIndex - startIndex);
-		});
-	ASSERT_EQ(results.size(), 5U);
-	ASSERT_EQ(results.at(0), "aaa");
-	ASSERT_EQ(results.at(1), "b");
-	ASSERT_EQ(results.at(2), "c");
-	ASSERT_EQ(results.at(3), "d");
-	ASSERT_EQ(results.at(4), "eee");
+TEST(TestStringUtils, splitString) {
+	{
+		// split by chars
+		std::vector<std::string> results;
+		std::size_t countRecord = 0;
+		std::string str("aaa \tb  c\nd eee");
+		cpv::splitString(str,
+			[&results, &countRecord](auto parts, auto count) {
+				ASSERT_EQ(countRecord, count);
+				++countRecord;
+				results.emplace_back(parts);
+			});
+		ASSERT_EQ(results.size(), 5U);
+		ASSERT_EQ(results.at(0), "aaa");
+		ASSERT_EQ(results.at(1), "b");
+		ASSERT_EQ(results.at(2), "c");
+		ASSERT_EQ(results.at(3), "d");
+		ASSERT_EQ(results.at(4), "eee");
+	}
+	{
+		// split by single char
+		std::vector<std::string> results;
+		std::size_t countRecord = 0;
+		std::string str("aaa \tb  c\nd eee");
+		cpv::splitString(str,
+			[&results, &countRecord](auto parts, auto count) {
+				ASSERT_EQ(countRecord, count);
+				++countRecord;
+				results.emplace_back(parts);
+			}, ' ');
+		ASSERT_EQ(results.size(), 4U);
+		ASSERT_EQ(results.at(0), "aaa");
+		ASSERT_EQ(results.at(1), "\tb");
+		ASSERT_EQ(results.at(2), "c\nd");
+		ASSERT_EQ(results.at(3), "eee");
+	}
+	{
+		std::size_t countRecord = 0;
+		std::string str("");
+		cpv::splitString(str, [&countRecord](auto, auto) { ++countRecord; });
+		ASSERT_EQ(countRecord, 0U);
+	}
+	{
+		std::size_t countRecord = 0;
+		std::string str("");
+		cpv::splitString(str, [&countRecord](auto, auto) { ++countRecord; }, ' ');
+		ASSERT_EQ(countRecord, 0U);
+	}
 }
 
-TEST(TestStringUtils, join) {
+TEST(TestStringUtils, joinString) {
 	std::string a = cpv::joinString(" ", "a", 123, "asd");
 	ASSERT_EQ(a, "a 123 asd");
 	std::string b = cpv::joinString("-", "b");
 	ASSERT_EQ(b, "b");
 	std::string c = cpv::joinString("", 1, 2, 888);
 	ASSERT_EQ(c, "12888");
+}
+
+TEST(TestStringUtils, trimString) {
+	ASSERT_EQ(cpv::trimString("abc"), "abc");
+	ASSERT_EQ(cpv::trimString(" \t\n\rab c\r\n \t"), "ab c");
+	ASSERT_EQ((cpv::trimString<true, false>(" \t\n\rab c\r\n \t")), "ab c\r\n \t");
+	ASSERT_EQ((cpv::trimString<false, true>(" \t\n\rab c\r\n \t")), " \t\n\rab c");
+	ASSERT_EQ(cpv::trimString(" x "), "x");
+	ASSERT_EQ(cpv::trimString("  "), "");
+	ASSERT_EQ(cpv::trimString(" "), "");
+	ASSERT_EQ(cpv::trimString(""), "");
+	ASSERT_EQ(cpv::trimString("abc", ' '), "abc");
+	ASSERT_EQ(cpv::trimString(" \tab c\n ", ' '), "\tab c\n");
+	ASSERT_EQ((cpv::trimString<true, false>(" \tab c\n ", ' ')), "\tab c\n ");
+	ASSERT_EQ((cpv::trimString<false, true>(" \tab c\n ", ' ')), " \tab c\n");
+	ASSERT_EQ(cpv::trimString(" x ", ' '), "x");
+	ASSERT_EQ(cpv::trimString("  ", ' '), "");
+	ASSERT_EQ(cpv::trimString(" ", ' '), "");
+	ASSERT_EQ(cpv::trimString("", ' '), "");
 }
 
 TEST(TestStringUtils, dumpIntToHex) {

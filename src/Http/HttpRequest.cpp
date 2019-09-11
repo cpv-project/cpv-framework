@@ -57,14 +57,28 @@ namespace cpv {
 		return data_->underlyingBuffers;
 	}
 	
-	/** Get underlying buffers */
-	const HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() const& {
-		return data_->underlyingBuffers;
+	/** Get the uri instance parsed from url */
+	HttpRequestUri& HttpRequest::getUri() & {
+		data_->ensureUriUpdated();
+		return data_->uri;
 	}
 	
-	/** Add underlying buffer that owns the storage of string views */
-	void HttpRequest::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
-		data_->underlyingBuffers.emplace_back(std::move(buf));
+	/** Get the uri instance parsed from url */
+	const HttpRequestUri& HttpRequest::getUri() const& {
+		data_->ensureUriUpdated();
+		return data_->uri;
+	}
+	
+	/** Get the cookies collection parsed from Cookie header */
+	HttpRequestCookies& HttpRequest::getCookies() & {
+		data_->ensureCookiesUpdated();
+		return data_->cookies;
+	}
+	
+	/** Get the cookies collection parsed from Cookie header */
+	const HttpRequestCookies& HttpRequest::getCookies() const& {
+		data_->ensureCookiesUpdated();
+		return data_->cookies;
 	}
 	
 	/** Get request body input stream */
@@ -75,6 +89,16 @@ namespace cpv {
 	/** Set request body input stream */
 	void HttpRequest::setBodyStream(Reusable<InputStreamBase>&& bodyStream) {
 		data_->bodyStream = std::move(bodyStream);
+	}
+	
+	/** Get underlying buffers */
+	const HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() const& {
+		return data_->underlyingBuffers;
+	}
+	
+	/** Add underlying buffer that owns the storage of string views */
+	void HttpRequest::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+		data_->underlyingBuffers.emplace_back(std::move(buf));
 	}
 	
 	/** Constructor */

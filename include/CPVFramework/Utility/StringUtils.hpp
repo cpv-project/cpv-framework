@@ -11,19 +11,38 @@
 namespace cpv {
 	/**
 	 * Split string with specified characters.
-	 * Call func(startIndex, endIndex, count) while split.
+	 * Call func(parts, count) while split.
 	 * Default split characters are empty characters.
 	 */
 	template <class Func>
-	static void splitString(
-		const std::string& str, const Func& func, const char* chars = " \t\r\n") {
+	void splitString(
+		std::string_view str, const Func& func, const char* delimiter = " \t\r\n") {
 		std::size_t startIndex = 0;
 		std::size_t count = 0;
 		while (startIndex < str.size()) {
-			auto index = str.find_first_of(chars, startIndex);
+			auto index = str.find_first_of(delimiter, startIndex);
 			auto endIndex = (index == str.npos) ? str.size() : index;
-			func(startIndex, endIndex, count);
-			index = str.find_first_not_of(chars, endIndex);
+			func(str.substr(startIndex, endIndex - startIndex), count);
+			index = str.find_first_not_of(delimiter, endIndex);
+			startIndex = (index == str.npos) ? str.size() : index;
+			++count;
+		}
+	}
+
+	/**
+	 * Split string with specified characters.
+	 * Call func(parts, count) while split.
+	 * Single char version for better performance.
+	 */
+	template <class Func>
+	void splitString(std::string_view str, const Func& func, char delimiter) {
+		std::size_t startIndex = 0;
+		std::size_t count = 0;
+		while (startIndex < str.size()) {
+			auto index = str.find_first_of(delimiter, startIndex);
+			auto endIndex = (index == str.npos) ? str.size() : index;
+			func(str.substr(startIndex, endIndex - startIndex), count);
+			index = str.find_first_not_of(delimiter, endIndex);
 			startIndex = (index == str.npos) ? str.size() : index;
 			++count;
 		}
@@ -34,7 +53,7 @@ namespace cpv {
 	 * This function is very slow, don't call it where performance is important.
 	 */
 	template <class Delimiter, class... Args>
-	static std::string joinString(Delimiter&& delimiter, Args&&... args) {
+	std::string joinString(Delimiter&& delimiter, Args&&... args) {
 		std::ostringstream stream;
 		bool isFirst = true;
 		auto func = [&stream, &isFirst, &delimiter](auto&& arg) {
@@ -51,13 +70,47 @@ namespace cpv {
 	}
 
 	/**
+	 * Return sub string view that removes given prefix and suffix.
+	 */
+	template <bool TrimPrefix = true, bool TrimSuffix = true>
+	std::string_view trimString(std::string_view str, const char* removes = " \t\r\n") {
+		const char* ptr = str.begin();
+		const char* ptrEnd = str.end();
+		std::string_view rm(removes);
+		if constexpr (TrimPrefix) {
+			for (;ptr < ptrEnd && rm.find_first_of(*ptr) != rm.npos; ++ptr) { }
+		}
+		if constexpr (TrimSuffix) {
+			for (;ptr < ptrEnd && rm.find_first_of(*(ptrEnd - 1)) != rm.npos;--ptrEnd) { }
+		}
+		return std::string_view(ptr, ptrEnd - ptr);
+	}
+
+	/**
+	 * Return sub string view that removes given prefix and suffix.
+	 * Single char version for better performance.
+	 */
+	template <bool TrimPrefix = true, bool TrimSuffix = true>
+	std::string_view trimString(std::string_view str, char removes) {
+		const char* ptr = str.begin();
+		const char* ptrEnd = str.end();
+		if constexpr (TrimPrefix) {
+			for (;ptr < ptrEnd && *ptr == removes; ++ptr) { }
+		}
+		if constexpr (TrimSuffix) {
+			for (;ptr < ptrEnd && *(ptrEnd - 1) == removes; --ptrEnd) { }
+		}
+		return std::string_view(ptr, ptrEnd - ptr);
+	}
+
+	/**
 	 * Convert integer to hex and write to string.
 	 * IntType can be any of int??_t and uint??_t.
 	 * Also see stackoverflow 5100718.
 	 */
 	template <class IntType, class StringType>
 	void dumpIntToHex(IntType value, StringType& str) {
-		static const char digits[] = "0123456789ABCDEF";
+		static const constexpr char digits[] = "0123456789ABCDEF";
 		static const std::size_t hexLen = sizeof(IntType) * 2;
 		for (std::size_t i = 0, j = (hexLen-1)*4; i < hexLen; ++i, j-=4) {
 			str.append(digits + ((value>>j)&0xf), 1);
@@ -70,7 +123,7 @@ namespace cpv {
 	 */
 	template <class IntType, class StringType>
 	void dumpIntToDec(IntType value, StringType& str) {
-		static const char digits[] = "0123456789";
+		static const constexpr char digits[] = "0123456789";
 		if constexpr (std::numeric_limits<IntType>::is_signed) {
 			if (value < 0) {
 				str.append("-");

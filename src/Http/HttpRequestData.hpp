@@ -11,19 +11,25 @@ namespace cpv {
 	/** Members of HttpRequest */
 	class HttpRequestData {
 	public:
-		HttpRequest::UnderlyingBuffersType underlyingBuffers;
 		std::string_view method;
 		std::string_view url;
 		std::string_view version;
 		HttpRequestHeaders headers;
 		Reusable<InputStreamBase> bodyStream;
+		// mutable for lazy parse
+		mutable std::string_view sourceOfUri;
+		mutable HttpRequestUri uri;
+		mutable std::string_view sourceOfCookies;
+		mutable HttpRequestCookies cookies;
+		HttpRequest::UnderlyingBuffersType underlyingBuffers;
 		
 		HttpRequestData() :
-			underlyingBuffers(),
 			method(),
 			version(),
 			headers(),
-			bodyStream() { }
+			bodyStream(),
+			uri(),
+			underlyingBuffers() { }
 		
 		void freeResources() {
 			method = {};
@@ -31,7 +37,36 @@ namespace cpv {
 			version = {};
 			headers.clear();
 			bodyStream = Reusable<InputStreamBase>();
+			sourceOfUri = {};
+			uri.clear();
+			sourceOfCookies = {};
+			cookies.clear();
 			underlyingBuffers.clear();
+		}
+		
+		inline void ensureUriUpdated() const {
+			if (sourceOfUri.empty()) {
+				sourceOfUri = url;
+				uri.parse(url);
+			} else if (sourceOfUri.data() != url.data()) {
+				// compare pointer directly
+				sourceOfUri = url;
+				uri.clear();
+				uri.parse(url);
+			}
+		}
+		
+		inline void ensureCookiesUpdated() const {
+			auto cookieHeader = headers.getCookie();
+			if (sourceOfCookies.empty()) {
+				sourceOfCookies = cookieHeader;
+				cookies.parse(cookieHeader);
+			} else if (sourceOfCookies.data() != cookieHeader.data()) {
+				// compare pointer directly
+				sourceOfCookies = cookieHeader;
+				cookies.clear();
+				cookies.parse(cookieHeader);
+			}
 		}
 		
 		static void reset() { }

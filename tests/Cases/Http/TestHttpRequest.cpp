@@ -188,3 +188,101 @@ TEST(TestHttpRequest, headersClear) {
 	ASSERT_TRUE(headers.getHeader("Addition").empty());
 }
 
+
+TEST(TestHttpRequest, getUri) {
+	cpv::HttpRequest request;
+	request.setUrl("/first/second?a=123&b=456");
+	ASSERT_EQ(request.getUri().getPath(), "/first/second");
+	ASSERT_EQ(request.getUri().getPathFragments().size(), 2U);
+	ASSERT_EQ(request.getUri().getPathFragment(0), "first");
+	ASSERT_EQ(request.getUri().getPathFragment(1), "second");
+	ASSERT_EQ(request.getUri().getQueryParameters().size(), 2U);
+	ASSERT_EQ(request.getUri().getQueryParameter("a"), "123");
+	ASSERT_EQ(request.getUri().getQueryParameter("b"), "456");
+	request.setUrl("/");
+	ASSERT_EQ(request.getUri().getPath(), "/");
+	ASSERT_TRUE(request.getUri().getPathFragments().empty());
+	ASSERT_TRUE(request.getUri().getQueryParameters().empty());
+}
+
+TEST(TestHttpRequest, getCookies) {
+	{
+		cpv::HttpRequest request;
+		ASSERT_TRUE(request.getCookies().getAll().empty());
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie("abc");
+		ASSERT_EQ(request.getCookies().getAll().size(), 1U);
+		ASSERT_TRUE(
+			request.getCookies().getAll().find("abc") !=
+			request.getCookies().getAll().end());
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie("abc;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 1U);
+		ASSERT_TRUE(
+			request.getCookies().getAll().find("abc") !=
+			request.getCookies().getAll().end());
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc=123");
+		ASSERT_EQ(request.getCookies().getAll().size(), 1U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc=123;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 1U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc = 123; def =  456 ");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+		ASSERT_EQ(request.getCookies().get("def"), "456");
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc = 123; d ef =  45 6 ;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+		ASSERT_EQ(request.getCookies().get("d ef"), "45 6");
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc = 123; def");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+		ASSERT_TRUE(
+			request.getCookies().getAll().find("def") !=
+			request.getCookies().getAll().end());
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie(" abc = 123; def;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+		ASSERT_TRUE(
+			request.getCookies().getAll().find("def") !=
+			request.getCookies().getAll().end());
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie("abc=123;;def=456;;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("abc"), "123");
+		ASSERT_EQ(request.getCookies().get("def"), "456");
+	}
+	{
+		cpv::HttpRequest request;
+		request.getHeaders().setCookie("abc=xyz=123;;def=456;;");
+		ASSERT_EQ(request.getCookies().getAll().size(), 2U);
+		ASSERT_EQ(request.getCookies().get("xyz"), "123");
+		ASSERT_EQ(request.getCookies().get("def"), "456");
+	}
+}
+

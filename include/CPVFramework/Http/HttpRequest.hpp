@@ -7,6 +7,8 @@
 #include "../Utility/Reusable.hpp"
 #include "../Utility/BufferUtils.hpp"
 #include "./HttpRequestHeaders.hpp"
+#include "./HttpRequestUri.hpp"
+#include "./HttpRequestCookies.hpp"
 
 namespace cpv {
 	/** Members of HttpRequest */
@@ -49,18 +51,26 @@ namespace cpv {
 		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
 		void setHeader(std::string_view key, T value);
 		
+		/** Get request body input stream, must check whether is null before access */
+		const Reusable<InputStreamBase>& getBodyStream() const&;
+		
+		/** Set request body input stream */
+		void setBodyStream(Reusable<InputStreamBase>&& bodyStream);
+		
+		/** Get the uri instance parsed from url */
+		HttpRequestUri& getUri() &;
+		const HttpRequestUri& getUri() const&;
+		
+		/** Get the cookies collection parsed from Cookie header */
+		HttpRequestCookies& getCookies() &;
+		const HttpRequestCookies& getCookies() const&;
+		
 		/** Get underlying buffers */
 		UnderlyingBuffersType& getUnderlyingBuffers() &;
 		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
 		
 		/** Add underlying buffer that owns the storage of string views */
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
-		
-		/** Get request body input stream, must check whether is null before access */
-		const Reusable<InputStreamBase>& getBodyStream() const&;
-		
-		/** Set request body input stream */
-		void setBodyStream(Reusable<InputStreamBase>&& bodyStream);
 		
 		/** Constructor */
 		HttpRequest();
