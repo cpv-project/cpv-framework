@@ -451,7 +451,8 @@ namespace cpv {
 		// +4: connection header, colon + space, header value, crlf
 		// + headers count * 4
 		// +1: crlf
-		return 19 + processingContext_.getResponse().getHeaders().maxSize() * 4;
+		auto& response = processingContext_.getResponse();
+		return 19 + response.getHeaders().maxSize() * 4;
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */

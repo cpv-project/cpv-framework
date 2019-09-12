@@ -52,18 +52,18 @@ namespace cpv {
 		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
 		void setHeader(std::string_view key, T value);
 		
+		/** Get response body output stream, must check whether is null before access */
+		const Reusable<OutputStreamBase>& getBodyStream() const&;
+		
+		/** Set response body output stream */
+		void setBodyStream(Reusable<OutputStreamBase>&& bodyStream);
+		
 		/** Get underlying buffers */
 		UnderlyingBuffersType& getUnderlyingBuffers() &;
 		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
 		
 		/** Add underlying buffer that owns the storage of string views */
 		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
-		
-		/** Get response body output stream, must check whether is null before access */
-		const Reusable<OutputStreamBase>& getBodyStream() const&;
-		
-		/** Set response body output stream */
-		void setBodyStream(Reusable<OutputStreamBase>&& bodyStream);
 		
 		/** Constructor */
 		HttpResponse();

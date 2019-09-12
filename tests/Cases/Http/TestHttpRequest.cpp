@@ -286,3 +286,11 @@ TEST(TestHttpRequest, getCookies) {
 	}
 }
 
+TEST(TestHttpRequest, cookiesNotConstructible) {
+	ASSERT_FALSE(std::is_constructible_v<cpv::HttpRequestCookies>);
+	ASSERT_FALSE(std::is_copy_constructible_v<cpv::HttpRequestCookies>);
+	ASSERT_FALSE(std::is_move_constructible_v<cpv::HttpRequestCookies>);
+	ASSERT_FALSE(std::is_copy_assignable_v<cpv::HttpRequestCookies>);
+	ASSERT_FALSE(std::is_move_assignable_v<cpv::HttpRequestCookies>);
+}
+

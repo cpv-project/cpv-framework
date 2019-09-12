@@ -9,17 +9,14 @@ TEST(TestDateUtils, formatTimeForHttpHeader) {
 	// time_t always in utc
 	{
 		std::array<char, 30> buf;
-		ASSERT_EQ(cpv::formatTimeForHttpHeader(0, buf.data(), buf.size()), 29U);
+		ASSERT_TRUE(cpv::formatTimeForHttpHeader(0, buf.data(), buf.size()));
 		ASSERT_EQ(std::string(buf.data()), "Thu, 01 Jan 1970 00:00:00 GMT");
-		ASSERT_EQ(cpv::formatTimeForHttpHeader(102400, buf.data(), buf.size()), 29U);
+		ASSERT_TRUE(cpv::formatTimeForHttpHeader(102400, buf.data(), buf.size()));
 		ASSERT_EQ(std::string(buf.data()), "Fri, 02 Jan 1970 04:26:40 GMT");
 	}
 	{
 		std::array<char, 29> buf;
-		ASSERT_THROWS_CONTAINS(
-			cpv::LengthException,
-			cpv::formatTimeForHttpHeader(0, buf.data(), buf.size()),
-			"buffer size not enough");
+		ASSERT_FALSE(cpv::formatTimeForHttpHeader(0, buf.data(), buf.size()));
 	}
 }
 

@@ -20,7 +20,6 @@ namespace cpv {
 		{ constants::Vary, &HttpResponseHeaders::vary_ },
 		{ constants::ETag, &HttpResponseHeaders::etag_ },
 		{ constants::CacheControl, &HttpResponseHeaders::cacheControl_ },
-		{ constants::SetCookie, &HttpResponseHeaders::setCookie_ },
 		{ constants::Expires, &HttpResponseHeaders::expires_ },
 		{ constants::LastModified, &HttpResponseHeaders::lastModified_ },
 	});
@@ -59,14 +58,35 @@ namespace cpv {
 		}
 	}
 	
+	/** Add header that may occurs multiple times */
+	void HttpResponseHeaders::addAdditionHeader(
+		std::string_view key, std::string_view value) {
+		additionHeaders_.emplace_back(key, value);
+	}
+	
+	/** Get headers that may occurs multiple times */
+	HttpResponseHeaders::AdditionHeadersType&
+	HttpResponseHeaders::getAdditionHeaders() & {
+		return additionHeaders_;
+	}
+	
+	/** Get headers that may occurs multiple times */
+	const HttpResponseHeaders::AdditionHeadersType&
+	HttpResponseHeaders::getAdditionHeaders() const& {
+		return additionHeaders_;
+	}
+	
 	/** Get maximum count of headers, may greater than actual count */
 	std::size_t HttpResponseHeaders::maxSize() const {
-		return Internal::FixedMembers.size() + remainHeaders_.size();
+		return (Internal::FixedMembers.size() +
+			remainHeaders_.size() +
+			additionHeaders_.size());
 	}
 	
 	/** Clear headers in this collection */
 	void HttpResponseHeaders::clear() {
 		remainHeaders_.clear();
+		additionHeaders_.clear();
 		date_ = {};
 		contentType_ = {};
 		contentLength_ = {};
@@ -77,7 +97,6 @@ namespace cpv {
 		vary_ = {};
 		etag_ = {};
 		cacheControl_ = {};
-		setCookie_ = {};
 		expires_ = {};
 		lastModified_ = {};
 	}
@@ -85,6 +104,7 @@ namespace cpv {
 	/** Constructor */
 	HttpResponseHeaders::HttpResponseHeaders() :
 		remainHeaders_(),
+		additionHeaders_(),
 		date_(),
 		contentType_(),
 		contentLength_(),
@@ -95,7 +115,6 @@ namespace cpv {
 		vary_(),
 		etag_(),
 		cacheControl_(),
-		setCookie_(),
 		expires_(),
 		lastModified_() { }
 }

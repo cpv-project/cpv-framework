@@ -52,6 +52,16 @@ namespace cpv {
 		data_->headers.setHeader(key, value);
 	}
 	
+	/** Get response body output stream */
+	const Reusable<OutputStreamBase>& HttpResponse::getBodyStream() const& {
+		return data_->bodyStream;
+	}
+	
+	/** Set response body output stream */
+	void HttpResponse::setBodyStream(Reusable<OutputStreamBase>&& bodyStream) {
+		data_->bodyStream = std::move(bodyStream);
+	}
+	
 	/** Get underlying buffers */
 	HttpResponse::UnderlyingBuffersType& HttpResponse::getUnderlyingBuffers() & {
 		return data_->underlyingBuffers;
@@ -65,16 +75,6 @@ namespace cpv {
 	/** Add underlying buffer that owns the storage of string views */
 	void HttpResponse::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
 		data_->underlyingBuffers.emplace_back(std::move(buf));
-	}
-	
-	/** Get response body output stream */
-	const Reusable<OutputStreamBase>& HttpResponse::getBodyStream() const& {
-		return data_->bodyStream;
-	}
-	
-	/** Set response body output stream */
-	void HttpResponse::setBodyStream(Reusable<OutputStreamBase>&& bodyStream) {
-		data_->bodyStream = std::move(bodyStream);
 	}
 	
 	/** Constructor */

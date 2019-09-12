@@ -55,7 +55,6 @@ TEST(TestHttpResponse, headersBasic) {
 	response.setHeader(cpv::constants::Vary, "TestVary");
 	response.setHeader(cpv::constants::ETag, "TestETag");
 	response.setHeader(cpv::constants::CacheControl, "TestCacheControl");
-	response.setHeader(cpv::constants::SetCookie, "TestSetCookie");
 	response.setHeader(cpv::constants::Expires, "TestExpires");
 	response.setHeader(cpv::constants::LastModified, "TestLastModified");
 	response.setHeader("Addition", "TestAddition");
@@ -71,7 +70,6 @@ TEST(TestHttpResponse, headersBasic) {
 	ASSERT_EQ(headers.getHeader(cpv::constants::Vary), "TestVary");
 	ASSERT_EQ(headers.getHeader(cpv::constants::ETag), "TestETag");
 	ASSERT_EQ(headers.getHeader(cpv::constants::CacheControl), "TestCacheControl");
-	ASSERT_EQ(headers.getHeader(cpv::constants::SetCookie), "TestSetCookie");
 	ASSERT_EQ(headers.getHeader(cpv::constants::Expires), "TestExpires");
 	ASSERT_EQ(headers.getHeader(cpv::constants::LastModified), "TestLastModified");
 	ASSERT_EQ(headers.getHeader("Addition"), "TestAddition");
@@ -87,7 +85,6 @@ TEST(TestHttpResponse, headersBasic) {
 	ASSERT_EQ(headers.getVary(), "TestVary");
 	ASSERT_EQ(headers.getETag(), "TestETag");
 	ASSERT_EQ(headers.getCacheControl(), "TestCacheControl");
-	ASSERT_EQ(headers.getSetCookie(), "TestSetCookie");
 	ASSERT_EQ(headers.getExpires(), "TestExpires");
 	ASSERT_EQ(headers.getLastModified(), "TestLastModified");
 	
@@ -110,7 +107,6 @@ TEST(TestHttpResponse, headersForeach) {
 	headers.setVary("TestVary");
 	headers.setETag("TestETag");
 	headers.setCacheControl("TestCacheControl");
-	headers.setSetCookie("TestSetCookie");
 	headers.setExpires("TestExpires");
 	headers.setLastModified("TestLastModified");
 	headers.setHeader("AdditionA", "TestAdditionA");
@@ -131,12 +127,30 @@ TEST(TestHttpResponse, headersForeach) {
 		"Vary: TestVary\r\n"
 		"ETag: TestETag\r\n"
 		"Cache-Control: TestCacheControl\r\n"
-		"SetCookie: TestSetCookie\r\n"
 		"Expires: TestExpires\r\n"
 		"Last-Modified: TestLastModified\r\n"
 		"AdditionA: TestAdditionA\r\n"
 		"AdditionB: TestAdditionB\r\n"
 		"AdditionC: TestAdditionC\r\n");
+}
+
+TEST(TestHttpResponse, additionHeaders) {
+	cpv::HttpResponse response;
+	auto& headers = response.getHeaders();
+	headers.addAdditionHeader("Key", "ValueA");
+	headers.addAdditionHeader("Key", "ValueB");
+	ASSERT_EQ(headers.getAdditionHeaders().size(), 2U);
+	ASSERT_EQ(headers.getAdditionHeaders().at(0).first, "Key");
+	ASSERT_EQ(headers.getAdditionHeaders().at(0).second, "ValueA");
+	ASSERT_EQ(headers.getAdditionHeaders().at(1).first, "Key");
+	ASSERT_EQ(headers.getAdditionHeaders().at(1).second, "ValueB");
+	std::string content;
+	headers.foreach([&content] (const auto& key, const auto& value) {
+		content.append(key).append(": ").append(value).append("\r\n");
+	});
+	ASSERT_EQ(content,
+		"Key: ValueA\r\n"
+		"Key: ValueB\r\n");
 }
 
 TEST(TestHttpResponse, headersNotConstructible) {
@@ -160,7 +174,6 @@ TEST(TestHttpResponse, headersClear) {
 	headers.setVary("TestVary");
 	headers.setETag("TestETag");
 	headers.setCacheControl("TestCacheControl");
-	headers.setSetCookie("TestSetCookie");
 	headers.setExpires("TestExpires");
 	headers.setLastModified("TestLastModified");
 	headers.setHeader("Addition", "TestAddition");
@@ -175,7 +188,6 @@ TEST(TestHttpResponse, headersClear) {
 	ASSERT_TRUE(headers.getVary().empty());
 	ASSERT_TRUE(headers.getETag().empty());
 	ASSERT_TRUE(headers.getCacheControl().empty());
-	ASSERT_TRUE(headers.getSetCookie().empty());
 	ASSERT_TRUE(headers.getExpires().empty());
 	ASSERT_TRUE(headers.getLastModified().empty());
 	ASSERT_TRUE(headers.getHeader("Addition").empty());

@@ -1,5 +1,6 @@
 #pragma once
 #include <string_view>
+#include <utility>
 #include "../Allocators/StackAllocator.hpp"
 #include "./HttpConstantStrings.hpp"
 
@@ -10,6 +11,9 @@ namespace cpv {
 	 */
 	class HttpResponseHeaders {
 	public:
+		using AdditionHeadersType = StackAllocatedVector<
+			std::pair<std::string_view, std::string_view>, 3>;
+		
 		// getters and setters for fixed members
 		std::string_view getDate() const { return date_; }
 		std::string_view getContentType() const { return contentType_; }
@@ -21,7 +25,6 @@ namespace cpv {
 		std::string_view getVary() const { return vary_; }
 		std::string_view getETag() const { return etag_; }
 		std::string_view getCacheControl() const { return cacheControl_; }
-		std::string_view getSetCookie() const { return setCookie_; }
 		std::string_view getExpires() const { return expires_; }
 		std::string_view getLastModified() const { return lastModified_; }
 		void setDate(std::string_view value) { date_ = value; }
@@ -34,7 +37,6 @@ namespace cpv {
 		void setVary(std::string_view value) { vary_ = value; }
 		void setETag(std::string_view value) { etag_ = value; }
 		void setCacheControl(std::string_view value) { cacheControl_ = value; }
-		void setSetCookie(std::string_view value) { setCookie_ = value; }
 		void setExpires(std::string_view value) { expires_ = value; }
 		void setLastModified(std::string_view value) { lastModified_ = value; }
 		
@@ -51,10 +53,12 @@ namespace cpv {
 			if (!vary_.empty()) { func(constants::Vary, vary_); }
 			if (!etag_.empty()) { func(constants::ETag, etag_); }
 			if (!cacheControl_.empty()) { func(constants::CacheControl, cacheControl_); }
-			if (!setCookie_.empty()) { func(constants::SetCookie, setCookie_); }
 			if (!expires_.empty()) { func(constants::Expires, expires_); }
 			if (!lastModified_.empty()) { func(constants::LastModified, lastModified_); }
 			for (auto& pair : remainHeaders_) {
+				func(pair.first, pair.second);
+			}
+			for (auto& pair : additionHeaders_) {
 				func(pair.first, pair.second);
 			}
 		}
@@ -67,6 +71,13 @@ namespace cpv {
 		
 		/** Remove header */
 		void removeHeader(std::string_view key);
+		
+		/** Add header that may occurs multiple times */
+		void addAdditionHeader(std::string_view key, std::string_view value);
+		
+		/** Get headers that may occurs multiple times */
+		AdditionHeadersType& getAdditionHeaders() &;
+		const AdditionHeadersType& getAdditionHeaders() const&;
 		
 		/** Get maximum count of headers, may greater than actual count */
 		std::size_t maxSize() const;
@@ -89,6 +100,7 @@ namespace cpv {
 		
 	private:
 		StackAllocatedMap<std::string_view, std::string_view, 3> remainHeaders_;
+		AdditionHeadersType additionHeaders_; // mostly for Set-Cookie
 		std::string_view date_;
 		std::string_view contentType_;
 		std::string_view contentLength_;
@@ -99,7 +111,6 @@ namespace cpv {
 		std::string_view vary_;
 		std::string_view etag_;
 		std::string_view cacheControl_;
-		std::string_view setCookie_;
 		std::string_view expires_;
 		std::string_view lastModified_;
 	};
