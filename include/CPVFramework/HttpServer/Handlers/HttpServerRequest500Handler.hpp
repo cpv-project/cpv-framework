@@ -10,10 +10,18 @@ namespace cpv {
 	 */
 	class HttpServerRequest500Handler : public HttpServerRequestHandlerBase {
 	public:
+		using DependencyTypes = std::tuple<seastar::shared_ptr<Logger>>;
+
 		/** Return 500 internal server error */
 		seastar::future<> handle(
 			HttpContext& context,
 			const HttpServerRequestHandlerIterator& next) const override;
+
+		/** Constructor */
+		HttpServerRequest500Handler(seastar::shared_ptr<Logger> logger);
+
+	private:
+		seastar::shared_ptr<Logger> logger_;
 	};
 }
 

@@ -7,9 +7,9 @@ namespace cpv {
 	namespace {
 		seastar::future<> reply500Response(
 			HttpContext& context,
-			std::exception_ptr ex) {
+			std::exception_ptr ex,
+			const seastar::shared_ptr<Logger>& logger) {
 			auto& response = context.getResponse();
-			auto logger = context.getService<seastar::shared_ptr<Logger>>();
 			// generate a time uuid as error id
 			std::string uuidStr(uuidToStr(makeTimeUUID()));
 			// log error
@@ -42,11 +42,16 @@ namespace cpv {
 				return f;
 			}
 			return f.handle_exception([&context, this] (std::exception_ptr ex) {
-				return reply500Response(context, ex);
+				return reply500Response(context, ex, logger_);
 			});
 		} catch (...) {
-			return reply500Response(context, std::current_exception());
+			return reply500Response(context, std::current_exception(), logger_);
 		}
 	}
+
+	/** Constructor */
+	HttpServerRequest500Handler::HttpServerRequest500Handler(
+		seastar::shared_ptr<Logger> logger) :
+		logger_(std::move(logger)) { }
 }
 

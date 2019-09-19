@@ -36,12 +36,9 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 		seastar::make_lw_shared<std::string>(),
 		seastar::make_shared<TestLogger>(),
 		[] (auto& handlers, auto& context, auto& str, auto& logger) {
-		cpv::Container container;
-		container.add<seastar::shared_ptr<cpv::Logger>>(logger);
-		context.setContainer(container);
 		context.getResponse().setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
-		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>());
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest500Handler>(logger));
 		handlers.emplace_back(seastar::make_shared<TestHandler>());
 		return handlers.at(0)->handle(context, handlers.begin()+1).then([&context, &str, &logger] {
 			auto& response = context.getResponse();

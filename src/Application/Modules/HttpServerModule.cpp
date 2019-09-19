@@ -30,20 +30,28 @@ namespace cpv {
 	seastar::future<> HttpServerModule::handle(
 		Container& container, ApplicationState state) {
 		if (state == ApplicationState::RegisterHeadServices) {
-			if (!http500Handler_) {
-				http500Handler_ = seastar::make_shared<HttpServerRequest500Handler>();
+			if (http500Handler_) {
+				container.add(http500Handler_);
+			} else {
+				container.add<
+					seastar::shared_ptr<HttpServerRequestHandlerBase>,
+					seastar::shared_ptr<HttpServerRequest500Handler>>(
+					ServiceLifetime::Persistent);
 			}
-			container.add(http500Handler_);
 		} else if (state == ApplicationState::RegisterServices) {
 			container.add<HttpServerConfiguration>(config_);
 			for (auto& customHandler : customHandlers_) {
 				container.add(customHandler);
 			}
 		} else if (state == ApplicationState::RegisterTailServices) {
-			if (!http404Handler_) {
-				http404Handler_ = seastar::make_shared<HttpServerRequest404Handler>();
+			if (http404Handler_) {
+				container.add(http404Handler_);
+			} else {
+				container.add<
+					seastar::shared_ptr<HttpServerRequestHandlerBase>,
+					seastar::shared_ptr<HttpServerRequest404Handler>>(
+					ServiceLifetime::Persistent);
 			}
-			container.add(http404Handler_);
 		} else if (state == ApplicationState::AfterServicesRegistered) {
 			server_ = HttpServer(container);
 		} else if (state == ApplicationState::Starting) {
