@@ -1,7 +1,32 @@
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
-#include "./HttpServerConfigurationData.hpp"
 
 namespace cpv {
+	static const std::size_t DefaultMaxInitialRequestBytes = 524288;
+	static const std::size_t DefaultMaxInitialRequestPackets = 512;
+	static const std::size_t DefaultRequestTimeout = 60000;
+	static const std::size_t DefaultRequestQueueSize = 100;
+	static const std::size_t DefaultRequestBodySize = 50;
+	
+	/** Members of HttpServerConfiguration */
+	class HttpServerConfigurationData {
+	public:
+		std::vector<std::string> listenAddresses;
+		std::size_t maxInitialRequestBytes;
+		std::size_t maxInitialRequestPackets;
+		std::chrono::milliseconds requestTimeout;
+		std::size_t requestQueueSize;
+		std::size_t requestBodyQueueSize;
+		
+		/** Constructor */
+		HttpServerConfigurationData() :
+			listenAddresses(),
+			maxInitialRequestBytes(DefaultMaxInitialRequestBytes),
+			maxInitialRequestPackets(DefaultMaxInitialRequestPackets),
+			requestTimeout(DefaultRequestTimeout),
+			requestQueueSize(DefaultRequestQueueSize),
+			requestBodyQueueSize(DefaultRequestBodySize) { }
+	};
+	
 	/** Get listen addresses, e.g. "0.0.0.0:80" */
 	const std::vector<std::string>& HttpServerConfiguration::getListenAddresses() const& {
 		return data_->listenAddresses;

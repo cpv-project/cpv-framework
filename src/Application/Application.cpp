@@ -1,11 +1,59 @@
 #include <chrono>
+#include <vector>
+#include <memory>
 #include <seastar/core/future-util.hh>
 #include <seastar/core/sleep.hh>
+#include <seastar/core/sharded.hh>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Application/Application.hpp>
-#include "./ApplicationData.hpp"
 
 namespace cpv {
+	/** ApplicationData for per core */
+	class ApplicationPerCoreData {
+	public:
+		/** For seastar::sharded */
+		seastar::future<> stop() {
+			return seastar::make_ready_future<>();
+		}
+
+		/** Constructor */
+		ApplicationPerCoreData() :
+			container(),
+			modules() { }
+
+	public:
+		Container container;
+		std::vector<std::unique_ptr<ModuleBase>> modules;
+	};
+
+	/** Members of Application */
+	class ApplicationData {
+	public:
+		/** Constructor */
+		ApplicationData() :
+			state(ApplicationState::StartInitialize),
+			modulesFactories(),
+			shardData(std::make_unique<seastar::sharded<ApplicationPerCoreData>>()) { }
+
+		/** Destructor */
+		~ApplicationData() {
+			if (!shardData) {
+				return;
+			}
+			// destruct modules on all cpu cores asynchronously
+			(void)seastar::do_with(std::move(shardData), [] (auto& shardData) {
+				return shardData->stop();
+			});
+		}
+
+	public:
+		ApplicationState state;
+		std::vector<std::pair<
+			std::function<std::unique_ptr<ModuleBase>()>,
+			std::function<void(ModuleBase*)>>> modulesFactories;
+		std::unique_ptr<seastar::sharded<ApplicationPerCoreData>> shardData;
+	};
+
 	namespace {
 		/** Update state and invoke handle function of modules on all cpu cores */
 		seastar::future<> updateState(ApplicationData& data, ApplicationState state) {

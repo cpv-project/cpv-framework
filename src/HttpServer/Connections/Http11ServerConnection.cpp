@@ -161,6 +161,7 @@ namespace cpv {
 	/** Invoke when timeout is detected from HttpServer's timer */
 	void Http11ServerConnection::onTimeout() {
 		// shutdown connection
+		sharedData_->metricData.request_errors += 1;
 		sharedData_->metricData.request_timeout_errors += 1;
 		shutdown("request timeout");
 	}
@@ -216,6 +217,7 @@ namespace cpv {
 				return;
 			}
 			sharedData_->metricData.request_errors += 1;
+			sharedData_->metricData.request_receive_exception_occurs += 1;
 			sharedData_->logger->log(LogLevel::Info,
 				"exception occurs when receive http request from",
 				processingContext_.getClientAddress(), ":", ex);
@@ -260,6 +262,7 @@ namespace cpv {
 				receiveLoopData_.receivedBytes += lastBuffer.size();
 				if (CPV_UNLIKELY(receiveLoopData_.receivedBytes >
 					sharedData_->configuration.getMaxInitialRequestBytes())) {
+					sharedData_->metricData.request_errors += 1;
 					sharedData_->metricData.request_initial_size_errors += 1;
 					lastErrorResponse_ = ReachedBytesLimitationOfInitialRequestData;
 					shutdown("reached bytes limitation of initial request data");
@@ -269,6 +272,7 @@ namespace cpv {
 				receiveLoopData_.receivedPackets += 1;
 				if (CPV_UNLIKELY(receiveLoopData_.receivedPackets >
 					sharedData_->configuration.getMaxInitialRequestPackets())) {
+					sharedData_->metricData.request_errors += 1;
 					sharedData_->metricData.request_initial_size_errors += 1;
 					lastErrorResponse_ = ReachedPacketsLimitationOfInitialRequestData;
 					shutdown("reached packets limitation of initial request data");
@@ -292,6 +296,7 @@ namespace cpv {
 					nextRequestBuffer_.trim_front(parsedSize - 1);
 				} else {
 					// parse error, log level is info because it may not cause by server
+					sharedData_->metricData.request_errors += 1;
 					sharedData_->metricData.request_invalid_format_errors += 1;
 					lastErrorResponse_ = InvalidHttpRequestFormat;
 					sharedData_->logger->log(LogLevel::Info,
@@ -369,6 +374,7 @@ namespace cpv {
 				return replyResponseLoop(); // send error response
 			}
 			sharedData_->metricData.request_errors += 1;
+			sharedData_->metricData.request_reply_exception_occurs += 1;
 			sharedData_->logger->log(LogLevel::Info,
 				"exception occurs when reply http response to",
 				processingContext_.getClientAddress(), ":", ex);
@@ -426,14 +432,17 @@ namespace cpv {
 				// handle next request if keepalive enabled
 				if (CPV_LIKELY(replyLoopData_.keepConnection)) {
 					if (CPV_LIKELY(result.available())) {
+						sharedData_->metricData.request_handled += 1;
 						return replyResponseLoop(); // hot path
 					} else {
 						return result.then([this] {
+							sharedData_->metricData.request_handled += 1;
 							return replyResponseLoop();
 						});
 					}
 				} else {
 					return result.then([this] {
+						sharedData_->metricData.request_handled += 1;
 						shutdown("keepalive not enabled");
 						return replyResponseLoop();
 					});

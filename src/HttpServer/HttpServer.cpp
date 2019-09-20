@@ -1,10 +1,14 @@
+#include <utility>
+#include <seastar/core/timer.hh>
+#include <seastar/core/shared_future.hh>
+#include <seastar/net/api.hh>
 #include <seastar/core/reactor.hh>
 #include <CPVFramework/HttpServer/HttpServer.hpp>
 #include <CPVFramework/Utility/NetworkUtils.hpp>
 #include <CPVFramework/Exceptions/LogicException.hpp>
 #include <CPVFramework/Exceptions/NotImplementedException.hpp>
 #include "./Connections/Http11ServerConnection.hpp"
-#include "./HttpServerData.hpp"
+#include "./HttpServerSharedData.hpp"
 
 // increase backlog can avoid ECONNREFUSED when many connections come with in a short period
 #if !defined(CPV_HTTP_SERVER_LISTEN_BACKLOG)
@@ -12,6 +16,29 @@
 #endif
 
 namespace cpv {
+	/** Members of HttpServer */
+	class HttpServerData {
+	public:
+		/** Constructor */
+		HttpServerData(const Container& container) :
+			connectionsWrapper(seastar::make_lw_shared<HttpServerConnectionsWrapper>()),
+			sharedData(seastar::make_lw_shared<HttpServerSharedData>(
+				container, connectionsWrapper->weak_from_this())),
+			listeners(),
+			listenerStoppedFutures(),
+			detectTimeoutTimer(),
+			stopping(false) { }
+		
+	public:
+		seastar::lw_shared_ptr<HttpServerConnectionsWrapper> connectionsWrapper;
+		seastar::lw_shared_ptr<HttpServerSharedData> sharedData;
+		std::vector<seastar::lw_shared_ptr<
+			std::pair<seastar::server_socket, seastar::socket_address>>> listeners;
+		std::vector<seastar::future<>> listenerStoppedFutures;
+		seastar::timer<> detectTimeoutTimer;
+		bool stopping;
+	};
+	
 	/** Start accept http connections */
 	seastar::future<> HttpServer::start() {
 		// check state
