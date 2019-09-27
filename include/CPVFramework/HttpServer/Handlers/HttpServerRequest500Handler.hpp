@@ -18,7 +18,7 @@ namespace cpv {
 			const HttpServerRequestHandlerIterator& next) const override;
 
 		/** Constructor */
-		HttpServerRequest500Handler(seastar::shared_ptr<Logger> logger);
+		explicit HttpServerRequest500Handler(seastar::shared_ptr<Logger> logger);
 
 	private:
 		seastar::shared_ptr<Logger> logger_;

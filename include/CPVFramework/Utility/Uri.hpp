@@ -113,10 +113,10 @@ namespace cpv {
 		Uri();
 		
 		/** Constructor */
-		Uri(std::string_view uri) : Uri() { parse(uri); }
+		explicit Uri(std::string_view uri) : Uri() { parse(uri); }
 		
 		/** Constructor */
-		Uri(seastar::temporary_buffer<char>&& uri) : Uri() { parse(std::move(uri)); }
+		explicit Uri(seastar::temporary_buffer<char>&& uri) : Uri() { parse(std::move(uri)); }
 		
 	private:
 		std::string_view protocol_;
