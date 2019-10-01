@@ -1,6 +1,5 @@
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest500Handler.hpp>
-#include <CPVFramework/Http/HttpConstantStrings.hpp>
-#include <CPVFramework/Stream/OutputStreamExtensions.hpp>
+#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/Utility/UUIDUtils.hpp>
 
 namespace cpv {
@@ -19,15 +18,11 @@ namespace cpv {
 			p.append(constants::InternalServerError)
 				.append("\nID: ")
 				.append(seastar::temporary_buffer<char>(uuidStr.data(), uuidStr.size()));
-			// set 500 status code (headers may already write to client,
+			// reply with 500 (headers may already write to client,
 			// in this case the error message will append to content and the behavior is undefined,
 			// most of the time user can see it in network tab of developer tool)
-			response.setStatusCode(constants::_500);
-			response.setStatusMessage(constants::InternalServerError);
-			response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-			response.setHeader(constants::ContentLength, p.size());
-			// write response content
-			return extensions::writeAll(response.getBodyStream(), std::move(p));
+			return extensions::reply(response, std::move(p),
+				constants::TextPlainUtf8, constants::_500, constants::InternalServerError);
 		}
 	}
 	

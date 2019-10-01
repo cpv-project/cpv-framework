@@ -1,6 +1,5 @@
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
-#include <CPVFramework/Http/HttpConstantStrings.hpp>
-#include <CPVFramework/Stream/OutputStreamExtensions.hpp>
+#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 
 namespace cpv {
 	/** Return 404 not found */
@@ -8,11 +7,8 @@ namespace cpv {
 		HttpContext& context,
 		const HttpServerRequestHandlerIterator&) const {
 		auto& response = context.getResponse();
-		response.setStatusCode(constants::_404);
-		response.setStatusMessage(constants::NotFound);
-		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
-		response.setHeader(constants::ContentLength, constants::NotFound.size());
-		return extensions::writeAll(response.getBodyStream(), constants::NotFound);
+		return extensions::reply(response, constants::NotFound,
+			constants::TextPlainUtf8, constants::_404, constants::NotFound);
 	}
 }
 

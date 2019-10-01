@@ -1,5 +1,5 @@
 #include <CPVFramework/Stream/StringOutputStream.hpp>
-#include <CPVFramework/Stream/OutputStreamExtensions.hpp>
+#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequestRoutingHandler.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequest404Handler.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
@@ -11,13 +11,9 @@ namespace {
 		seastar::future<> handle(
 			cpv::HttpContext& context,
 			const cpv::HttpServerRequestHandlerIterator&) const {
-			auto buffer = cpv::convertIntToBuffer(Number);
 			auto& response = context.getResponse();
-			response.setStatusCode(cpv::constants::_200);
-			response.setStatusMessage(cpv::constants::OK);
-			response.setHeader(cpv::constants::ContentType, cpv::constants::TextPlainUtf8);
-			response.setHeader(cpv::constants::ContentLength, buffer.size());
-			return cpv::extensions::writeAll(response.getBodyStream(), std::move(buffer));
+			auto buffer = cpv::convertIntToBuffer(Number);
+			return cpv::extensions::reply(response, std::move(buffer));
 		}
 	};
 }

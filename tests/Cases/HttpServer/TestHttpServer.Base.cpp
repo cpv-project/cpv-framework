@@ -5,8 +5,8 @@
 #include <CPVFramework/Application/Modules/LoggingModule.hpp>
 #include <CPVFramework/Application/Modules/HttpServerModule.hpp>
 #include <CPVFramework/Http/HttpConstantStrings.hpp>
+#include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
-#include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include "./TestHttpServer.Base.hpp"
 
@@ -74,12 +74,8 @@ namespace cpv::gtest {
 		request.getHeaders().foreach([&p] (const auto& key, const auto& value) {
 			p.append("  ").append(key).append(": ").append(value).append("\r\n");
 		});
-		response.setStatusCode(constants::_200);
-		response.setStatusMessage(constants::OK);
-		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, PesudoDate);
-		response.setHeader(constants::ContentLength, p.size());
-		return extensions::writeAll(response.getBodyStream(), std::move(p));
+		return extensions::reply(response, std::move(p));
 	}
 	
 	/** Reply request body in response body */
@@ -89,12 +85,9 @@ namespace cpv::gtest {
 		auto& request = context.getRequest();
 		auto& response = context.getResponse();
 		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
-			response.setStatusCode(constants::_200);
-			response.setStatusMessage(constants::OK);
-			response.setHeader(constants::ContentType, request.getHeaders().getHeader(constants::ContentType));
 			response.setHeader(constants::Date, PesudoDate);
-			response.setHeader(constants::ContentLength, str.size());
-			return extensions::writeAll(response.getBodyStream(), std::move(str));
+			return extensions::reply(response, std::move(str),
+				request.getHeaders().getHeader(constants::ContentType));
 		});
 	}
 	
