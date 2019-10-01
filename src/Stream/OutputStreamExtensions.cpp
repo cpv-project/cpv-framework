@@ -8,10 +8,5 @@ namespace cpv::extensions {
 			return stream.write(Packet(str));
 		});
 	}
-	
-	/** Write string view to stream */
-	seastar::future<> writeAll(OutputStreamBase& stream, std::string_view str) {
-		return stream.write(Packet(str));
-	}
 }
 

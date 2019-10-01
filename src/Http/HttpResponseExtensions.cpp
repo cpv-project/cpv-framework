@@ -1,9 +1,26 @@
 #include <seastar/core/temporary_buffer.hh>
 #include <CPVFramework/Http/HttpResponseExtensions.hpp>
+#include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/DateUtils.hpp>
 
 namespace cpv::extensions {
+	/** Reply 302 Found with given location to http response */
+	seastar::future<> redirectTo(HttpResponse& response, std::string_view location) {
+		response.setStatusCode(constants::_302);
+		response.setStatusMessage(constants::Found);
+		response.setHeader(constants::Location, location);
+		return seastar::make_ready_future<>();
+	}
+
+	/** Reply 301 Moved Permanently with give location to http response */
+	seastar::future<> redirectToPermanently(HttpResponse& response, std::string_view location) {
+		response.setStatusCode(constants::_301);
+		response.setStatusMessage(constants::MovedPermanently);
+		response.setHeader(constants::Location, location);
+		return seastar::make_ready_future<>();
+	}
+
 	/** Add or replace cookie on client side */
 	void setCookie(
 		HttpResponse& response,
@@ -54,7 +71,7 @@ namespace cpv::extensions {
 		response.addUnderlyingBuffer(std::move(buf));
 		response.getHeaders().addAdditionHeader(constants::SetCookie, view);
 	}
-	
+
 	/** Remove cookie on client side */
 	void removeCookie(
 		HttpResponse& response,

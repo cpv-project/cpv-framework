@@ -6,7 +6,7 @@ namespace cpv::extensions {
 	namespace {
 		static const std::size_t ReadBufferSize = 4096;
 	}
-	
+
 	/** Read all data from stream and append to given string */
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str) {
 		return seastar::repeat([&stream, &str] {
@@ -18,7 +18,7 @@ namespace cpv::extensions {
 			});
 		});
 	}
-	
+
 	/** Read all data from stream and return it as string */
 	seastar::future<std::string> readAll(InputStreamBase& stream) {
 		return seastar::do_with(std::string(), [&stream] (auto& str) {

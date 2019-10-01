@@ -7,7 +7,7 @@
 namespace cpv::extensions {
 	/** Read all data from stream and append to given string, must keep stream live until future resolved */
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str);
-	
+
 	/** Read all data from stream and append to given string, must keep stream live until future resolved */
 	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), InputStreamBase*>>* = nullptr>
@@ -17,10 +17,10 @@ namespace cpv::extensions {
 		}
 		return readAll(*stream.get(), str);
 	}
-	
+
 	/** Read all data from stream and return it as string, must keep stream live until future resolved */
 	seastar::future<std::string> readAll(InputStreamBase& stream);
-	
+
 	/** Read all data from stream and return it as string, must keep stream live until future resolved*/
 	template <class T, std::enable_if_t<std::is_convertible_v<
 		decltype(std::declval<T>().get()), InputStreamBase*>>* = nullptr>

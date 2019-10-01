@@ -150,7 +150,7 @@ namespace cpv {
 		Packet() : data_(SingleFragment()) { }
 
 		/** Constructor with static string */
-		Packet(std::string_view str) :
+		explicit Packet(std::string_view str) :
 			data_(SingleFragment(toFragment(str))) { }
 
 		/** Constructor with dynamic string and it's deleter to packet */
@@ -158,11 +158,11 @@ namespace cpv {
 			data_(SingleFragment(toFragment(str), std::move(deleter))) { }
 
 		/** Constructor with temporary_buffer */
-		Packet(seastar::temporary_buffer<char>&& buf) :
+		explicit Packet(seastar::temporary_buffer<char>&& buf) :
 			data_(SingleFragment({ buf.get_write(), buf.size() }, buf.release())) { }
 
 		/** Constructor with capacity prepare for multiple fragments */
-		Packet(std::size_t capacity) :
+		explicit Packet(std::size_t capacity) :
 			data_([capacity] {
 				auto data = makeReusable<MultipleFragments>();
 				data->fragments.reserve(capacity);

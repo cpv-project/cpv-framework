@@ -242,5 +242,18 @@ namespace cpv {
 
 	/** Compare two string case insensitive */
 	bool caseInsensitiveEquals(std::string_view a, std::string_view b);
+
+	/** Get size of string contents */
+	template <class StringType>
+	std::size_t sizeofString(StringType&& str) {
+		return std::size(str);
+	}
+
+	/** Get size of c string contents (exclude tailing zero) */
+	template <std::size_t Size>
+	std::size_t sizeofString(const char(&)[Size]) {
+		static_assert(Size > 0, "size of c string should not be 0");
+		return Size - 1;
+	}
 }
 

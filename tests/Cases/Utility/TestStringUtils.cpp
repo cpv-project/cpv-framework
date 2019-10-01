@@ -232,3 +232,9 @@ TEST(TestStringUtils, caseInsensitiveEquals) {
 	ASSERT_FALSE(cpv::caseInsensitiveEquals(std::string("ABC"), std::string("abd")));
 }
 
+TEST(TestStringUtils, sizeofString) {
+	ASSERT_EQ(cpv::sizeofString(""), 0U);
+	ASSERT_EQ(cpv::sizeofString("abc"), 3U);
+	ASSERT_EQ(cpv::sizeofString(std::string("abcde", 5)), 5U);
+}
+

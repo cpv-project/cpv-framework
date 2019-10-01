@@ -1,5 +1,98 @@
 #include <CPVFramework/Http/HttpResponseExtensions.hpp>
+#include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
+
+TEST_FUTURE(TestHttpResponseExtensions, reply) {
+	return seastar::do_with(
+		cpv::HttpResponse(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& response, auto& str) {
+		response.setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+		return cpv::extensions::reply(response, "test contents").then([&response, &str] {
+			ASSERT_EQ(response.getStatusCode(), cpv::constants::_200);
+			ASSERT_EQ(response.getStatusMessage(), cpv::constants::OK);
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "13");
+			ASSERT_EQ(*str, "test contents");
+		});
+	});
+}
+
+TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
+	return seastar::do_with(
+		cpv::HttpResponse(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& response, auto& str) {
+		response.setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+		return cpv::extensions::reply(response, "{ }", cpv::constants::ApplicationJsonUtf8)
+		.then([&response, &str] {
+			ASSERT_EQ(response.getStatusCode(), cpv::constants::_200);
+			ASSERT_EQ(response.getStatusMessage(), cpv::constants::OK);
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::ApplicationJsonUtf8);
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "3");
+			ASSERT_EQ(*str, "{ }");
+		});
+	});
+}
+
+TEST_FUTURE(TestHttpResponseExtensions, replyWithMimeAndStatusCode) {
+	return seastar::do_with(
+		cpv::HttpResponse(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& response, auto& str) {
+		response.setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+		return cpv::extensions::reply(
+			response, std::string("{} //test", 3), cpv::constants::ApplicationJsonUtf8,
+			cpv::constants::_404, cpv::constants::NotFound)
+			.then([&response, &str] {
+			ASSERT_EQ(response.getStatusCode(), cpv::constants::_404);
+			ASSERT_EQ(response.getStatusMessage(), cpv::constants::NotFound);
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::ApplicationJsonUtf8);
+			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "3");
+			ASSERT_EQ(*str, "{} ");
+		});
+	});
+}
+
+TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
+	return seastar::do_with(
+		cpv::HttpResponse(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& response, auto& str) {
+		response.setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+		return cpv::extensions::redirectTo(response, "/login").then([&response, &str] {
+			ASSERT_EQ(response.getStatusCode(), cpv::constants::_302);
+			ASSERT_EQ(response.getStatusMessage(), cpv::constants::Found);
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::Location), "/login");
+			ASSERT_EQ(*str, "");
+		});
+	});
+}
+
+TEST_FUTURE(TestHttpResponseExtensions, redirectToPermanently) {
+	return seastar::do_with(
+		cpv::HttpResponse(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& response, auto& str) {
+		response.setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+		return cpv::extensions::redirectToPermanently(response, "/login").then([&response, &str] {
+			ASSERT_EQ(response.getStatusCode(), cpv::constants::_301);
+			ASSERT_EQ(response.getStatusMessage(), cpv::constants::MovedPermanently);
+			auto& headers = response.getHeaders();
+			ASSERT_EQ(headers.getHeader(cpv::constants::Location), "/login");
+			ASSERT_EQ(*str, "");
+		});
+	});
+}
 
 TEST(TestHttpResponseExtensions, setCookie) {
 	cpv::HttpResponse response;
