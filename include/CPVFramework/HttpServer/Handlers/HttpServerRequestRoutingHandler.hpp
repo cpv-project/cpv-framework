@@ -1,5 +1,7 @@
 #pragma once
 #include "./HttpServerRequestHandlerBase.hpp"
+#include "./HttpServerRequestFunctionHandler.hpp"
+#include "./HttpServerRequestParametersFunctionHandler.hpp"
 
 namespace cpv {
 	/** Members of HttpServerRequestRoutingHandler */
@@ -26,6 +28,27 @@ namespace cpv {
 		 */
 		void route(std::string_view method, std::string_view path,
 			const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler);
+
+		/** Associate handler function with given path */
+		template <class Func, std::enable_if_t<
+			std::is_base_of_v<
+				HttpServerRequestHandlerBase,
+				HttpServerRequestFunctionHandler<Func>>, int> = 0>
+		void route(std::string_view method, std::string_view path, Func func) {
+			return route(method, path, seastar::make_shared<
+				HttpServerRequestFunctionHandler<Func>>(std::move(func)));
+		}
+
+		/** Associate handler function that takes given parameters with given path */
+		template <class Params, class Func, std::enable_if_t<
+			std::is_base_of_v<
+				HttpServerRequestHandlerBase,
+				HttpServerRequestParametersFunctionHandler<Params, Func>>, int> = 0>
+		void route(std::string_view method, std::string_view path, Params params, Func func) {
+			return route(method, path, seastar::make_shared<
+				HttpServerRequestParametersFunctionHandler<Params, Func>>(
+				std::move(params), std::move(func)));
+		}
 
 		/** Remove associated handler with given path */
 		void removeRoute(std::string_view method, std::string_view path);

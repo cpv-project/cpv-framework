@@ -130,3 +130,42 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 	});
 }
 
+TEST_FUTURE(HttpServerRequestRoutingHandler, routeFunc) {
+	return seastar::do_with(
+		cpv::HttpServerRequestHandlerCollection(),
+		cpv::HttpContext(),
+		seastar::make_lw_shared<std::string>(),
+		[] (auto& handlers, auto& context, auto& str) {
+		auto handler = seastar::make_shared<cpv::HttpServerRequestRoutingHandler>();
+		handler->route(cpv::constants::GET, "/func", [](auto& context) {
+			auto& response = context.getResponse();
+			return cpv::extensions::reply(response, "test function handler");
+		});
+		handler->route(cpv::constants::GET, "/get/*/details", std::make_tuple(1, "keyword"),
+			[](auto& context, auto id, auto keyword) {
+				auto& response = context.getResponse();
+				return cpv::extensions::reply(response, cpv::joinString("-", id, keyword));
+			});
+
+		handlers.emplace_back(handler);
+		handlers.emplace_back(seastar::make_shared<cpv::HttpServerRequest404Handler>());
+
+		context.getResponse().setBodyStream(
+			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
+
+		auto test = [&handlers, &context, &str] (std::string_view method, std::string_view path) {
+			context.getRequest().setMethod(method);
+			context.getRequest().setUrl(path);
+			return handlers.at(0)->handle(context, handlers.begin() + 1).then([&str] {
+				str->append(",");
+			});
+		};
+
+		return test(cpv::constants::GET, "/func")
+			.then([test] { return test(cpv::constants::GET, "/get/123/details?keyword=abc"); })
+			.then([&str] {
+				ASSERT_EQ(*str, "test function handler,123-abc,");
+			});
+	});
+}
+

@@ -56,7 +56,7 @@ namespace cpv {
 		}
 		
 		/** Get query parameter for given key, return empty string if key not exists */
-		std::string_view getQueryParameter(std::string_view key) {
+		std::string_view getQueryParameter(std::string_view key) const {
 			auto it = queryParameters_.find(key);
 			return it != queryParameters_.end() ? it->second : std::string_view();
 		}

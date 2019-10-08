@@ -17,8 +17,7 @@ namespace cpv {
 	 *     auto& config = module.getConfig();
 	 *     config.setListenAddresses({ "0.0.0.0:80" }); // listen on 80 for all hosts
 	 *     module.set404Handler([] (HttpContext& context) {
-	 *         // TODO: implement this api
-	 *         extensions::redirectTo(context.response, "/404");
+	 *         return extensions::redirectTo(context.getResponse(), "/404");
 	 *     });
 	 *     // unlike 400 handler, 500 handler should only act when exception occurs,
 	 *     // you could see src/HttpServer/Handlers/HttpServerRequest500Handler.cpp
