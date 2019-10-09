@@ -255,5 +255,12 @@ namespace cpv {
 		static_assert(Size > 0, "size of c string should not be 0");
 		return Size - 1;
 	}
+
+	/** Construct string with fixed size, string may contains \x00 */
+	template <std::size_t Size>
+	std::string makeBinaryString(const char(&str)[Size]) {
+		static_assert(Size > 0, "string must be null terminated");
+		return std::string(str, Size - 1);
+	}
 }
 

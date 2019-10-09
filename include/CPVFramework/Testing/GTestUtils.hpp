@@ -1,7 +1,12 @@
 #pragma once
 #include <string>
 #include <gtest/gtest.h>
+#include <seastar/core/app-template.hh>
 #include <seastar/core/future.hh>
+#include <seastar/core/future-util.hh>
+#include <seastar/core/reactor.hh>
+#include <seastar/core/sleep.hh>
+#include <seastar/core/thread.hh>
 #include "../Utility/Packet.hpp"
 
 #define TEST_FUTURE(caseName, testName) \
@@ -37,7 +42,21 @@
 
 namespace cpv::gtest {
 	/** the main function of test executable */
-	int runAllTests(int argc, char** argv);
+	static inline int runAllTests(int argc, char** argv) {
+		::testing::InitGoogleTest(&argc, argv);
+		seastar::app_template app;
+		int returnValue(0);
+		app.run(argc, argv, [&returnValue] {
+			return seastar::async([] {
+				return RUN_ALL_TESTS();
+			}).then([&returnValue] (int result) {
+				returnValue = result;
+				// wait for internal cleanup to make leak sanitizer happy
+				return seastar::sleep(std::chrono::seconds(1));
+			});
+		});
+		return returnValue;
+	}
 	
 	/** create tcp connection, send request then return received response as string */
 	seastar::future<std::string> tcpSendRequest(
@@ -49,14 +68,5 @@ namespace cpv::gtest {
 		std::size_t port,
 		const std::vector<std::string_view>& parts,
 		std::chrono::milliseconds interval);
-}
-
-namespace {
-	/** Construct string with fixed size, string may contains \x00 */
-	template <std::size_t Size>
-	std::string makeTestString(const char(&str)[Size]) {
-		static_assert(Size > 0, "string must be null terminated");
-		return std::string(str, Size - 1);
-	}
 }
 

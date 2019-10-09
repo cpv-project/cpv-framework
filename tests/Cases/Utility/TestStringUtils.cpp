@@ -238,3 +238,8 @@ TEST(TestStringUtils, sizeofString) {
 	ASSERT_EQ(cpv::sizeofString(std::string("abcde", 5)), 5U);
 }
 
+TEST(TestStringUtils, makeBinaryString) {
+	ASSERT_EQ(cpv::makeBinaryString("abc\x00""def").size(), 7U);
+	ASSERT_EQ(cpv::makeBinaryString("abc\x00""def"), std::string("abc\x00""def", 7));
+}
+
