@@ -19,6 +19,9 @@ namespace cpv {
 			{ ApplicationState::BeforeStart, "BeforeStart" },
 			{ ApplicationState::Starting, "Starting" },
 			{ ApplicationState::AfterStarted, "AfterStarted" },
+			{ ApplicationState::BeforeTemporaryStop, "BeforeTemporaryStop" },
+			{ ApplicationState::TemporaryStopping, "TemporaryStopping" },
+			{ ApplicationState::AfterTemporaryStopped, "AfterTemporaryStopped" },
 			{ ApplicationState::BeforeStop, "BeforeStop" },
 			{ ApplicationState::Stopping, "Stopping" },
 			{ ApplicationState::AfterStopped, "AfterStopped" }

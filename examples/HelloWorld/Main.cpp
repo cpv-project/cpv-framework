@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 				return cpv::extensions::reply(context.getResponse(), "Hello World!");
 			});
 		});
-		return application.run_forever();
+		return application.runForever();
 	});
 	return 0;
 }

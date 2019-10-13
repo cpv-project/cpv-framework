@@ -71,6 +71,21 @@ namespace {
 					"Starting\n"
 					"AfterStarted\n");
 				startCount->fetch_add(1);
+			} else if (state == cpv::ApplicationState::BeforeTemporaryStop) {
+				record.append("BeforeTemporaryStop\n");
+			} else if (state == cpv::ApplicationState::TemporaryStopping) {
+				record.append("TemporaryStopping\n");
+			} else if (state == cpv::ApplicationState::AfterTemporaryStopped) {
+				record.append("AfterTemporaryStopped\n");
+				ASSERT_EQ(record,
+					"BeforeStart\n"
+					"Starting\n"
+					"AfterStarted\n"
+					"BeforeTemporaryStop\n"
+					"TemporaryStopping\n"
+					"AfterTemporaryStopped\n");
+				record.clear();
+				stopTemporaryCount->fetch_add(1);
 			} else if (state == cpv::ApplicationState::BeforeStop) {
 				record.append("BeforeStop\n");
 			} else if (state == cpv::ApplicationState::Stopping) {
@@ -92,6 +107,7 @@ namespace {
 	public:
 		std::shared_ptr<std::atomic_uint> initializeCount;
 		std::shared_ptr<std::atomic_uint> startCount;
+		std::shared_ptr<std::atomic_uint> stopTemporaryCount;
 		std::shared_ptr<std::atomic_uint> stopCount;
 		std::string record;
 	};
@@ -135,24 +151,27 @@ TEST_FUTURE(TestApplication, handleStates) {
 		std::make_shared<std::atomic_uint>(),
 		std::make_shared<std::atomic_uint>(),
 		std::make_shared<std::atomic_uint>(),
+		std::make_shared<std::atomic_uint>(),
 		[] (cpv::Application& application,
-		auto& initializeCount, auto& startCount, auto& stopCount) {
+		auto& initializeCount, auto& startCount, auto& stopTemporaryCount, auto& stopCount) {
 		application.add<TestHandleStatesModule>(
-			[&initializeCount, &startCount, &stopCount] (auto& module) {
+			[&initializeCount, &startCount, &stopTemporaryCount, &stopCount] (auto& module) {
 			module.initializeCount = initializeCount;
 			module.startCount = startCount;
+			module.stopTemporaryCount = stopTemporaryCount;
 			module.stopCount = stopCount;
 		});
 		return application.start().then([&application] {
-			return application.stop();
+			return application.stopTemporary();
 		}).then([&application] {
 			return application.start();
 		}).then([&application] {
 			return application.stop();
-		}).then([&initializeCount, &startCount, &stopCount] {
+		}).then([&initializeCount, &startCount, &stopTemporaryCount, &stopCount] {
 			ASSERT_EQ(initializeCount->load(), seastar::smp::count);
 			ASSERT_EQ(startCount->load(), seastar::smp::count * 2);
-			ASSERT_EQ(stopCount->load(), seastar::smp::count * 2);
+			ASSERT_EQ(stopTemporaryCount->load(), seastar::smp::count);
+			ASSERT_EQ(stopCount->load(), seastar::smp::count);
 		});
 	});
 }

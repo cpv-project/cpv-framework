@@ -34,12 +34,19 @@ namespace cpv {
 		/** The last state when Application::start invoked */
 		AfterStarted = 10099,
 
+		/** The first state when Application::stopTemporary invoked */
+		BeforeTemporaryStop = 10100,
+		/** The second state when Application::stopTemporary invoked */
+		TemporaryStopping = 10101,
+		/** The last state when Application::stopTemporary invoked */
+		AfterTemporaryStopped = 10199,
+
 		/** The first state when Application::stop invoked */
-		BeforeStop = 10100,
+		BeforeStop = 10200,
 		/** The second state when Application::stop invoked */
-		Stopping = 10101,
+		Stopping = 10201,
 		/** The last state when Application::stop invoked */
-		AfterStopped = 10199,
+		AfterStopped = 10299,
 	};
 
 	/** Enum descriptions of ApplicationState */

@@ -9,7 +9,7 @@ namespace cpv {
 	/**
 	 * Generic purpose modular application class
 	 *
-	 * This class manage a collection of modules, modules decide what this
+	 * This class manages a collection of modules, modules decide what this
 	 * application will do and how this application do it.
 	 *
 	 * After created application, you can add some modules to it like:
@@ -26,17 +26,40 @@ namespace cpv {
 	 *     return application.stop();
 	 * });
 	 * ```
-	 * or use the convenient function run_forever:
+	 * or use the convenient function runForever:
 	 * ```
 	 * // start and stop function will capture internal data,
-	 * // so destruct application instance after run_forever ready is ok
-	 * return application.run_forever();
+	 * // so destruct application instance before runForever become ready is ok
+	 * return application.runForever();
 	 * ```
 	 *
+	 * In advance, if you want to stop application temporary but resume it later,
+	 * you can use stopTemporary function:
+	 * ```
+	 * return application.start().then([] {
+	 *     // wait for some interruption
+	 * }).then([application] () mutable {
+	 *     return application.stopTemporary();
+	 * }).then([application] () mutable {
+	 *     // wait for some interruption
+	 * }).then([application] () mutable {
+	 *     return application.start();
+	 * }).then([application] () mutable {
+	 *     // do other works, and wait until program exit (e.g. Ctrl+C)
+	 * }).then([application] () mutable {
+	 *     return application.stop();
+	 * });
+	 * ```
+	 *
+	 * Notice in every case you must call the stop function to cleanup application
+	 * before exit the program (which destroy the reactor in seastar framework),
+	 * otherwise you will see an exception at exiting program.
+	 *
 	 * Application will call the handle function defined in each module
-	 * for different states, for now there 3 groups of states:
+	 * for different states, for now there 4 groups of states:
 	 * - initialize states (when application.start first called)
 	 * - starting states (each time application.start called)
+	 * - temporary stopping states (each time application.stopTemporary called)
 	 * - stopping states (each time application.stop called)
 	 * for example, if there 3 modules a,b,c in the application,
 	 * when application.start first called, the application will invoke
@@ -128,11 +151,14 @@ namespace cpv {
 		/** Start application */
 		seastar::future<> start();
 
-		/** Stop application */
+		/** Stop application temporary (can call start again later) */
+		seastar::future<> stopTemporary();
+
+		/** Stop application permanently */
 		seastar::future<> stop();
 
 		/** Run application until program exit (e.g. Ctrl+C) */
-		seastar::future<> run_forever();
+		seastar::future<> runForever();
 
 		/** Constructor */
 		Application();
