@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 			module.getConfig().setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
 		});
 		application.add<cpv::HttpServerRoutingModule>([] (auto& module) {
-			module.route(cpv::constants::GET, "/", [] (auto& context) {
+			module.route(cpv::constants::GET, "/", [] (cpv::HttpContext& context) {
 				return cpv::extensions::reply(context.getResponse(), "Hello World!");
 			});
 		});
