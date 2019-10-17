@@ -3,7 +3,7 @@ Section: misc
 Priority: optional
 Maintainer: compiv <compiv@tutanota.com>
 Build-Depends:
- cmake, gcc, make, python3, patchelf, seastar
+ cmake, g++-9, make, python3, patchelf, seastar
 Homepage: https://github.com/cpv-project/cpv-framework
 
 Package: cpvframework
