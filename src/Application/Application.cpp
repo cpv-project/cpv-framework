@@ -63,8 +63,8 @@ namespace cpv {
 		/** Destructor */
 		~ApplicationData() {
 			if (shardData_ != nullptr) {
-				std::cerr << "Please call Application::stop before exit program" << std::endl;
-				std::terminate();
+				std::cerr << "Warning: please call Application::stop before exit program" << std::endl;
+				shardData_.release(); // leak this pointer to avoid destruct it
 			}
 		}
 

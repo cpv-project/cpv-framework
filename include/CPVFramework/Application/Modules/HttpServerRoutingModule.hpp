@@ -10,7 +10,7 @@ namespace cpv {
 	 * You can associate handler with given path in the custom initialize function:
 	 * ```
 	 * application.add<HttpServerRoutingModule>(auto& module) {
-	 *     module.route(cpv::constants::GET, "/", [] (HttpContext& context) {
+	 *     module.route(constants::GET, "/", [] (HttpContext& context) {
 	 *         return extensions::reply(context.getResponse(), "index page");
 	 *     });
 	 *     // pass a tuple to route function can make it retrive parameters automatically.
@@ -18,7 +18,7 @@ namespace cpv {
 	 *     // string means key of query parameters: "key" => request.getUri().getQueryParameter("key")
 	 *     // you can make it support more types by provide cpv::extensions::getParameter(request, yourType).
 	 *     // please remove space between / and * (comment syntax problem).
-	 *     module.route(cpv::constants::GET, "/get/ *", std::make_tuple(1),
+	 *     module.route(constants::GET, "/get/ *", std::make_tuple(1),
 	 *         [] (HttpContext& context, std::string_view id) {
 	 *             return extensions::reply(context.getResponse(), id);
 	 *         });

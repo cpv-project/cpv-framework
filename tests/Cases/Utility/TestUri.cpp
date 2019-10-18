@@ -245,6 +245,18 @@ TEST(TestUri, parse) {
 		ASSERT_TRUE(uri.getQueryParameters().empty());
 	}
 	{
+		cpv::Uri uri("/first/second/?id=third");
+		ASSERT_EQ(uri.getProtocol(), "");
+		ASSERT_EQ(uri.getHostname(), "");
+		ASSERT_EQ(uri.getPort(), "");
+		ASSERT_EQ(uri.getPath(), "/first/second/");
+		ASSERT_EQ(uri.getPathFragments().size(), 2U);
+		ASSERT_EQ(uri.getPathFragment(0), "first");
+		ASSERT_EQ(uri.getPathFragment(1), "second");
+		ASSERT_EQ(uri.getQueryParameters().size(), 1U);
+		ASSERT_EQ(uri.getQueryParameter("id"), "third");
+	}
+	{
 		cpv::Uri uri("/");
 		ASSERT_EQ(uri.getProtocol(), "");
 		ASSERT_EQ(uri.getHostname(), "");

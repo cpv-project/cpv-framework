@@ -29,6 +29,8 @@ TEST_FUTURE(TestHttpServerModule, startStop) {
 		module.setLogger(cpv::Logger::createNoop());
 	});
 	application.add<cpv::HttpServerModule>([] (auto& module) {
+		ASSERT_EQ(module.getConfig().getListenAddresses().size(), 1U);
+		ASSERT_EQ(module.getConfig().getListenAddresses().at(0), "127.0.0.1:8000");
 		module.getConfig().setListenAddresses({
 			cpv::joinString("", HTTP_SERVER_1_IP, ":", HTTP_SERVER_1_PORT),
 			cpv::joinString("", HTTP_SERVER_2_IP, ":", HTTP_SERVER_2_PORT),

@@ -2,9 +2,9 @@
 
 cpv framework is a modular framework, there 3 core types used to build a cpv application, you will learn them in this chapter:
 
-- `cpv::Application`: used to manage modules and the container
-- `cpv::ModuleBase`: the interface of module
-- `cpv::Container`: the dependency injection container, modules will use it to integrate with each other
+- [Application](../include/CPVFramework/Application/Application.hpp): used to manage modules and the container
+- [ModuleBase](../include/CPVFramework/Application/ModuleBase.hpp): the interface of module
+- [Container](../include/CPVFramework/Container/Container.hpp): the dependency injection container, modules will use it to integrate with each other
 
 but first, let's see how to create an empty application.
 
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 }
 ```
 
-In this example, we create a custom class that implements the module interface `cpv::ModuleBase`, the module interface only has one function `handle` and it will be invoked at each state of application like a callback. (we will learn about the container later) Notice the `handle` function returns future object, that means it can do asynchronous processing, in this case we don't need asynchronous processing so just return a ready future object.
+In this example, we create a custom class that implements the module interface `ModuleBase`, the module interface only has one function `handle` and it will be invoked at each state of application like a callback. (we will learn about the container later) Notice the `handle` function returns future object, that means it can do asynchronous processing, in this case we don't need asynchronous processing so just return a ready future object.
 
 After compile and run it, you will see output like this:
 
@@ -145,7 +145,9 @@ application is stopping
 
 You might wonder why the message printed multiple times, that's because cpv application will create and execute modules on each cpu cores separately, that makes application code thread safe thus we don't need thread lock or atomic variables unless we want to access shared non thread local static variables.
 
-For more description about application states, please check [Application.hpp](../include/CPVFramework/Application/Application.hpp) and [ApplicationState.hpp](../include/CPVFramework/Application/ApplicationState.hpp).
+Notice the order of modules is matter, it will affect the execution order of `handle` and the position of services inside dependency injection container if the service will be registered multiple times.
+
+For more description about application states and how order of modules is matter, please check [Application.hpp](../include/CPVFramework/Application/Application.hpp) and [ApplicationState.hpp](../include/CPVFramework/Application/ApplicationState.hpp).
 
 ## Register and resolve services with dependency injection container
 
@@ -216,25 +218,162 @@ Hello from ServiceImpl
 Hello from ServiceImpl
 ```
 
-Please also check [the document about dependency injection container](./DependencyInjectionContainer.md) for advance usages such as register service with instance or custom factory, specify lifetime, define dependencies that will inject to constructor.
+Please also check [the document about dependency injection container](./DependencyInjectionContainer.md) for advance usage such as register service with instance or custom factory, specify lifetime, define dependencies that will inject to constructor.
 
 ## Add module with custom initialize function
 
-TODO
+Sometime you might want to customize configuration provided by module, `Application::add` has an overload that takes a custom initialize function for module, here is an example shows how to take argument from command line and pass it to module:
+
+``` c++
+#include <seastar/core/app-template.hh>
+#include <seastar/core/future.hh>
+#include <CPVFramework/Application/Application.hpp>
+
+namespace {
+	using namespace cpv;
+
+	class MyModule : public ModuleBase {
+	public:
+		seastar::future<> handle(Container& container, ApplicationState state) override {
+			if (state == ApplicationState::Starting) {
+				std::cout << "Hello! " << name_ << std::endl;
+			} else if (state == ApplicationState::Stopping) {
+				std::cout << "Bye! " << name_ << std::endl;
+			}
+			return seastar::make_ready_future<>();
+		}
+
+		void setName(std::string name) {
+			name_ = std::move(name);
+		}
+
+	private:
+		std::string name_;
+	};
+}
+
+int main(int argc, char** argv) {
+	seastar::app_template app;
+	app.add_options()("name", boost::program_options::value<std::string>(), "your name");
+	app.run(argc, argv, [&app] {
+		cpv::Application application;
+		application.add<MyModule>([&app] (auto& module) {
+			auto& config = app.configuration();
+			auto& nameOption = config["name"];
+			if (!nameOption.empty()) {
+				module.setName(nameOption.as<std::string>());
+			}
+		});
+		return application.runForever();
+	});
+	return 0;
+}
+```
+
+Compile and run it with `./a.out --name john` and you will see one or more `Hello! john` when starting application and `Bye! john` when stopping application. Notice the custom initialize function will run on each cpu core because module will be created on each cpu core too.
+
+Also notice that custom initialize function will be executed at the `CallingCustomIntializeFunctions` application state, and it's after `runForever` executed, so don't capture reference of variables on the stack that defines `cpv::Application application`.
 
 ## Builtin modules provided by cpv framework
 
 Although you can define custom modules and do anything you want, you will likely to use builtin modules provided by cpv framework to build a web application (you can write your own http server module or routing module if you really want), here is the modue list and their simple introduction, you can found all builtin modules inside [Modules](../include/CPVFramework/Application/Modules) folder.
 
-### LoggingModule
+### [LoggingModule](../include/CPVFramework/Application/Modules/LoggingModule.hpp)
 
-TODO
+This is a moudle used to provide logger instance (type is `seastar::shared_ptr<cpv::Logger>`), example:
 
-### HttpServerModule
+``` c++
+application.add<cpv::LoggingModule>();
+```
 
-TODO
+By default, it uses console logger with Notice level, you can set custom logger by using custom initialize function:
 
-### HttpServerRoutingModule
+``` c++
+application.add<cpv::LoggingModule>(auto& module) {
+	module.setLogger(cpv::Logger::createConsole(cpv::LogLevel::Info));
+});
+```
 
-TODO
+And you can get the logger instance from the container:
+
+``` c++
+auto logger = container.get<seastar::shared_ptr<cpv::Logger>>();
+```
+
+### [HttpServerModule](../include/CPVFramework/Application/Modules/HttpServerModule.hpp)
+
+This is a module used to configure, start, and stop http server, example:
+
+``` c++
+application.add<cpv::HttpServerModule>([] (auto& module) {
+	module.getConfig().setListenAddresses({ "0.0.0.0:8000", "127.0.0.1:8001" });
+});
+```
+
+The http server provided by cpv framework uses handlers (middlewares) to handle http request, the interface of handlers is [HttpServerRequestHandlerBase](../include/CPVFramework/HttpServer/Handlers/HttpServerRequestHandlerBase.hpp), it takes two arguments, first argument is [HttpContext](../include/HttpServer/HttpContext.hpp) (contains request, response, and container), second argument is the next handler, the handler can decide either handle the http request or pass it to the next handler.
+
+This module by default register a 500 handler at the begin of hander list, and a 404 handler at the last of handler list, the 500 handler invoke the next handler and reply 500 internal server error when exception occurs, the 404 handler just reply 404 not found because it should be the last handler and previous handlers didn't handle the http request.
+
+You can replace custom 500 handler and 404 handler by using custom initialize function:
+
+``` c++
+application.add<cpv::HttpServerModule>(auto& module) {
+	module.set404Handler([] (cpv::HttpContext& context) {
+		// redirect to /404 if path not found
+		return cpv::extensions::redirectTo(context.getResponse(), "/404");
+	});
+	// unlike 400 handler, 500 handler should only act when exception occurs,
+	// you could see src/HttpServer/Handlers/HttpServerRequest500Handler.cpp
+	// if you want to write a custom 500 handler.
+	module.set500Handler(seastar::make_shared<My500Handler>());
+});
+```
+
+And you can add a custom handler between 500 handler and 404 handler (it's recommended to use HttpServerRoutingModule for most cases):
+
+``` c++
+application.add<cpv::HttpServerModule>(auto& module) {
+	module.addCustomHandler(seastar::make_shared<MyHandler>());
+});
+```
+
+For more information please check the document about [http server request handlers](./HttpServerRequestHandlers.md).
+
+### [HttpServerRoutingModule](../include/CPVFramework/Application/Modules/HttpServerRoutingModule.hpp)
+
+This is a module used to adding request routing handler for http server, you can bind custom handlers for given method and path, example:
+
+``` c++
+application.add<cpv::HttpServerRoutingModule>(auto& module) {
+	module.route(cpv::constants::GET, "/", [] (cpv::HttpContext& context) {
+		return cpv::extensions::reply(context.getResponse(), "index page");
+	});
+	module.route(cpv::constants::GET, "/get/*", std::make_tuple(1),
+		[] (cpv::HttpContext& context, std::string_view id) {
+			return cpv::extensions::reply(context.getResponse(), id);
+		});
+	module.route(cpv::constants::GET, "/static/**", [] (cpv::HttpContext& context) {
+		return cpv::extensions::reply(context.getResponse(), context.getRequest().getUrl());
+	});
+});
+```
+
+The `route` function has these overloads:
+
+- `route(method, path, handler)`:
+	- the type of `handler` is `seastar::shared_ptr<cpv::HttpServerRequestHandlerBase>`
+- `route(method, path, func)`:
+	- `func` can be a lambda function that takes `cpv::HttpContext` and returns `seastar::future<>`
+- `route(method, path, params, func)`:
+	- `params` is a tuple contains parameters passed to `func`, the contents of tuple can be
+		- integer: means index of path fragments: `1` => `request.getUri().getPathFragment(1)`
+		- string: means key of query parameters: `"key"` => `request.getUri().getQueryParameter("key")`
+		- you can make it support more types by provide `cpv::extensions::getParameter(request, yourType)`
+	- `func` can be a lambda function that takes `cpv::HttpContext` and parameters retrived by `params`
+
+In these overloads, `method` means http request method like `"GET"` (same as `cpv::constants::GET`) or `"POST"` (same as `cpv::constants::POST`); `path` means the path of url part, path may contains `*` or `**` as path fragment (parts between `/`), `*` represents one arbitrary path fragment, `**` represents one or more arbitrary path fragments, `**` can only be used at the end of path.
+
+For example, `/get/*/detail` matches `/get/123/detail` and `/get/321/detail` but not `/get/123/hidden/detail`, `/static/**` matches `/static/1.txt` and `/static/css/1.css` but not `/static` (`**` not represents zero path fragments).
+
+This module is designed for better performance but simple usage, since it's separated with http server module, you can roll your own routing handler and module for some special requirement.
 

@@ -17,6 +17,7 @@ namespace cpv {
 	 *     auto& config = module.getConfig();
 	 *     config.setListenAddresses({ "0.0.0.0:80" }); // listen on 80 for all hosts
 	 *     module.set404Handler([] (HttpContext& context) {
+	 *         // redirect to /404 if path not found
 	 *         return extensions::redirectTo(context.getResponse(), "/404");
 	 *     });
 	 *     // unlike 400 handler, 500 handler should only act when exception occurs,
@@ -24,7 +25,7 @@ namespace cpv {
 	 *     // if you want to write a custom 500 handler.
 	 *     module.set500Handler(seastar::make_shared<My500Handler>());
 	 *     // custom handler is for simple application or testing purpose
-	 *     // usually you should use RoutingModule for most cases,
+	 *     // usually you should use HttpServerRoutingModule for most cases,
 	 *     // or add a new module to register handles to container
 	 *     module.addCustomHandler(seastar::make_shared<MyHandler>());
 	 * });

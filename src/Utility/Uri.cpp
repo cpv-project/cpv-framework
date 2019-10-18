@@ -89,8 +89,11 @@ namespace cpv {
 			} else if (c == '?') {
 				if (state == UriParserState::Path) {
 					// end of path, start of query parameters
-					pathFragments_.emplace_back(
-						urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+					if (ptr > mark) {
+						// /path/?key=value should not adding empty path fragment
+						pathFragments_.emplace_back(
+							urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+					}
 					path_ = urlDecodeForUriParser(pathMark, ptr, underlyingBuffers_);
 					mark = ptr + 1;
 					state = UriParserState::Query;

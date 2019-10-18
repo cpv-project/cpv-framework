@@ -159,12 +159,21 @@ namespace cpv {
 	HttpServerRequestRoutingHandler::getRoute(
 		std::string_view method, std::string_view path) const {
 		// get handler from full path routing map
-		auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
-		if (it != data_->fullPathRoutingMap.end()) {
-			return it->second;
+		bool containsQuery = path.find_first_of('?') != path.npos;
+		if (!containsQuery) {
+			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
+			if (it != data_->fullPathRoutingMap.end()) {
+				return it->second;
+			}
+		}
+		Uri uri(path);
+		if (containsQuery) {
+			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, uri.getPath()));
+			if (it != data_->fullPathRoutingMap.end()) {
+				return it->second;
+			}
 		}
 		// get handler from wildcard routing tree
-		Uri uri(path);
 		auto* node = data_->wildcardRoutingTree->findForRoute(uri.getPathFragments());
 		if (node != nullptr) {
 			auto handlerIt = node->handlers.find(method);
@@ -188,13 +197,22 @@ namespace cpv {
 		std::string_view method = request.getMethod();
 		std::string_view path = request.getUrl();
 		// use handler from full path routing map
-		auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
-		if (it != data_->fullPathRoutingMap.end()) {
-			return it->second->handle(context, next);
+		bool containsQuery = path.find_first_of('?') != path.npos;
+		if (!containsQuery) {
+			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
+			if (it != data_->fullPathRoutingMap.end()) {
+				return it->second->handle(context, next);
+			}
+		}
+		Uri& uri = request.getUri();
+		if (containsQuery) {
+			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, uri.getPath()));
+			if (it != data_->fullPathRoutingMap.end()) {
+				return it->second->handle(context, next);
+			}
 		}
 		// get handler from wildcard routing tree
-		auto* node = data_->wildcardRoutingTree->findForRoute(
-			request.getUri().getPathFragments());
+		auto* node = data_->wildcardRoutingTree->findForRoute(uri.getPathFragments());
 		if (node != nullptr) {
 			auto handlerIt = node->handlers.find(method);
 			if (handlerIt != node->handlers.end()) {

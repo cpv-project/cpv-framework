@@ -50,9 +50,11 @@ TEST(HttpServerRequestRoutingHandler, basic) {
 	ASSERT_EQ(handler.getRoute(cpv::constants::POST, "/").get(), postRoot.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/test").get(), getTest.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::POST, "/test").get(), postTest.get());
+	ASSERT_EQ(handler.getRoute(cpv::constants::POST, "/test?id=123").get(), postTest.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/api/v1/user/1/info").get(), getUserInfo.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/api/v1/user/123/info").get(), getUserInfo.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/api/v1/user/321/info/").get(), getUserInfo.get());
+	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/api/v1/user/321/info/?id=321").get(), getUserInfo.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::PATCH, "/api/v1/user/1/info").get(), patchUserInfo.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::PATCH, "/api/v1/user/123/info").get(), patchUserInfo.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::PATCH, "/api/v1/user/123/info/").get(), patchUserInfo.get());
@@ -62,6 +64,7 @@ TEST(HttpServerRequestRoutingHandler, basic) {
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/static/1.txt").get(), getStatic.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/static/pic/100.jpg").get(), getStatic.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/static/uploads/a/abc.jpg").get(), getStatic.get());
+	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/static/uploads/a/abc.jpg?mtime=123").get(), getStatic.get());
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/static").get(), nullptr);
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/remove/map").get(), nullptr);
 	ASSERT_EQ(handler.getRoute(cpv::constants::GET, "/remove/tree/123").get(), nullptr);
@@ -107,10 +110,10 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 		return test(cpv::constants::GET, "/")
 			.then([test] { return test(cpv::constants::POST, "/"); })
 			.then([test] { return test(cpv::constants::GET, "/test"); })
-			.then([test] { return test(cpv::constants::POST, "/test"); })
+			.then([test] { return test(cpv::constants::POST, "/test?id=123"); })
 			.then([test] { return test(cpv::constants::GET, "/api/v1/user/1/info"); })
 			.then([test] { return test(cpv::constants::GET, "/api/v1/user/123/info"); })
-			.then([test] { return test(cpv::constants::GET, "/api/v1/user/321/info/"); })
+			.then([test] { return test(cpv::constants::GET, "/api/v1/user/321/info/?id=321"); })
 			.then([test] { return test(cpv::constants::PATCH, "/api/v1/user/1/info"); })
 			.then([test] { return test(cpv::constants::PATCH, "/api/v1/user/123/info"); })
 			.then([test] { return test(cpv::constants::PATCH, "/api/v1/user/123/info/"); })
@@ -119,7 +122,7 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 			.then([test] { return test(cpv::constants::GET, "/api/v1/user/list"); })
 			.then([test] { return test(cpv::constants::GET, "/static/1.txt"); })
 			.then([test] { return test(cpv::constants::GET, "/static/pic/100.jpg"); })
-			.then([test] { return test(cpv::constants::GET, "/static/uploads/a/abc.jpg"); })
+			.then([test] { return test(cpv::constants::GET, "/static/uploads/a/abc.jpg?mtime=123"); })
 			.then([test] { return test(cpv::constants::GET, "/static"); })
 			.then([test] { return test(cpv::constants::GET, "/remove/map"); })
 			.then([test] { return test(cpv::constants::GET, "/remove/tree/123"); })

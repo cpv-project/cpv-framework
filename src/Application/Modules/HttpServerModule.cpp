@@ -68,6 +68,8 @@ namespace cpv {
 		http404Handler_(),
 		http500Handler_(),
 		customHandlers_(),
-		server_() { }
+		server_() {
+		config_.setListenAddresses({ "127.0.0.1:8000" });
+	}
 }
 
