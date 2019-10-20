@@ -4,7 +4,7 @@ cpv framework provides dependency injection container (Abbreviated to container 
 
 You may curious what's dependency injection if you don't have prior knowledge, it just simply mean the container can find out what's need for a service construction and pass them to the service constructor, for example, if class `A` has a constructor `A(B b, C c)` then container can resolve instance of `B` and instance of `C` automatically, and pass them to the constructor of `A` to get an instance of `A`, this process is recursive, if class `B` requires class `D` and `E` then container will resolve `D` and `E` for `B` first.
 
-Notice some container in other framework supports member injection instead of constructor injection, but cpv framework's container only supports constructor injection because it's the only correct way to use.
+Notice some container in other framework supports member injection instead of constructor injection, but cpv framework's container only supports constructor injection because it's the only correct way to use the container.
 
 Here is a simple example of container (you may already see it in [Application and modules](./ApplicationAndModules.md)):
 
@@ -327,7 +327,7 @@ template <class TService>
 TService get(ServiceStorage& storage) const;
 ```
 
-The first overload will use the builtin storage inside container, which makes `StoragePersistent` has same effect as `Persistent`, the second overload allows user pass a custom service storage for services registered with `StoragePersistent` lifetime, service instances will store in this storage and reuse when the same storage is given.
+The first overload will use the built-in storage inside container, which makes `StoragePersistent` has same effect as `Persistent`, the second overload allows user pass a custom service storage for services registered with `StoragePersistent` lifetime, service instances will store in this storage and reuse when the same storage is given.
 
 `StoragePersistent` is useful for services that want to share same instance for same http request, [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp) provides fresh service storage for each http request, and the storage will be destroyed after request finished.
 
@@ -357,13 +357,13 @@ template <class T, std::enable_if_t<ServiceTypeTrait<T>::IsCollection, int> = 0>
 std::size_t getMany(T& collection, ServiceStorage& storage) const;
 ```
 
-Same as resolve single service, the first overload use builtin storage and the second overload takes user given storage. Different to resolve single service, `getMany` will take a reference to the service collection which could be `std::vector<T>` or `cpv::StackAllocatedVector<T, InitialSize>` or `std::optional<T>`, container will resolve all registered `T` into the collection, it could add 0 instance if `T` not registered, or add multiple instances if `T` registered multiple times.
+Same as resolve single service, the first overload use built-in storage and the second overload takes user given storage. Different to resolve single service, `getMany` will take a reference to the service collection which could be `std::vector<T>` or `cpv::StackAllocatedVector<T, InitialSize>` or `std::optional<T>`, container will resolve all registered `T` into the collection, it could add 0 instance if `T` not registered, or add multiple instances if `T` registered multiple times.
 
 Notice the original content of collection will not be cleared automatically.
 
-`std::optional<T>` is a specialization for getting optional service, it will be untouched if service not registered, or set to the instance of service registered, or set to the lastest instance of service if service registered multiple times.
+`std::optional<T>` is a specialization for getting optional service, it will be untouched if service not registered, or set to the instance of service if service registered just once, or set to the lastest instance of service if service registered multiple times.
 
-You can make the container supports more collection type by specialize `ServiceTypeTrait`, see [ServiceTraits](../include/CPVFramework/Container/ServiceTraits.hpp) for more information.
+You can make the container supports more collection types by specialize `ServiceTypeTrait`, see [ServiceTraits](../include/CPVFramework/Container/ServiceTraits.hpp) for more information.
 
 Example:
 

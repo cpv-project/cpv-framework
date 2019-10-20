@@ -273,9 +273,9 @@ Compile and run it with `./a.out --name john` and you will see one or more `Hell
 
 Also notice that custom initialize function will be executed at the `CallingCustomIntializeFunctions` application state, and it's after `runForever` executed, so don't capture reference of variables on the stack that defines `cpv::Application application`.
 
-## Builtin modules provided by cpv framework
+## Built-in modules provided by cpv framework
 
-Although you can define custom modules and do anything you want, you will likely to use builtin modules provided by cpv framework to build a web application (you can write your own http server module or routing module if you really want), here is the modue list and their simple introduction, you can found all builtin modules inside [Modules](../include/CPVFramework/Application/Modules) folder.
+Although you can define custom modules and do anything you want, you will likely to use built-in modules provided by cpv framework to build a web application (you can write your own http server module or routing module if you really want), here is the modue list and their simple introduction, you can found all built-in modules inside [Modules](../include/CPVFramework/Application/Modules) folder.
 
 ### [LoggingModule](../include/CPVFramework/Application/Modules/LoggingModule.hpp)
 

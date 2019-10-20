@@ -2,9 +2,9 @@
 #include <CPVFramework/Utility/HttpUtils.hpp>
 #include <CPVFramework/Utility/Macros.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
-#include "./HttpUtils.UrlEncodeMapping.inc"
-#include "./HttpUtils.HtmlEncodeMapping.inc"
-#include "./HttpUtils.HtmlEntitiesMapping.inc"
+#include "./HttpUtils.UrlEncodeMapping.hpp"
+#include "./HttpUtils.HtmlEncodeMapping.hpp"
+#include "./HttpUtils.HtmlEntitiesMapping.hpp"
 
 namespace cpv {
 	/** Encode string for use in url */
