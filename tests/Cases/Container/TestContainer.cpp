@@ -336,12 +336,26 @@ TEST(TestContainer, getManyServiceIntoVectorMultipleTimes) {
 
 TEST(TestContainer, getVectorAsSingleService) {
 	cpv::Container container;
-	container.add(std::vector<int>({ 1, 2, 3}));
+	container.add(std::vector<int>({ 1, 2, 3 }));
 	auto instance = container.get<std::vector<int>>();
 	ASSERT_EQ(instance.size(), 3U);
 	ASSERT_EQ(instance.at(0), 1);
 	ASSERT_EQ(instance.at(1), 2);
 	ASSERT_EQ(instance.at(2), 3);
+}
+
+TEST(TestContainer, getManyServiceIntoOptional) {
+	cpv::Container container;
+	container.add<int>(1);
+	container.add<int>(2);
+	container.add<int>(3);
+	std::optional<int> intInstance;
+	container.getMany(intInstance);
+	ASSERT_TRUE(intInstance.has_value());
+	ASSERT_EQ(*intInstance, 3);
+	std::optional<std::string> stringInstance;
+	container.getMany(stringInstance);
+	ASSERT_FALSE(stringInstance.has_value());
 }
 
 TEST(TestContainer, errorWhenGetServiceNotRegistered) {

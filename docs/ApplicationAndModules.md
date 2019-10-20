@@ -156,7 +156,6 @@ A cpv application can add multiple modules, and modules integrate with each othe
 Here is an example shows how to register and resolve service in modules:
 
 ``` c++
-#include <memory>
 #include <seastar/core/app-template.hh>
 #include <seastar/core/future.hh>
 #include <CPVFramework/Application/Application.hpp>

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <optional>
 #include "../Allocators/StackAllocator.hpp"
 
 namespace cpv {
@@ -33,6 +34,18 @@ namespace cpv {
 		
 		static void add(Type& collection, ActualType&& element) {
 			collection.emplace_back(std::move(element));
+		}
+	};
+	
+	/** For std::optional, will store the last service instance if exists */
+	template <class T>
+	struct ServiceTypeTrait<std::optional<T>> {
+		static const constexpr bool IsCollection = true;
+		using Type = std::optional<T>;
+		using ActualType = T;
+		
+		static void add(Type& collection, ActualType&& element) {
+			collection.emplace(std::move(element));
 		}
 	};
 	
