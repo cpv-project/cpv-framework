@@ -144,5 +144,5 @@ Like `HttpServerRequestFunctionHandler`, the function doesn't takes the next han
 
 This is a handler that manages a routing map and decide use which handler to handle the request by the path of the url, you can use `route` to associate a handler to given path (can be full path or wildcard path), `removeRoute` to disassociate the handler for given path, and `getRoute` to get the handler associated with given path.
 
-For more information about the `route` function and the format of path, please see the document of `HttpServerRoutingModule` in [application nad moduels](./ApplicationAndModules.md), the `route` function of `HttpServerRoutingModule` is just a forwarder to `route` function of `HttpServerRequestRoutingHandler`.
+For more information about the `route` function and the format of path, please see the document of `HttpServerRoutingModule` in [application and modules](./ApplicationAndModules.md), the `route` function of `HttpServerRoutingModule` is just a forwarder to `route` function of `HttpServerRequestRoutingHandler`.
 
