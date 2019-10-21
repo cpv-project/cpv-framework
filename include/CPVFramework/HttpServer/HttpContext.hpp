@@ -63,7 +63,7 @@ namespace cpv {
 			serviceStorage_() { }
 
 		/** Constructor for null context, should set members later */
-		HttpContext(nullptr_t) :
+		explicit HttpContext(nullptr_t) :
 			request_(nullptr),
 			response_(nullptr),
 			clientAddress_(),

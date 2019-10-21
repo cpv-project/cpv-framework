@@ -480,7 +480,7 @@ TEST(TestContainer, patchDoesNotBreakDIFactory) {
 	container.add<std::unique_ptr<int>>([] { return nullptr; });
 	container.add<std::unique_ptr<int>>([] { return std::make_unique<int>(101); });
 	cpv::ServicePatcher<std::string>::patch(
-		container, [] (std::string v) { return v + ".patched"; });
+		container, [] (const std::string& v) { return v + ".patched"; });
 	cpv::ServicePatcher<std::unique_ptr<int>>::patch(
 		container, [] (std::unique_ptr<int> v) {
 			if (v != nullptr) {

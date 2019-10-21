@@ -48,7 +48,7 @@ namespace cpv {
 			}
 
 			SingleFragment() : fragment(), deleter() { }
-			SingleFragment(const seastar::net::fragment& fragmentVal) :
+			explicit SingleFragment(const seastar::net::fragment& fragmentVal) :
 				fragment(fragmentVal), deleter() { }
 			SingleFragment(const seastar::net::fragment& fragmentVal, seastar::deleter&& deleterVal) :
 				fragment(fragmentVal), deleter(std::move(deleterVal)) { }

@@ -73,7 +73,7 @@ namespace cpv {
 		}
 	
 		/** Constructor **/
-		ServiceDependencyInjectionFactory(Container& container) :
+		explicit ServiceDependencyInjectionFactory(Container& container) :
 			dependencyDescriptors_(Extensions::getDependencyDescriptors(container)) { }
 		
 	private:
@@ -110,7 +110,7 @@ namespace cpv {
 		}
 	
 		/** Constructor **/
-		ServiceDependencyInjectionFactory(Container& container) :
+		explicit ServiceDependencyInjectionFactory(Container& container) :
 			dependencyDescriptors_(Extensions::getDependencyDescriptors(container)) { }
 		
 	private:

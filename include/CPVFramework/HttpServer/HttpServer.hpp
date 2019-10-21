@@ -37,7 +37,7 @@ namespace cpv {
 		 *	The last handler must not call the next handler, there is a real last handler
 		 *		but only returns exception future.
 		 */
-		HttpServer(const Container& container);
+		explicit HttpServer(const Container& container);
 		
 		/** Move constructor (for incomplete member type) */
 		HttpServer(HttpServer&&);
