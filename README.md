@@ -142,6 +142,12 @@ curl -v http://localhost:8000
 
 - [Hello world](./examples/HelloWorld)
 
+## Benchmark results
+
+- [Benchmark results](https://github.com/cpv-project/cpv-framework/wiki/Benchmark-Results)
+
+To see history results please check the change log of the wiki page.
+
 ## Running Tests
 
 Please check [tests/travis_run_tests.sh](./tests/travis_run_tests.sh) for how to setup a environment for testing and run the tests.
