@@ -36,6 +36,6 @@ namespace cpv {
 	/** Constructor */
 	BufferInputStream::BufferInputStream() :
 		buf_(),
-		size_() { }
+		size_(0) { }
 }
 

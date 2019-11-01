@@ -30,7 +30,8 @@ namespace cpv {
 	/** Get the total size of stream */
 	std::optional<std::size_t> Http11ServerConnectionRequestStream::size() const {
 		std::size_t contentLength = connection_->parser_.content_length;
-		if (CPV_LIKELY(contentLength > 0)) {
+		if (CPV_LIKELY(contentLength > 0 &&
+			contentLength != std::numeric_limits<uint64_t>::max())) {
 			return contentLength;
 		} else {
 			return { };

@@ -19,4 +19,5 @@
 ## Backlog
 
 - upgrade to c++20 for coroutine support
+- add base class of model that provides id and underlying buffer member for convenient
 

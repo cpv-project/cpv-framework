@@ -27,7 +27,7 @@ TEST_FUTURE(TestOutputStreamExtensions, writeAll_ptr) {
 			ASSERT_EQ(*target, "test data");
 		}).then([&nullStream] {
 			return cpv::extensions::writeAll(nullStream, std::string(""));
-		}).then_wrapped([] (auto&& f) {
+		}).then_wrapped([] (seastar::future<> f) {
 			ASSERT_THROWS_CONTAINS(cpv::LogicException, f.get(), "write to null stream");
 		});
 	});
@@ -56,7 +56,7 @@ TEST_FUTURE(TestOutputStreamExtensions, writeAll_view_cstr_ptr) {
 			ASSERT_EQ(*target, "test data");
 		}).then([&nullStream] {
 			return cpv::extensions::writeAll(nullStream, "");
-		}).then_wrapped([] (auto&& f) {
+		}).then_wrapped([] (seastar::future<> f) {
 			ASSERT_THROWS_CONTAINS(cpv::LogicException, f.get(), "write to null stream");
 		});
 	});
