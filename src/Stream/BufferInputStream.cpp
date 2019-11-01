@@ -17,9 +17,9 @@ namespace cpv {
 		}
 	}
 	
-	/** Get the total size of stream */
-	std::optional<std::size_t> BufferInputStream::size() const {
-		return size_;
+	/** Get the hint of total size of stream */
+	std::optional<std::size_t> BufferInputStream::sizeHint() const {
+		return sizeHint_;
 	}
 	
 	/** For Reusable<> */
@@ -30,12 +30,12 @@ namespace cpv {
 	/** For Reusable<> */
 	void BufferInputStream::reset(seastar::temporary_buffer<char>&& buf) {
 		buf_ = std::move(buf);
-		size_ = buf_.size();
+		sizeHint_ = buf_.size();
 	}
 	
 	/** Constructor */
 	BufferInputStream::BufferInputStream() :
 		buf_(),
-		size_(0) { }
+		sizeHint_(0) { }
 }
 

@@ -10,8 +10,8 @@ TEST_FUTURE(TestBufferInputStream, all) {
 		[] (auto& stream) {
 		stream.reset(seastar::temporary_buffer<char>("test data", 9));
 		return stream.read().then([&stream] (auto&& result) {
-			ASSERT_TRUE(stream.size().has_value());
-			ASSERT_EQ(*stream.size(), 9U);
+			ASSERT_TRUE(stream.sizeHint().has_value());
+			ASSERT_EQ(*stream.sizeHint(), 9U);
 			ASSERT_EQ(result.view(), "test data");
 			ASSERT_TRUE(result.isEnd);
 		}).then([&stream] {

@@ -10,10 +10,10 @@ namespace cpv::extensions {
 
 	/** Read all data from stream and append to given string */
 	seastar::future<> readAll(InputStreamBase& stream, std::string& str) {
-		// pre allocate string if size of stream is available
-		std::size_t size = stream.size().value_or(0);
-		if (size > 0) {
-			str.reserve(str.size() + size);
+		// pre allocate string if size hint of stream is available
+		std::size_t sizeHint = stream.sizeHint().value_or(0);
+		if (sizeHint > 0) {
+			str.reserve(str.size() + sizeHint);
 		}
 		return seastar::repeat([&stream, &str] {
 			return stream.read().then([&str] (auto&& result) {
@@ -56,9 +56,9 @@ namespace cpv::extensions {
 		}
 		// pre allocate buffer if size of stream is available
 		std::string_view existsContent;
-		std::size_t size = stream.size().value_or(0);
-		if (size > 0) {
-			seastar::temporary_buffer<char> newBuf(size);
+		std::size_t sizeHint = stream.sizeHint().value_or(0);
+		if (sizeHint > 0) {
+			seastar::temporary_buffer<char> newBuf(sizeHint);
 			mergeContent(newBuf, existsContent, std::string_view(buf.get(), buf.size()));
 			buf = std::move(newBuf);
 		} else {

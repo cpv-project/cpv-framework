@@ -20,8 +20,8 @@ namespace cpv {
 		}
 	}
 	
-	/** Get the total size of stream */
-	std::optional<std::size_t> StringInputStream::size() const {
+	/** Get the hint of total size of stream */
+	std::optional<std::size_t> StringInputStream::sizeHint() const {
 		return str_.size();
 	}
 	

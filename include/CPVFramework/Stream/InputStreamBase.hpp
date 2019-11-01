@@ -37,8 +37,15 @@ namespace cpv {
 		/** Read data from stream */
 		virtual seastar::future<InputStreamReadResult> read() = 0;
 		
-		/** Get the total size of stream, may return empty if not supported */
-		virtual std::optional<std::size_t> size() const { return { }; }
+		/**
+		 * Get the hint of total size of stream, may return empty if not supported
+		 * Warning:
+		 * The actual read size may greater than this size because some
+		 * implementation allows client side to control it (e.g. Content-Length),
+		 * you can use this size to pre allocate buffer, but you must check
+		 * the actual size after each read to avoid buffer overflow.
+		 */
+		virtual std::optional<std::size_t> sizeHint() const { return { }; }
 	};
 }
 

@@ -27,8 +27,10 @@ namespace cpv {
 		});
 	}
 	
-	/** Get the total size of stream */
-	std::optional<std::size_t> Http11ServerConnectionRequestStream::size() const {
+	/** Get the hint of total size of stream */
+	std::optional<std::size_t> Http11ServerConnectionRequestStream::sizeHint() const {
+		// malicious client may send a smaller content-length to cause buffer overflow,
+		// but this is just a hint.
 		std::size_t contentLength = connection_->parser_.content_length;
 		if (CPV_LIKELY(contentLength > 0 &&
 			contentLength != std::numeric_limits<uint64_t>::max())) {
