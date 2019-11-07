@@ -12,11 +12,11 @@ namespace cpv {
 		using ActualType = T;
 	};
 	
-	/** For std::vector */
-	template <class T>
-	struct ServiceTypeTrait<std::vector<T>> {
+	/** Specialize for std::vector<T, Allocator> */
+	template <class T, class Allocator>
+	struct ServiceTypeTrait<std::vector<T, Allocator>> {
 		static const constexpr bool IsCollection = true;
-		using Type = std::vector<T>;
+		using Type = std::vector<T, Allocator>;
 		using ActualType = T;
 		
 		static void add(Type& collection, ActualType&& element) {
@@ -25,11 +25,10 @@ namespace cpv {
 	};
 	
 	/** For StackAllocatedVector */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator, std::size_t Size, class Allocator>
-	struct ServiceTypeTrait<StackAllocatedVector<
-		T, InitialSize, UpstreamAllocator, Size, Allocator>> {
+	template <class T, std::size_t InitialSize, class UpstreamAllocator>
+	struct ServiceTypeTrait<StackAllocatedVector<T, InitialSize, UpstreamAllocator>> {
 		static const constexpr bool IsCollection = true;
-		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator, Size, Allocator>;
+		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator>;
 		using ActualType = T;
 		
 		static void add(Type& collection, ActualType&& element) {

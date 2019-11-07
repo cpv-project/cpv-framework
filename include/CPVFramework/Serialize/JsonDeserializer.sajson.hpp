@@ -39,6 +39,7 @@
 
 #ifndef SAJSON_NO_STD_STRING
 #include <string> // for convenient access to error messages and string values.
+#include <string_view>
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -502,6 +503,19 @@ namespace sajson {
 				return value(TYPE_NULL, 0, 0);
 			}
 		}
+
+		// Add for cpv-framework: provide [] overload
+		template <std::size_t Length>
+		value operator[](const char(*key)[Length]) const {
+			return get_value_of_key(string(key, Length));
+		}
+
+#ifndef SAJSON_NO_STD_STRING
+		// Add for cpv-framework: provide [] overload
+		value operator[](std::string_view key) const {
+			return get_value_of_key(string(key.data(), key.size()));
+		}
+#endif
 
 		/// Given a string key, returns the index of the associated value if
 		/// one exists.  Returns get_length() if there is no such key.
