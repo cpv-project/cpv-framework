@@ -281,7 +281,7 @@ namespace sajson {
 
 		/// Allocates a copy of the given \ref literal string and exposes a
 		/// mutable view into it.  Throws std::bad_alloc if allocation fails.
-		mutable_string_view(const literal& s)
+		explicit mutable_string_view(const literal& s)
 			: length_(s.length())
 			, buffer(length_)
 		{
@@ -291,7 +291,7 @@ namespace sajson {
 
 		/// Allocates a copy of the given \ref string and exposes a mutable view
 		/// into it.  Throws std::bad_alloc if allocation fails.
-		mutable_string_view(const string& s)
+		explicit mutable_string_view(const string& s)
 			: length_(s.length())
 			, buffer(length_)
 		{
@@ -360,7 +360,7 @@ namespace sajson {
 		};
 
 		struct object_key_comparator {
-			object_key_comparator(const char* object_data)
+			explicit object_key_comparator(const char* object_data)
 				: data(object_data)
 			{}
 
@@ -629,10 +629,6 @@ namespace sajson {
 
 		void assert_type_2(type e1, type e2) const {
 			assert(e1 == get_type() || e2 == get_type());
-		}
-
-		void assert_in_bounds(size_t i) const {
-			assert(i < get_length());
 		}
 
 		const type value_type;

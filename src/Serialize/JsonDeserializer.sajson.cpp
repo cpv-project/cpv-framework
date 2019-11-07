@@ -64,7 +64,7 @@ namespace sajson {
 				stack_top = stack_bottom + new_top;
 			}
 
-			size_t get_size() {
+			size_t get_size() const {
 				return stack_top - stack_bottom;
 			}
 
@@ -135,7 +135,7 @@ namespace sajson {
 				return stack_head(structure);
 			}
 
-			size_t get_write_offset() {
+			size_t get_write_offset() const {
 				return structure_end - write_cursor;
 			}
 
@@ -276,7 +276,7 @@ namespace sajson {
 				stack_top = stack_bottom + new_top;
 			}
 
-			size_t get_size() {
+			size_t get_size() const {
 				return stack_top - stack_bottom;
 			}
 
@@ -377,7 +377,7 @@ namespace sajson {
 				return stack_head(initial_stack_capacity, success);
 			}
 
-			size_t get_write_offset() {
+			size_t get_write_offset() const {
 				return ast_buffer_top - ast_write_head;
 			}
 
@@ -529,7 +529,7 @@ namespace sajson {
 				source_allocator->stack_top = source_allocator->structure + new_top;
 			}
 
-			size_t get_size() {
+			size_t get_size() const {
 				return source_allocator->stack_top - source_allocator->structure;
 			}
 
@@ -584,7 +584,7 @@ namespace sajson {
 				return stack_head(this);
 			}
 
-			size_t get_write_offset() {
+			size_t get_write_offset() const {
 				return structure_end - write_cursor;
 			}
 
@@ -615,7 +615,7 @@ namespace sajson {
 			}
 
 		private:
-			bool can_grow(size_t amount) {
+			bool can_grow(size_t amount) const {
 				// invariant: stack_top <= write_cursor
 				// thus: write_cursor - stack_top is positive
 				return static_cast<size_t>(write_cursor - stack_top) >= amount;
@@ -673,6 +673,8 @@ namespace sajson {
 			, root_type(TYPE_NULL)
 			, error_line(0)
 			, error_column(0)
+			, error_code(ERROR_NO_ERROR)
+			, error_arg(0)
 		{}
 
 		document get_document() {
@@ -694,7 +696,7 @@ namespace sajson {
 			}
 		};
 
-		bool at_eof(const char* p) {
+		bool at_eof(const char* p) const {
 			return p == input_end;
 		}
 
@@ -1031,7 +1033,7 @@ namespace sajson {
 			SAJSON_UNREACHABLE();
 		}
 
-		bool has_remaining_characters(char* p, ptrdiff_t remaining) {
+		bool has_remaining_characters(char* p, ptrdiff_t remaining) const {
 			return input_end - p >= remaining;
 		}
 
@@ -1437,7 +1439,7 @@ namespace sajson {
 			return p;
 		}
 
-		void write_utf8(unsigned codepoint, char*& end) {
+		static void write_utf8(unsigned codepoint, char*& end) {
 			if (codepoint < 0x80) {
 				*end++ = codepoint;
 			} else if (codepoint < 0x800) {
