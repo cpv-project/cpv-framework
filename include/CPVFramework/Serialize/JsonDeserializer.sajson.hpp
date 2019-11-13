@@ -81,6 +81,7 @@ namespace sajson {
 		TYPE_STRING = 5,
 		TYPE_ARRAY = 6,
 		TYPE_OBJECT = 7,
+		TYPE_NOKEY = 255
 	};
 	
 	namespace internal {
@@ -491,7 +492,7 @@ namespace sajson {
 			return value(get_element_type(element), payload + get_element_value(element), text);
 		}
 
-		/// Given a string key, returns the value with that key or a null value
+		/// Given a string key, returns the value with that key or a value with TYPE_NOKEY
 		/// if the key is not found.  Running time is O(lg N).
 		/// Only legal if get_type() is TYPE_OBJECT.
 		value get_value_of_key(const string& key) const {
@@ -500,7 +501,7 @@ namespace sajson {
 			if (i < get_length()) {
 				return get_object_value(i);
 			} else {
-				return value(TYPE_NULL, 0, 0);
+				return value(TYPE_NOKEY, 0, 0);
 			}
 		}
 

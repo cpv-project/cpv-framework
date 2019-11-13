@@ -15,7 +15,7 @@ namespace cpv {
 		 * RFC: https://www.ietf.org/rfc/rfc3986.txt
 		 * Notice: space is convert to %20, not +
 		 */
-		const std::array<std::string_view, std::numeric_limits<unsigned char>::max() + 1>
+		const constexpr std::array<std::string_view, std::numeric_limits<unsigned char>::max() + 1>
 			UrlEncodeMapping = {
 			"%00", // '\x00'
 			"%01", // '\x01'

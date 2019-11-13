@@ -47,6 +47,15 @@ TEST(TestReusable, Simple) {
 	}
 }
 
+TEST(TestReusable, Reset) {
+	auto foo = cpv::makeReusable<Foo>();
+	ASSERT_FALSE(foo == nullptr);
+	foo.reset();
+	ASSERT_TRUE(foo == nullptr);
+	foo.reset();
+	ASSERT_TRUE(foo == nullptr);
+}
+
 TEST(TestReusable, UpCasting) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {

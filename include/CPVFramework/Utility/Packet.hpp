@@ -176,6 +176,9 @@ namespace cpv {
 	/** Print packet fragments */
 	std::ostream& operator<<(std::ostream& stream, const Packet& packet);
 
+	/** Append packet fragments to string */
+	std::string& operator<<(std::string& str, const Packet& packet);
+
 	/** Increase free list size */
 	template <>
 	const constexpr std::size_t ReusableStorageCapacity<Packet::MultipleFragments> = 28232;

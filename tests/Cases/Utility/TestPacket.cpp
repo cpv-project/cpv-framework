@@ -25,7 +25,6 @@ TEST(TestPacket, construct) {
 	}
 }
 
-
 TEST(TestPacket, append) {
 	{
 		cpv::Packet p;
@@ -132,6 +131,14 @@ TEST(TestPacket, writeToStream) {
 	cpv::Packet p;
 	p.append("abc").append(123).append(seastar::temporary_buffer("def", 3));
 	ASSERT_EQ(cpv::joinString("", p), "abc123def");
+}
+
+TEST(TestPacket, writeToString) {
+	cpv::Packet p;
+	p.append("abc").append(123).append(seastar::temporary_buffer("def", 3));
+	std::string str("packet:");
+	str << p;
+	ASSERT_EQ(str, "packet:abc123def");
 }
 
 TEST(TestPacket, release) {

@@ -31,5 +31,11 @@ namespace cpv {
 		}
 		return convertIntToBuffer(static_cast<std::uintmax_t>(value));
 	}
+
+	/** Convert double to string and return a temporary buffer store the string */
+	seastar::temporary_buffer<char> convertDoubleToBuffer(double value);
+
+	/** Convert long double to string and return a temporary buffer store the string */
+	seastar::temporary_buffer<char> convertDoubleToBuffer(long double value);
 }
 

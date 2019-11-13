@@ -17,10 +17,21 @@ namespace cpv::constants {
 	static const constexpr std::string_view QuestionMark("?");
 	static const constexpr std::string_view EqualsSign("=");
 	static const constexpr std::string_view Ampersand("&");
+	static const constexpr std::string_view SingleQuote("'");
+	static const constexpr std::string_view DoubleQuote("\"");
+	static const constexpr std::string_view RoundBacketStart("(");
+	static const constexpr std::string_view RoundBacketEnd(")");
+	static const constexpr std::string_view CurlyBacketStart("{");
+	static const constexpr std::string_view CurlyBacketEnd("}");
+	static const constexpr std::string_view SquareBacketStart("[");
+	static const constexpr std::string_view SquareBacketEnd("]");
 	static const constexpr std::string_view ColonSpace(": ");
 	static const constexpr std::string_view ColonSlashSlash("://");
 	static const constexpr std::string_view LF("\n");
 	static const constexpr std::string_view CRLF("\r\n");
+	static const constexpr std::string_view True("true");
+	static const constexpr std::string_view False("false");
+	static const constexpr std::string_view Null("null");
 	
 	// numbers
 	static const std::size_t MaxConstantInteger = 65535;

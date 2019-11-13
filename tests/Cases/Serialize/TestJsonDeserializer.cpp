@@ -53,7 +53,46 @@ namespace {
 			intValues(),
 			intValuesOnStack() { }
 	};
+
+	class MyPtrModel {
+	public:
+		struct ChildModel {
+			int count = 0;
+
+			static void freeResources() { }
+
+			static void reset() { }
+
+			bool loadJson(const cpv::JsonValue& value) {
+				count << value["count"];
+				return true;
+			}
+		};
+
+		std::optional<int> optionalValue;
+		std::unique_ptr<std::string_view> uniquePtrValue;
+		seastar::shared_ptr<std::vector<int>> sharedPtrValue;
+		cpv::Reusable<ChildModel> reusableValue;
+
+		bool loadJson(const cpv::JsonValue& value) {
+			optionalValue << value["optionalValue"];
+			uniquePtrValue << value["uniquePtrValue"];
+			sharedPtrValue << value["sharedPtrValue"];
+			reusableValue << value["reusableValue"];
+			return true;
+		}
+
+		MyPtrModel() :
+			optionalValue(),
+			uniquePtrValue(),
+			sharedPtrValue(),
+			reusableValue() { }
+	};
 }
+
+template <>
+thread_local cpv::ReusableStorageType<MyPtrModel::ChildModel>
+	cpv::ReusableStorageInstance<MyPtrModel::ChildModel>;
 
 TEST(TestJsonDeserializer, model) {
 	std::string json(R"(
@@ -137,6 +176,68 @@ TEST(TestJsonDeserializer, stackAllocatedVectorModel) {
 	ASSERT_EQ(models.at(2).requiredValue, 102);
 }
 
+TEST(TestJsonDeserializer, ptrModel) {
+	std::string json(R"(
+		{
+			"optionalValue": 123,
+			"uniquePtrValue": "test",
+			"sharedPtrValue": [ 1, 2, 3 ],
+			"reusableValue": { "count": 321 }
+		}
+	)");
+	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	MyPtrModel model;
+	{
+		auto error = cpv::deserializeJson(model, buffer);
+		ASSERT_FALSE(error.has_value());
+		ASSERT_TRUE(model.optionalValue.has_value());
+		ASSERT_EQ(*model.optionalValue, 123);
+		ASSERT_TRUE(model.uniquePtrValue != nullptr);
+		ASSERT_EQ(*model.uniquePtrValue, "test");
+		ASSERT_TRUE(model.sharedPtrValue != nullptr);
+		ASSERT_EQ(model.sharedPtrValue->size(), 3U);
+		ASSERT_EQ(model.sharedPtrValue->at(0), 1);
+		ASSERT_EQ(model.sharedPtrValue->at(1), 2);
+		ASSERT_EQ(model.sharedPtrValue->at(2), 3);
+		ASSERT_TRUE(model.reusableValue != nullptr);
+		ASSERT_EQ(model.reusableValue->count, 321);
+	}
+	{
+		json.assign("{}");
+		buffer = seastar::temporary_buffer<char>(json.data(), json.size(), {});
+		auto error = cpv::deserializeJson(model, buffer);
+		ASSERT_FALSE(error.has_value());
+		ASSERT_TRUE(model.optionalValue.has_value());
+		ASSERT_EQ(*model.optionalValue, 123);
+		ASSERT_TRUE(model.uniquePtrValue != nullptr);
+		ASSERT_EQ(*model.uniquePtrValue, "test");
+		ASSERT_TRUE(model.sharedPtrValue != nullptr);
+		ASSERT_EQ(model.sharedPtrValue->size(), 3U);
+		ASSERT_EQ(model.sharedPtrValue->at(0), 1);
+		ASSERT_EQ(model.sharedPtrValue->at(1), 2);
+		ASSERT_EQ(model.sharedPtrValue->at(2), 3);
+		ASSERT_TRUE(model.reusableValue != nullptr);
+		ASSERT_EQ(model.reusableValue->count, 321);
+	}
+	{
+		json.assign(R"(
+			{
+				"optionalValue": null,
+				"uniquePtrValue": null,
+				"sharedPtrValue": null,
+				"reusableValue": null
+			}
+		)");
+		buffer = seastar::temporary_buffer<char>(json.data(), json.size(), {});
+		auto error = cpv::deserializeJson(model, buffer);
+		ASSERT_FALSE(error.has_value());
+		ASSERT_FALSE(model.optionalValue.has_value());
+		ASSERT_FALSE(model.uniquePtrValue != nullptr);
+		ASSERT_FALSE(model.sharedPtrValue != nullptr);
+		ASSERT_FALSE(model.reusableValue != nullptr);
+	}
+}
+
 TEST(TestJsonDeserializer, modelWithEmptyJson) {
 	std::string json;
 	seastar::temporary_buffer buffer(json.data(), json.size(), {});
@@ -167,6 +268,19 @@ TEST(TestJsonDeserializer, modelWithCorruptedJson) {
 	auto error = cpv::deserializeJson(model, buffer);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "unexpected end of input");
+}
+
+TEST(TestJsonDeserializer, modelWithTypeUnmatchedJson) {
+	std::string json(R"(
+		{
+			"requiredValue": "1"
+		}
+	)");
+	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	MyModel model;
+	auto error = cpv::deserializeJson(model, buffer);
+	ASSERT_TRUE(error.has_value());
+	ASSERT_CONTAINS(std::string_view(error->what()), "convert failed");
 }
 
 TEST(TestJsonDeserializer, jsonDocument) {

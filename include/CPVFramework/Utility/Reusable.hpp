@@ -115,6 +115,11 @@ namespace cpv {
 
 		/** Destructor */
 		~Reusable() {
+			reset();
+		}
+
+		/** Delete pointer or move pointer to free list */
+		void reset() {
 			void* ptr = ptr_;
 			if (ptr != nullptr) {
 				ptr_ = nullptr;

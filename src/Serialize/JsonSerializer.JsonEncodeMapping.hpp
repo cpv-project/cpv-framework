@@ -7,59 +7,57 @@ namespace cpv {
 		/*
 		 * Generated with:
 		 * ```
-		 * from html import escape
+		 * import json
 		 * for c in range(256):
 		 *   print('"%s", // %s'%(
-		 *     repr(escape(chr(c)))[1:-1] if c < 0x7f else "\\x%s"%hex(c)[2:],
+		 *     json.dumps(chr(c))[1:-1].replace("\\", "\\\\").replace("\"", "\\\"")
+		 *       if c < 0x7f else "\\x%s"%hex(c)[2:],
 		 *     repr(chr(c)) if c < 0x7f else "'\\x%s'"%hex(c)[2:]))
-		 * for c in range(256): print('"%s", //%s'%(repr(escape(chr(c)))[1:-1], repr(chr(c))))
 		 * ```
-		 * SPEC: https://html.spec.whatwg.org/multipage/parsing.html#character-encodings
-		 * Notice: characters except '<', '>', '&', '"', '\'' are keep as is,
-		 * please use "Content-Type: text/html; charset=utf-8" to support unicode characters.
+		 * RFC: https://tools.ietf.org/html/rfc8259
 		 */
 		const constexpr std::array<std::string_view, std::numeric_limits<unsigned char>::max() + 1>
-			HtmlEncodeMapping = {
-			"\x00", // '\x00'
-			"\x01", // '\x01'
-			"\x02", // '\x02'
-			"\x03", // '\x03'
-			"\x04", // '\x04'
-			"\x05", // '\x05'
-			"\x06", // '\x06'
-			"\x07", // '\x07'
-			"\x08", // '\x08'
-			"\t", // '\t'
-			"\n", // '\n'
-			"\x0b", // '\x0b'
-			"\x0c", // '\x0c'
-			"\r", // '\r'
-			"\x0e", // '\x0e'
-			"\x0f", // '\x0f'
-			"\x10", // '\x10'
-			"\x11", // '\x11'
-			"\x12", // '\x12'
-			"\x13", // '\x13'
-			"\x14", // '\x14'
-			"\x15", // '\x15'
-			"\x16", // '\x16'
-			"\x17", // '\x17'
-			"\x18", // '\x18'
-			"\x19", // '\x19'
-			"\x1a", // '\x1a'
-			"\x1b", // '\x1b'
-			"\x1c", // '\x1c'
-			"\x1d", // '\x1d'
-			"\x1e", // '\x1e'
-			"\x1f", // '\x1f'
+			JsonEncodeMapping = {
+			"\\u0000", // '\x00'
+			"\\u0001", // '\x01'
+			"\\u0002", // '\x02'
+			"\\u0003", // '\x03'
+			"\\u0004", // '\x04'
+			"\\u0005", // '\x05'
+			"\\u0006", // '\x06'
+			"\\u0007", // '\x07'
+			"\\b", // '\x08'
+			"\\t", // '\t'
+			"\\n", // '\n'
+			"\\u000b", // '\x0b'
+			"\\f", // '\x0c'
+			"\\r", // '\r'
+			"\\u000e", // '\x0e'
+			"\\u000f", // '\x0f'
+			"\\u0010", // '\x10'
+			"\\u0011", // '\x11'
+			"\\u0012", // '\x12'
+			"\\u0013", // '\x13'
+			"\\u0014", // '\x14'
+			"\\u0015", // '\x15'
+			"\\u0016", // '\x16'
+			"\\u0017", // '\x17'
+			"\\u0018", // '\x18'
+			"\\u0019", // '\x19'
+			"\\u001a", // '\x1a'
+			"\\u001b", // '\x1b'
+			"\\u001c", // '\x1c'
+			"\\u001d", // '\x1d'
+			"\\u001e", // '\x1e'
+			"\\u001f", // '\x1f'
 			" ", // ' '
 			"!", // '!'
-			"&quot;", // '"'
+			"\\\"", // '"'
 			"#", // '#'
 			"$", // '$'
 			"%", // '%'
-			"&amp;", // '&'
-			"&#x27;", // "'"
+			"&", // '&'
+			"'", // "'"
 			"(", // '('
 			")", // ')'
 			"*", // '*'
@@ -80,9 +78,9 @@ namespace cpv {
 			"9", // '9'
 			":", // ':'
 			";", // ';'
-			"&lt;", // '<'
+			"<", // '<'
 			"=", // '='
-			"&gt;", // '>'
+			">", // '>'
 			"?", // '?'
 			"@", // '@'
 			"A", // 'A'
@@ -112,7 +110,7 @@ namespace cpv {
 			"Y", // 'Y'
 			"Z", // 'Z'
 			"[", // '['
-			"\\", // '\\'
+			"\\\\", // '\\'
 			"]", // ']'
 			"^", // '^'
 			"_", // '_'

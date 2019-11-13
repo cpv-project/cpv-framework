@@ -175,5 +175,18 @@ namespace cpv {
 		}
 		return stream;
 	}
+
+	/** Append packet fragments to string */
+	std::string& operator<<(std::string& str, const Packet& packet) {
+		str.reserve(str.size() + packet.size());
+		if (auto ptr = packet.getIfMultiple()) {
+			for (auto& f : ptr->fragments) {
+				str.append(std::string_view(f.base, f.size));
+			}
+		} else if (auto ptr = packet.getIfSingle()) {
+			str.append(std::string_view(ptr->fragment.base, ptr->fragment.size));
+		}
+		return str;
+	}
 }
 

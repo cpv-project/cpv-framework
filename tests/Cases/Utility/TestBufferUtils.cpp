@@ -67,3 +67,36 @@ TEST(TestBufferUtils, convertIntToBuffer_unsigned) {
 	}
 }
 
+TEST(TestBufferUtils, convertDoubleToBuffer) {
+	{
+		double value = 0.1;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "0.1");
+	}
+	{
+		double value = 100;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "100");
+	}
+	{
+		double value = 0;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "0");
+	}
+	{
+		long double value = 1.2;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "1.2");
+	}
+	{
+		long double value = -100.0;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "-100");
+	}
+	{
+		long double value = 0.0;
+		auto buf = cpv::convertDoubleToBuffer(value);
+		ASSERT_EQ(std::string_view(buf.get(), buf.size()), "0");
+	}
+}
+
