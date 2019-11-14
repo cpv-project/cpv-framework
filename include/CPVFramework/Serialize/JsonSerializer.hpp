@@ -9,6 +9,7 @@
 #include "../Utility/Packet.hpp"
 #include "../Utility/Reusable.hpp"
 
+// construct JsonMemberKey, please ensure key is already encoded
 #define CPV_JSONKEY(key) cpv::JsonMemberKey("\"" key "\":", ",\"" key "\":")
 
 namespace cpv {
