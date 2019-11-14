@@ -167,3 +167,22 @@ TEST(TestPacket, release) {
 	}
 }
 
+TEST(TestPacket, getOrConvertToMultiple) {
+	cpv::Packet p;
+	auto* f = p.getOrConvertToMultiple();
+	f->append(std::string_view("abc"));
+	{
+		std::string str("qwe");
+		str.append("rt");
+		f->append(seastar::temporary_buffer(str.data(), str.size()));
+	}
+	f->append(123);
+	f->append("|");
+	f->append(1234567);
+	f->append("|");
+	f->append(1.0);
+	f->append("|");
+	f->append(-0.1);
+	ASSERT_EQ(cpv::joinString("", p), "abcqwert123|1234567|1|-0.1");
+}
+

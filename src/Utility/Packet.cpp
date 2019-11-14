@@ -74,9 +74,8 @@ namespace cpv {
 
 	/** Append temporary_buffer to packet */
 	Packet& Packet::append(seastar::temporary_buffer<char>&& buf) & {
-		return Packet::append(
-			std::string_view(buf.get(), buf.size()),
-			std::move(buf.release()));
+		std::string_view view(buf.get(), buf.size());
+		return Packet::append(view, buf.release());
 	}
 
 	/** Append other packet to this packet */

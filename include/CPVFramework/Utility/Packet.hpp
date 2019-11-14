@@ -22,6 +22,9 @@ namespace cpv {
 	 * single fragment can release to seastar::temporary_buffer and multiple fragments can release
 	 * to seastar::packet.
 	 *
+	 * For more efficient packet building, you can use getOrConvertToMultiple and append
+	 * functions of MultipleFragments, so most operations are minimal and inlined.
+	 *
 	 * Notice:
 	 * It's possible that both getIfSingle and getIfMultiple return nullptr, if it has been moved,
 	 * and it's ensure to be empty after moved.
@@ -41,6 +44,7 @@ namespace cpv {
 			seastar::net::fragment fragment;
 			seastar::deleter deleter;
 
+			/** Move content of fragment to temporary_buffer */
 			seastar::temporary_buffer<char> release() {
 				seastar::temporary_buffer<char> buf(fragment.base, fragment.size, std::move(deleter));
 				fragment.size = 0;
@@ -72,13 +76,41 @@ namespace cpv {
 			std::vector<seastar::net::fragment> fragments;
 			seastar::deleter deleter;
 
+			/** For Reusable */
 			void freeResources() {
 				fragments.clear();
 				deleter = seastar::deleter();
 			}
 
+			/** For Reusable */
 			static void reset() { }
 
+			/** Append static string to fragments */
+			void append(std::string_view str) {
+				fragments.emplace_back(toFragment(str));
+			}
+
+			/** Append dynamic string and it's deleter to fragments */
+			void append(std::string_view str, seastar::deleter&& deleter) {
+				fragments.emplace_back(toFragment(str));
+				deleter.append(std::move(deleter));
+			}
+
+			/** Append temporary_buffer to fragments */
+			void append(seastar::temporary_buffer<char>&& buf) & {
+				fragments.emplace_back(seastar::net::fragment({ buf.get_write(), buf.size() }));
+				deleter.append(buf.release());
+			}
+
+			/** Append string representation of integer value to fragments */
+			template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+			void append(T value);
+
+			/** Append string representation of floating point value to fragments */
+			template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+			void append(T value);
+
+			/** Move content of fragments to packet */
 			seastar::net::packet release() {
 				// seastar::packet's ctor provides overload for std::vector but only takes moved one
 				// which will release the internal storage and we have to allocate it again for next
@@ -133,8 +165,12 @@ namespace cpv {
 		/** Append other packet to this packet */
 		Packet& append(Packet&& other) &;
 
-		/** Append string representation of integer value to this packet */
+		/** Append string representation of integer value to packet */
 		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+		Packet& append(T value) &;
+
+		/** Append string representation of floating point value to packet */
+		template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 		Packet& append(T value) &;
 
 		/** Get total size in bytes for this packet, notice it's dynamically calculated  */
@@ -183,7 +219,30 @@ namespace cpv {
 	template <>
 	const constexpr std::size_t ReusableStorageCapacity<Packet::MultipleFragments> = 28232;
 
-	/** Append string representation of integer value to this packet */
+	/** Append string representation of integer value to fragments */
+	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+	void Packet::MultipleFragments::append(T value) {
+		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
+			// optimize for small integer values
+			return append(constants::Integers[value]);
+		} else {
+			return append(convertIntToBuffer(value));
+		}
+	}
+
+	/** Append string representation of floating point value to fragments */
+	template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	void Packet::MultipleFragments::append(T value) {
+		size_t intValue = value;
+		if (value == static_cast<T>(intValue) && intValue < constants::Integers.size()) {
+			// optimize for small integer values
+			return append(constants::Integers[intValue]);
+		} else {
+			return append(convertDoubleToBuffer(value));
+		}
+	}
+
+	/** Append string representation of integer value to packet */
 	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
 	Packet& Packet::append(T value) & {
 		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
@@ -191,6 +250,18 @@ namespace cpv {
 			return append(constants::Integers[value]);
 		} else {
 			return append(convertIntToBuffer(value));
+		}
+	}
+
+	/** Append string representation of floating point value to packet */
+	template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+	Packet& Packet::append(T value) & {
+		size_t intValue = value;
+		if (value == static_cast<T>(intValue) && intValue < constants::Integers.size()) {
+			// optimize for small integer values
+			return append(constants::Integers[intValue]);
+		} else {
+			return append(convertDoubleToBuffer(value));
 		}
 	}
 

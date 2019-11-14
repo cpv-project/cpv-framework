@@ -104,16 +104,10 @@ namespace cpv {
 			return *this;
 		}
 
-		/** Write raw string */
-		void writeRaw(std::string_view str) & {
-			fragments_->fragments.emplace_back(Packet::toFragment(str));
-		}
-
-		/** Write raw temporary buffer */
-		void writeRaw(seastar::temporary_buffer<char> buf) & {
-			fragments_->fragments.emplace_back(
-				seastar::net::fragment({ buf.get_write(), buf.size() }));
-			fragments_->deleter.append(buf.release());
+		/** Write raw value */
+		template <class... Args>
+		void writeRaw(Args&&... args) {
+			fragments_->append(std::forward<Args>(args)...);
 		}
 
 		/** Get the json packet, don't touch the json builder after invoked this */
@@ -156,12 +150,7 @@ namespace cpv {
 		std::enable_if_t<std::numeric_limits<T>::is_integer && !std::is_same_v<T, bool>>> {
 		/** Write integer to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
-				// optimize for small integer values
-				return builder.writeRaw(constants::Integers[value]);
-			} else {
-				return builder.writeRaw(convertIntToBuffer(value));
-			}
+			builder.writeRaw(value);
 		}
 	};
 
@@ -171,7 +160,7 @@ namespace cpv {
 		std::enable_if_t<std::is_floating_point_v<T>>> {
 		/** Write floating point to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			builder.writeRaw(convertDoubleToBuffer(value));
+			builder.writeRaw(value);
 		}
 	};
 
