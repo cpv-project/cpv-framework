@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <seastar/core/future-util.hh>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Exceptions/OverflowException.hpp>
@@ -5,7 +6,8 @@
 
 namespace cpv::extensions {
 	namespace {
-		static const std::size_t ReadBufferSize = 4096;
+		static const constexpr std::size_t ReadBufferSize = 4096;
+		static const constexpr std::size_t MaxReservedCapacity = 1048576;
 	}
 
 	/** Read all data from stream and append to given string */
@@ -13,7 +15,7 @@ namespace cpv::extensions {
 		// pre allocate string if size hint of stream is available
 		std::size_t sizeHint = stream.sizeHint().value_or(0);
 		if (sizeHint > 0) {
-			str.reserve(str.size() + sizeHint);
+			str.reserve(str.size() + std::min(sizeHint, MaxReservedCapacity));
 		}
 		return seastar::repeat([&stream, &str] {
 			return stream.read().then([&str] (auto&& result) {
@@ -58,7 +60,7 @@ namespace cpv::extensions {
 		std::string_view existsContent;
 		std::size_t sizeHint = stream.sizeHint().value_or(0);
 		if (sizeHint > 0) {
-			seastar::temporary_buffer<char> newBuf(sizeHint);
+			seastar::temporary_buffer<char> newBuf(std::min(sizeHint, MaxReservedCapacity));
 			mergeContent(newBuf, existsContent, std::string_view(buf.get(), buf.size()));
 			buf = std::move(newBuf);
 		} else {
