@@ -104,21 +104,33 @@ namespace cpv {
 			return *this;
 		}
 
-		/**
-		 * Get the json packet.
-		 * You can move the packet out, but don't touch json builder after that.
-		 */
-		Packet& getPacket() & {
-			return packet_;
+		/** Write raw string */
+		void writeRaw(std::string_view str) & {
+			fragments_->fragments.emplace_back(Packet::toFragment(str));
+		}
+
+		/** Write raw temporary buffer */
+		void writeRaw(seastar::temporary_buffer<char> buf) & {
+			fragments_->fragments.emplace_back(
+				seastar::net::fragment({ buf.get_write(), buf.size() }));
+			fragments_->deleter.append(buf.release());
+		}
+
+		/** Get the json packet, don't touch the json builder after invoked this */
+		Packet toPacket() && {
+			fragments_ = nullptr;
+			return std::move(packet_);
 		}
 
 		/** Constructor with capacity of packet */
 		explicit JsonBuilder(std::size_t capacity) :
 			packet_(capacity),
+			fragments_(packet_.getOrConvertToMultiple()),
 			addPreviousComma_(false) { }
 
 	private:
 		Packet packet_;
+		Packet::MultipleFragments* fragments_;
 		bool addPreviousComma_;
 	};
 
@@ -144,7 +156,12 @@ namespace cpv {
 		std::enable_if_t<std::numeric_limits<T>::is_integer && !std::is_same_v<T, bool>>> {
 		/** Write integer to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			builder.getPacket().append(value);
+			if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
+				// optimize for small integer values
+				return builder.writeRaw(constants::Integers[value]);
+			} else {
+				return builder.writeRaw(convertIntToBuffer(value));
+			}
 		}
 	};
 
@@ -154,7 +171,7 @@ namespace cpv {
 		std::enable_if_t<std::is_floating_point_v<T>>> {
 		/** Write floating point to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			builder.getPacket().append(convertDoubleToBuffer(value));
+			builder.writeRaw(convertDoubleToBuffer(value));
 		}
 	};
 
@@ -163,7 +180,7 @@ namespace cpv {
 	struct JsonBuilderWriter<bool> {
 		/** Write boolean to json builder */
 		static void write(bool value, JsonBuilder& builder) {
-			builder.getPacket().append(value ? constants::True : constants::False);
+			builder.writeRaw(value ? constants::True : constants::False);
 		}
 	};
 
@@ -172,14 +189,14 @@ namespace cpv {
 	struct JsonBuilderWriter<std::string_view> {
 		/** Write std::string_view to json builder */
 		static void write(std::string_view value, JsonBuilder& builder) {
-			builder.getPacket().append(constants::DoubleQuote);
+			builder.writeRaw(constants::DoubleQuote);
 			auto result = jsonEncode(value);
 			if (result.second.size() == 0) {
-				builder.getPacket().append(result.first);
+				builder.writeRaw(result.first);
 			} else {
-				builder.getPacket().append(std::move(result.second));
+				builder.writeRaw(std::move(result.second));
 			}
-			builder.getPacket().append(constants::DoubleQuote);
+			builder.writeRaw(constants::DoubleQuote);
 		}
 	};
 
@@ -217,7 +234,7 @@ namespace cpv {
 			if (value.has_value()) {
 				JsonBuilderWriter<T>::write(*value, builder);
 			} else {
-				builder.getPacket().append(constants::Null);
+				builder.writeRaw(constants::Null);
 			}
 		}
 	};
@@ -231,7 +248,7 @@ namespace cpv {
 			if (value != nullptr) {
 				JsonBuilderWriter<T>::write(*value, builder);
 			} else {
-				builder.getPacket().append(constants::Null);
+				builder.writeRaw(constants::Null);
 			}
 		}
 	};
@@ -245,7 +262,7 @@ namespace cpv {
 			if (value.get() != nullptr) {
 				JsonBuilderWriter<T>::write(*value, builder);
 			} else {
-				builder.getPacket().append(constants::Null);
+				builder.writeRaw(constants::Null);
 			}
 		}
 	};
@@ -259,7 +276,7 @@ namespace cpv {
 			if (value != nullptr) {
 				JsonBuilderWriter<T>::write(*value, builder);
 			} else {
-				builder.getPacket().append(constants::Null);
+				builder.writeRaw(constants::Null);
 			}
 		}
 	};
@@ -324,7 +341,7 @@ namespace cpv {
 		static Packet serialize(const T& model) {
 			JsonBuilder builder(PacketCapacity);
 			JsonBuilderWriter<T>::write(model, builder);
-			return std::move(builder.getPacket());
+			return std::move(builder).toPacket();
 		}
 	};
 
