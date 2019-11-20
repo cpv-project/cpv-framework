@@ -16,7 +16,6 @@ namespace cpv {
 		std::string_view getContentLength() const { return contentLength_; }
 		std::string_view getConnection() const { return connection_; }
 		std::string_view getPragma() const { return pragma_; }
-		std::string_view getCacheControl() const { return cacheControl_; }
 		std::string_view getUpgradeInsecureRequests() const { return upgradeInsecureRequests_; }
 		std::string_view getDNT() const { return dnt_; }
 		std::string_view getUserAgent() const { return userAgent_; }
@@ -30,7 +29,6 @@ namespace cpv {
 		void setContentLength(std::string_view value) { contentLength_ = value; }
 		void setConnection(std::string_view value) { connection_ = value; }
 		void setPragma(std::string_view value) { pragma_ = value; }
-		void setCacheControl(std::string_view value) { cacheControl_ = value; }
 		void setUpgradeInsecureRequests(std::string_view value) { upgradeInsecureRequests_ = value; }
 		void setDNT(std::string_view value) { dnt_ = value; }
 		void setUserAgent(std::string_view value) { userAgent_ = value; }
@@ -48,7 +46,6 @@ namespace cpv {
 			if (!contentLength_.empty()) { func(constants::ContentLength, contentLength_); }
 			if (!connection_.empty()) { func(constants::Connection, connection_); }
 			if (!pragma_.empty()) { func(constants::Pragma, pragma_); }
-			if (!cacheControl_.empty()) { func(constants::CacheControl, cacheControl_); }
 			if (!upgradeInsecureRequests_.empty()) { func(constants::UpgradeInsecureRequests, upgradeInsecureRequests_); }
 			if (!dnt_.empty()) { func(constants::DNT, dnt_); }
 			if (!userAgent_.empty()) { func(constants::UserAgent, userAgent_); }
@@ -97,7 +94,6 @@ namespace cpv {
 		std::string_view contentLength_;
 		std::string_view connection_;
 		std::string_view pragma_;
-		std::string_view cacheControl_;
 		std::string_view upgradeInsecureRequests_;
 		std::string_view dnt_;
 		std::string_view userAgent_;

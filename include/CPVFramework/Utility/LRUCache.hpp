@@ -1,6 +1,7 @@
 #pragma once
-#include <unordered_map>
+#include <functional>
 #include <list>
+#include <map>
 #include <utility>
 
 namespace cpv {
@@ -14,7 +15,8 @@ namespace cpv {
 		class Key,
 		class Value,
 		class List = std::list<std::pair<Key, Value>>,
-		class Map = std::unordered_map<Key, typename List::iterator>>
+		// use ordered map and std::less<> by default for heterogeneous lookup
+		class Map = std::map<Key, typename List::iterator, std::less<>>>
 	class LRUCache {
 	public:
 		/** Associate value with key, remove finally not used value if size is over */
@@ -56,6 +58,12 @@ namespace cpv {
 				map_.erase(it);
 				return true;
 			}
+		}
+
+		/** Erase all values in cache */
+		void clear() {
+			list_.clear();
+			map_.clear();
 		}
 
 		/** Get the number of values in cache */

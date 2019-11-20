@@ -5,6 +5,7 @@
 #include "./HttpUtils.UrlEncodeMapping.hpp"
 #include "./HttpUtils.HtmlEncodeMapping.hpp"
 #include "./HttpUtils.HtmlEntitiesMapping.hpp"
+#include "./HttpUtils.MimeMapping.hpp"
 
 namespace cpv {
 	/** Encode string for use in url */
@@ -167,6 +168,17 @@ namespace cpv {
 		}
 		buf.trim(dst - buf.get());
 		return std::make_pair(std::string_view(buf.get(), buf.size()), std::move(buf));
+	}
+
+	/** Get mime type of file path (path can be extension only) */
+	std::string_view getMimeType(std::string_view path) {
+		auto dotPos = path.find_last_of('.');
+		std::string_view extension = (dotPos == path.npos) ? path : path.substr(dotPos + 1);
+		auto it = MimeMapping.find(extension);
+		if (it != MimeMapping.end()) {
+			return it->second;
+		}
+		return "application/octet-stream";
 	}
 }
 

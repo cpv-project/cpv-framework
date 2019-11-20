@@ -112,8 +112,10 @@ namespace cpv {
 	}
 	
 	/** Add underlying buffer that owns the storage of string views */
-	void HttpResponse::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+	std::string_view HttpResponse::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+		std::string_view view(buf.get(), buf.size());
 		data_->underlyingBuffers.emplace_back(std::move(buf));
+		return view;
 	}
 	
 	/** Constructor */

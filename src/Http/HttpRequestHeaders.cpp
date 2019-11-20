@@ -15,7 +15,6 @@ namespace cpv {
 		{ constants::ContentLength, &HttpRequestHeaders::contentLength_ },
 		{ constants::Connection, &HttpRequestHeaders::connection_ },
 		{ constants::Pragma, &HttpRequestHeaders::pragma_ },
-		{ constants::CacheControl, &HttpRequestHeaders::cacheControl_ },
 		{ constants::UpgradeInsecureRequests, &HttpRequestHeaders::upgradeInsecureRequests_ },
 		{ constants::DNT, &HttpRequestHeaders::dnt_ },
 		{ constants::UserAgent, &HttpRequestHeaders::userAgent_ },
@@ -73,7 +72,6 @@ namespace cpv {
 		contentLength_ = {};
 		connection_ = {};
 		pragma_ = {};
-		cacheControl_ = {};
 		upgradeInsecureRequests_ = {};
 		dnt_ = {};
 		userAgent_ = {};
@@ -92,7 +90,6 @@ namespace cpv {
 		contentLength_(),
 		connection_(),
 		pragma_(),
-		cacheControl_(),
 		upgradeInsecureRequests_(),
 		dnt_(),
 		userAgent_(),

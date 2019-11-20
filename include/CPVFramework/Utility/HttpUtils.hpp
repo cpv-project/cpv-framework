@@ -38,5 +38,8 @@ namespace cpv {
 	 * unicode characters such as "&#x4e00;" and "&#120171;" are supported.
 	 */
 	std::pair<std::string_view, seastar::temporary_buffer<char>> htmlDecode(std::string_view str);
+
+	/** Get mime type of file path (path can be extension only) */
+	std::string_view getMimeType(std::string_view path);
 }
 

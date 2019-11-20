@@ -9,6 +9,18 @@
 #include "./Macros.hpp"
 
 namespace cpv {
+	/** Return whether string starts with given pattern */
+	static inline bool startsWith(std::string_view str, std::string_view pattern) {
+		return (str.size() >= pattern.size() &&
+			str.substr(0, pattern.size()) == pattern);
+	}
+
+	/** Return whether string ends with given pattern */
+	static inline bool endsWith(std::string_view str, std::string_view pattern) {
+		return (str.size() >= pattern.size() &&
+			str.substr(str.size() - pattern.size()) == pattern);
+	}
+
 	/**
 	 * Split string with specified characters.
 	 * Call func(parts, count) while split.

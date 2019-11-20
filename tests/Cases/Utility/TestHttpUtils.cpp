@@ -145,3 +145,9 @@ TEST(TestHttpUtils, htmlDecode) {
 	}
 }
 
+TEST(TestHttpUtils, getMimeType) {
+	ASSERT_EQ(cpv::getMimeType("zip"), "application/zip");
+	ASSERT_EQ(cpv::getMimeType("./path/some.test.json"), "application/json");
+	ASSERT_EQ(cpv::getMimeType("filename.unknown"), "application/octet-stream");
+}
+

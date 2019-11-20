@@ -26,3 +26,15 @@ TEST(TestFileUtils, writeFile) {
 	::unlink(path.c_str());
 }
 
+TEST(TestFileUtils, isSafePath) {
+	ASSERT_TRUE(cpv::isSafePath("./dir/test.txt"));
+	ASSERT_TRUE(cpv::isSafePath("./dir/.test.txt"));
+	ASSERT_FALSE(cpv::isSafePath("./dir/test..txt"));
+	ASSERT_FALSE(cpv::isSafePath("../dir/test.txt"));
+	ASSERT_FALSE(cpv::isSafePath("./dir//test.txt"));
+	ASSERT_FALSE(cpv::isSafePath("./dir\\\\test.txt"));
+	ASSERT_FALSE(cpv::isSafePath("./dir\rtest.txt"));
+	ASSERT_FALSE(cpv::isSafePath("./dir\ntest.txt"));
+	ASSERT_FALSE(cpv::isSafePath(std::string_view("a\x00""b", 3)));
+}
+

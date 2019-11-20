@@ -76,8 +76,10 @@ namespace cpv {
 		const UnderlyingBuffersType& getUnderlyingBuffers() const& { return underlyingBuffers_; }
 		
 		/** Add underlying buffer that owns the storage of string views */
-		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+		std::string_view addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
+			std::string_view view(buf.get(), buf.size());
 			underlyingBuffers_.emplace_back(std::move(buf));
+			return view;
 		}
 		
 		/**

@@ -1,6 +1,24 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
+TEST(TestStringUtils, startsWith) {
+	ASSERT_TRUE(cpv::startsWith("test", "tes"));
+	ASSERT_TRUE(cpv::startsWith("test", "test"));
+	ASSERT_TRUE(cpv::startsWith("test", ""));
+	ASSERT_FALSE(cpv::startsWith("test", "est"));
+	ASSERT_FALSE(cpv::startsWith("tes", "test"));
+	ASSERT_FALSE(cpv::startsWith("est", "test"));
+}
+
+TEST(TestStringUtils, endsWith) {
+	ASSERT_FALSE(cpv::endsWith("test", "tes"));
+	ASSERT_TRUE(cpv::endsWith("test", "test"));
+	ASSERT_TRUE(cpv::endsWith("test", ""));
+	ASSERT_TRUE(cpv::endsWith("test", "est"));
+	ASSERT_FALSE(cpv::endsWith("tes", "test"));
+	ASSERT_FALSE(cpv::endsWith("est", "test"));
+}
+
 TEST(TestStringUtils, splitString) {
 	{
 		// split by chars

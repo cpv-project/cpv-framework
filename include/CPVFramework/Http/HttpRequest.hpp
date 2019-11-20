@@ -70,7 +70,7 @@ namespace cpv {
 		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
 		
 		/** Add underlying buffer that owns the storage of string views */
-		void addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
+		std::string_view addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
 		/** Constructor */
 		HttpRequest();
@@ -90,8 +90,7 @@ namespace cpv {
 			setHeader(key, constants::Integers[value]);
 		} else {
 			auto buf = convertIntToBuffer(value);
-			setHeader(key, std::string_view(buf.get(), buf.size()));
-			addUnderlyingBuffer(std::move(buf));
+			setHeader(key, addUnderlyingBuffer(std::move(buf)));
 		}
 	}
 }

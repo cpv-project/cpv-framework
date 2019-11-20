@@ -12,7 +12,7 @@ TEST_FUTURE(TestHttpResponse, all) {
 	seastar::temporary_buffer buf("abc asd", 7);
 	std::string_view key(buf.get(), 3);
 	std::string_view value(buf.get() + 4, 3);
-	response.addUnderlyingBuffer(std::move(buf));
+	response.setHeader("all", response.addUnderlyingBuffer(std::move(buf)));
 	response.setHeader(key, value);
 	auto str = seastar::make_lw_shared<std::string>();
 	response.setBodyStream(cpv::makeReusable<cpv::StringOutputStream>(str).cast<cpv::OutputStreamBase>());
@@ -23,6 +23,7 @@ TEST_FUTURE(TestHttpResponse, all) {
 			ASSERT_EQ(response.getStatusCode(), "404");
 			ASSERT_EQ(response.getStatusMessage(), "Not Found");
 			ASSERT_EQ(response.getHeaders().getHeader("abc"), "asd");
+			ASSERT_EQ(response.getHeaders().getHeader("all"), "abc asd");
 			ASSERT_EQ(response.getUnderlyingBuffers().size(), 1U);
 			ASSERT_EQ(std::string(
 				response.getUnderlyingBuffers().at(0).get(),

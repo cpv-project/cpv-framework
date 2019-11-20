@@ -179,9 +179,7 @@ namespace cpv {
 	 * Newly allocated contents for url decoder will append to underlyingBuffers.
 	 */
 	void Uri::parse(seastar::temporary_buffer<char>&& uri) {
-		std::string_view view(uri.get(), uri.size());
-		addUnderlyingBuffer(std::move(uri));
-		parse(view);
+		parse(addUnderlyingBuffer(std::move(uri)));
 	}
 	
 	/** Append uri string to packet */

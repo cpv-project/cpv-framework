@@ -57,10 +57,12 @@ TEST(TestLRUCache, all) {
 	{
 		ASSERT_EQ(cache.size(), 3U);
 		ASSERT_FALSE(cache.empty());
-		ASSERT_TRUE(cache.erase(2));
-		ASSERT_TRUE(cache.erase(3));
 		ASSERT_TRUE(cache.erase(101));
 		ASSERT_FALSE(cache.erase(101));
+		ASSERT_EQ(cache.size(), 2U);
+	}
+	{
+		cache.clear();
 		ASSERT_EQ(cache.size(), 0U);
 		ASSERT_TRUE(cache.empty());
 	}

@@ -25,7 +25,14 @@ namespace cpv {
 	
 	/** Format now for http header, returns a thread local static string */
 	std::string_view formatNowForHttpHeader() {
-		return formatTimeForHttpHeader(std::time(nullptr));
+		static thread_local std::optional<std::time_t> previousTime;
+		static thread_local HttpHeaderTimeStringBufferType buf;
+		std::time_t time = std::time(nullptr);
+		if (CPV_UNLIKELY(!previousTime.has_value() || time != previousTime.value())) {
+			previousTime = time;
+			formatTimeForHttpHeader(time, buf.data(), buf.size());
+		}
+		return std::string_view(buf.data(), HttpHeaderTimeStringSize);
 	}
 }
 

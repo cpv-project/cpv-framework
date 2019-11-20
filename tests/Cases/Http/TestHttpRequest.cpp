@@ -13,7 +13,7 @@ TEST_FUTURE(TestHttpRequest, basic) {
 	seastar::temporary_buffer buf("abc asd", 7);
 	std::string_view key(buf.get(), 3);
 	std::string_view value(buf.get() + 4, 3);
-	request.addUnderlyingBuffer(std::move(buf));
+	request.setHeader("all", request.addUnderlyingBuffer(std::move(buf)));
 	request.setHeader(key, value);
 	request.setBodyStream(
 		cpv::makeReusable<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>());
@@ -23,6 +23,7 @@ TEST_FUTURE(TestHttpRequest, basic) {
 			ASSERT_EQ(request.getUrl(), "/test");
 			ASSERT_EQ(request.getVersion(), "HTTP/1.1");
 			ASSERT_EQ(request.getHeaders().getHeader("abc"), "asd");
+			ASSERT_EQ(request.getHeaders().getHeader("all"), "abc asd");
 			ASSERT_EQ(request.getUnderlyingBuffers().size(), 1U);
 			ASSERT_EQ(std::string(
 				request.getUnderlyingBuffers().at(0).get(),
@@ -50,7 +51,6 @@ TEST(TestHttpRequest, headersBasic) {
 	request.setHeader(cpv::constants::ContentLength, "TestContentLength");
 	request.setHeader(cpv::constants::Connection, "TestConnection");
 	request.setHeader(cpv::constants::Pragma, "TestPragma");
-	request.setHeader(cpv::constants::CacheControl, "TestCacheControl");
 	request.setHeader(cpv::constants::UpgradeInsecureRequests, "TestUpgradeInsecureRequests");
 	request.setHeader(cpv::constants::DNT, "TestDNT");
 	request.setHeader(cpv::constants::UserAgent, "TestUserAgent");
@@ -67,7 +67,6 @@ TEST(TestHttpRequest, headersBasic) {
 	ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "TestContentLength");
 	ASSERT_EQ(headers.getHeader(cpv::constants::Connection), "TestConnection");
 	ASSERT_EQ(headers.getHeader(cpv::constants::Pragma), "TestPragma");
-	ASSERT_EQ(headers.getHeader(cpv::constants::CacheControl), "TestCacheControl");
 	ASSERT_EQ(headers.getHeader(cpv::constants::UpgradeInsecureRequests), "TestUpgradeInsecureRequests");
 	ASSERT_EQ(headers.getHeader(cpv::constants::DNT), "TestDNT");
 	ASSERT_EQ(headers.getHeader(cpv::constants::UserAgent), "TestUserAgent");
@@ -84,7 +83,6 @@ TEST(TestHttpRequest, headersBasic) {
 	ASSERT_EQ(headers.getContentLength(), "TestContentLength");
 	ASSERT_EQ(headers.getConnection(), "TestConnection");
 	ASSERT_EQ(headers.getPragma(), "TestPragma");
-	ASSERT_EQ(headers.getCacheControl(), "TestCacheControl");
 	ASSERT_EQ(headers.getUpgradeInsecureRequests(), "TestUpgradeInsecureRequests");
 	ASSERT_EQ(headers.getDNT(), "TestDNT");
 	ASSERT_EQ(headers.getUserAgent(), "TestUserAgent");
@@ -108,7 +106,6 @@ TEST(TestHttpRequest, headersForeach) {
 	headers.setContentLength("TestContentLength");
 	headers.setConnection("TestConnection");
 	headers.setPragma("TestPragma");
-	headers.setCacheControl("TestCacheControl");
 	headers.setUpgradeInsecureRequests("TestUpgradeInsecureRequests");
 	headers.setDNT("TestDNT");
 	headers.setUserAgent("TestUserAgent");
@@ -130,7 +127,6 @@ TEST(TestHttpRequest, headersForeach) {
 		"Content-Length: TestContentLength\r\n"
 		"Connection: TestConnection\r\n"
 		"Pragma: TestPragma\r\n"
-		"Cache-Control: TestCacheControl\r\n"
 		"Upgrade-Insecure-Requests: TestUpgradeInsecureRequests\r\n"
 		"DNT: TestDNT\r\n"
 		"User-Agent: TestUserAgent\r\n"
@@ -160,7 +156,6 @@ TEST(TestHttpRequest, headersClear) {
 	headers.setContentLength("TestContentLength");
 	headers.setConnection("TestConnection");
 	headers.setPragma("TestPragma");
-	headers.setCacheControl("TestCacheControl");
 	headers.setUpgradeInsecureRequests("TestUpgradeInsecureRequests");
 	headers.setDNT("TestDNT");
 	headers.setUserAgent("TestUserAgent");
@@ -176,7 +171,6 @@ TEST(TestHttpRequest, headersClear) {
 	ASSERT_TRUE(headers.getContentLength().empty());
 	ASSERT_TRUE(headers.getConnection().empty());
 	ASSERT_TRUE(headers.getPragma().empty());
-	ASSERT_TRUE(headers.getCacheControl().empty());
 	ASSERT_TRUE(headers.getUpgradeInsecureRequests().empty());
 	ASSERT_TRUE(headers.getDNT().empty());
 	ASSERT_TRUE(headers.getUserAgent().empty());

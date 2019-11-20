@@ -3,8 +3,9 @@
 ## 0.2
 
 - add static file handler
-	- support gzip compression
+	- support pre-compressed gzip
 	- support bytes range
+- add dynamic compress handler
 - add template engine
 - add form serializer and deserializer
 - add json serializer and deserializer

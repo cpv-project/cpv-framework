@@ -40,5 +40,21 @@ namespace cpv {
 			}
 		}
 	}
+
+	/** Check whether filename is safe (not contains ".." or "//") */
+	bool isSafePath(std::string_view filename) {
+		char lastChar = 0;
+		for (char c : filename) {
+			if (CPV_UNLIKELY(
+				c == '\r' || c == '\n' || c == '\x00' ||
+				(c == '.' && lastChar == '.') ||
+				(c == '/' && lastChar == '/') ||
+				(c == '\\' && lastChar == '\\'))) {
+				return false;
+			}
+			lastChar = c;
+		}
+		return true;
+	}
 }
 

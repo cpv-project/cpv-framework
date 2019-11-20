@@ -21,7 +21,12 @@ namespace cpv {
 	/** Format time for http header, returns a thread local static string */
 	std::string_view formatTimeForHttpHeader(std::time_t time);
 	
-	/** Format now for http header, returns a thread local static string */
+	/**
+	 * Format now for http header, returns a thread local static string
+	 * Notice:
+	 * The thread local storage of this function is distinct (not shared with
+	 * the other overload), so it can be safe to used directly for Date header.
+	 */
 	std::string_view formatNowForHttpHeader();
 }
 
