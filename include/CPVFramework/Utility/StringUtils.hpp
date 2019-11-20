@@ -123,9 +123,9 @@ namespace cpv {
 	template <class IntType, class StringType>
 	void dumpIntToHex(IntType value, StringType& str) {
 		static const constexpr char digits[] = "0123456789ABCDEF";
-		static const std::size_t hexLen = sizeof(IntType) * 2;
-		for (std::size_t i = 0, j = (hexLen-1)*4; i < hexLen; ++i, j-=4) {
-			str.append(digits + ((value>>j)&0xf), 1);
+		static const constexpr std::size_t hexLen = sizeof(IntType) * 2;
+		for (std::size_t i = 0, j = (hexLen - 1) * 4; i < hexLen; ++i, j -= 4) {
+			str.append(1, digits[(value >> j) & 0xf]);
 		}
 	}
 
@@ -138,7 +138,7 @@ namespace cpv {
 		static const constexpr char digits[] = "0123456789";
 		if constexpr (std::numeric_limits<IntType>::is_signed) {
 			if (value < 0) {
-				str.append("-");
+				str.append(1, '-');
 			}
 		}
 		std::size_t prevSize = str.size();
@@ -246,7 +246,7 @@ namespace cpv {
 			if (!loadIntFromHex<char>(start, c)) {
 				return false;
 			}
-			str.append(&c, 1);
+			str.append(1, c);
 			start += 2;
 		}
 		return start == end;

@@ -152,9 +152,10 @@ namespace cpv {
 						}
 						// read whole file from disk and store to cache if appropriate
 						fileStream_ = seastar::make_file_input_stream(std::move(file_));
-						if (st.st_size <= data_.maxCacheFileSize &&
+						std::size_t fileSize = static_cast<std::size_t>(st.st_size);
+						if (fileSize <= data_.maxCacheFileSize &&
 							data_.fileCache.maxSize() > 0 && rangeHeader_.empty()) {
-							return fileStream_.read_exactly(st.st_size).then(
+							return fileStream_.read_exactly(fileSize).then(
 								[this, lastModified=std::move(lastModified)] (auto buf) mutable {
 								// store file content to cache
 								data_.fileCache.set(
