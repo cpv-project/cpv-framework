@@ -4,10 +4,10 @@
 #include <optional>
 #include <seastar/core/shared_ptr.hh>
 #include "../Allocators/StackAllocator.hpp"
-#include "../Utility/BufferUtils.hpp"
 #include "../Utility/ConstantStrings.hpp"
 #include "../Utility/Packet.hpp"
 #include "../Utility/Reusable.hpp"
+#include "../Utility/SharedString.hpp"
 
 // construct JsonMemberKey, please ensure key is already encoded
 #define CPV_JSONKEY(key) cpv::JsonMemberKey("\"" key "\":", ",\"" key "\":")
@@ -15,9 +15,9 @@
 namespace cpv {
 	/**
 	 * Encode string for use in json,
-	 * may return original string and empty buffer if no change.
+	 * may return original string if not changed.
 	 */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> jsonEncode(std::string_view str);
+	SharedString jsonEncode(SharedString&& str);
 
 	/**
 	 * Encoded static member key of json object.
@@ -57,7 +57,7 @@ namespace cpv {
 	public:
 		/** Write { to json packet */
 		JsonBuilder& startObject() {
-			packet_.append(constants::CurlyBacketStart);
+			writeRaw(constants::CurlyBacketStart);
 			addPreviousComma_ = false;
 			return *this;
 		}
@@ -67,7 +67,7 @@ namespace cpv {
 		 * It should be used between startObject and endObject.
 		 */
 		template <class T>
-		JsonBuilder& addMember(std::string_view key, const T& value);
+		JsonBuilder& addMember(const SharedString& key, const T& value);
 
 		/**
 		 * Write static encoded key and value to json packet.
@@ -78,14 +78,14 @@ namespace cpv {
 
 		/** Write } to json packet */
 		JsonBuilder& endObject() {
-			packet_.append(constants::CurlyBacketEnd);
+			writeRaw(constants::CurlyBacketEnd);
 			addPreviousComma_ = true;
 			return *this;
 		}
 
 		/** Write [ to json packet */
 		JsonBuilder& startArray() {
-			packet_.append(constants::SquareBacketStart);
+			writeRaw(constants::SquareBacketStart);
 			addPreviousComma_ = false;
 			return *this;
 		}
@@ -99,12 +99,12 @@ namespace cpv {
 
 		/** Write ] to json packet */
 		JsonBuilder& endArray() {
-			packet_.append(constants::SquareBacketEnd);
+			writeRaw(constants::SquareBacketEnd);
 			addPreviousComma_ = true;
 			return *this;
 		}
 
-		/** Write raw value */
+		/** Write raw string */
 		template <class... Args>
 		void writeRaw(Args&&... args) {
 			fragments_->append(std::forward<Args>(args)...);
@@ -119,7 +119,7 @@ namespace cpv {
 		/** Constructor with capacity of packet */
 		explicit JsonBuilder(std::size_t capacity) :
 			packet_(capacity),
-			fragments_(packet_.getOrConvertToMultiple()),
+			fragments_(&packet_.getOrConvertToMultiple()),
 			addPreviousComma_(false) { }
 
 	private:
@@ -150,7 +150,7 @@ namespace cpv {
 		std::enable_if_t<std::numeric_limits<T>::is_integer && !std::is_same_v<T, bool>>> {
 		/** Write integer to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			builder.writeRaw(value);
+			builder.writeRaw(SharedString::fromInt(value));
 		}
 	};
 
@@ -160,7 +160,7 @@ namespace cpv {
 		std::enable_if_t<std::is_floating_point_v<T>>> {
 		/** Write floating point to json builder */
 		static void write(const T& value, JsonBuilder& builder) {
-			builder.writeRaw(value);
+			builder.writeRaw(SharedString::fromDouble(value));
 		}
 	};
 
@@ -169,30 +169,35 @@ namespace cpv {
 	struct JsonBuilderWriter<bool> {
 		/** Write boolean to json builder */
 		static void write(bool value, JsonBuilder& builder) {
-			builder.writeRaw(value ? constants::True : constants::False);
-		}
-	};
-
-	/** Specialize for std::string_view */
-	template <>
-	struct JsonBuilderWriter<std::string_view> {
-		/** Write std::string_view to json builder */
-		static void write(std::string_view value, JsonBuilder& builder) {
-			builder.writeRaw(constants::DoubleQuote);
-			auto result = jsonEncode(value);
-			if (result.second.size() == 0) {
-				builder.writeRaw(result.first);
+			if (value) {
+				builder.writeRaw(constants::True);
 			} else {
-				builder.writeRaw(std::move(result.second));
+				builder.writeRaw(constants::False);
 			}
+		}
+	};
+
+	/** Specialize for SharedString */
+	template <>
+	struct JsonBuilderWriter<SharedString> {
+		/** Write SharedString to json builder */
+		static void write(const SharedString& value, JsonBuilder& builder) {
+			builder.writeRaw(constants::DoubleQuote);
+			builder.writeRaw(jsonEncode(value.share()));
 			builder.writeRaw(constants::DoubleQuote);
 		}
 	};
 
-	/** Specialize for std::string (may append the view of original string) */
+	/** Specialize for std::string */
 	template <>
-	struct JsonBuilderWriter<std::string> :
-		public JsonBuilderWriter<std::string_view> { };
+	struct JsonBuilderWriter<std::string> {
+		/** Write std::string to json builder */
+		static void write(const std::string& value, JsonBuilder& builder) {
+			builder.writeRaw(constants::DoubleQuote);
+			builder.writeRaw(jsonEncode(SharedString(value)));
+			builder.writeRaw(constants::DoubleQuote);
+		}
+	};
 
 	/** Specialize for std::vector */
 	template <class T, class Allocator>
@@ -272,14 +277,14 @@ namespace cpv {
 
 	/** Write key and value to json packet */
 	template <class T>
-	JsonBuilder& JsonBuilder::addMember(std::string_view key, const T& value) {
+	JsonBuilder& JsonBuilder::addMember(const SharedString& key, const T& value) {
 		if (addPreviousComma_) {
-			packet_.append(constants::Comma);
+			writeRaw(constants::Comma);
 		} else {
 			addPreviousComma_ = true;
 		}
-		JsonBuilderWriter<std::string_view>::write(key, *this);
-		packet_.append(constants::Colon);
+		JsonBuilderWriter<SharedString>::write(key, *this);
+		writeRaw(constants::Colon);
 		JsonBuilderWriter<T>::write(value, *this);
 		return *this;
 	}
@@ -288,9 +293,9 @@ namespace cpv {
 	template <class T>
 	JsonBuilder& JsonBuilder::addMember(const JsonMemberKey& key, const T& value) {
 		if (addPreviousComma_) {
-			packet_.append(key.getEncodedKeyWithPreviousComma());
+			writeRaw(SharedString::fromStatic(key.getEncodedKeyWithPreviousComma()));
 		} else {
-			packet_.append(key.getEncodedKey());
+			writeRaw(SharedString::fromStatic(key.getEncodedKey()));
 			addPreviousComma_ = true;
 		}
 		JsonBuilderWriter<T>::write(value, *this);
@@ -301,7 +306,7 @@ namespace cpv {
 	template <class T>
 	JsonBuilder& JsonBuilder::addItem(const T& value) {
 		if (addPreviousComma_) {
-			packet_.append(constants::Comma);
+			writeRaw(constants::Comma);
 		} else {
 			addPreviousComma_ = true;
 		}

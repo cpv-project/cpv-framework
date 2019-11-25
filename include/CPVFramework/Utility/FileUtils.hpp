@@ -1,10 +1,9 @@
 #pragma once
-#include <string>
-#include <string_view>
+#include "./SharedString.hpp"
 
 namespace cpv {
 	/** A shortcut function to read file contents */
-	std::string readFile(std::string_view filename);
+	SharedString readFile(std::string_view filename);
 
 	/** A shortcut function to write file contents */
 	void writeFile(std::string_view filename, std::string_view contents);

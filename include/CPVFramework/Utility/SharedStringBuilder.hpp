@@ -16,6 +16,24 @@ namespace cpv {
 		/** Minimal capacity for new buffer allocated from grow (except for grow from empty) */
 		static const constexpr std::size_t MinCapacityForGrow = 512;
 
+		/** Grow the buffer for given total size if necessary */
+		void reserve(std::size_t newSize) {
+			if (newSize <= buffer_.size()) {
+				return;
+			}
+			// allocate new buffer and copy original content
+			if (buffer_.empty()) {
+				// newSize may be pre calculated (like append integer)
+				buffer_ = BasicSharedString<CharType>(newSize);
+			} else {
+				// use std::max to handle size * 2 overflow
+				BasicSharedString<CharType> newBuffer(std::max(
+					std::max(newSize, buffer_.size() * 2), +MinCapacityForGrow));
+				std::memcpy(newBuffer.data(), view_.data(), view_.size() * sizeof(CharType));
+				buffer_ = std::move(newBuffer);
+			}
+		}
+
 		/** Grow the buffer for newly append size if necessary and update the view */
 		CharType* grow(std::size_t appendSize) {
 			std::size_t oldSize = view_.size();
@@ -23,19 +41,7 @@ namespace cpv {
 				throw OverflowException(CPV_CODEINFO, "size overflowed");
 			}
 			std::size_t newSize = oldSize + appendSize;
-			if (newSize > buffer_.size()) {
-				// allocate new buffer and copy original content
-				if (buffer_.empty()) {
-					// newSize may be pre calculated (like append integer)
-					buffer_ = BasicSharedString<CharType>(newSize);
-				} else {
-					// use std::max to handle size * 2 overflow
-					BasicSharedString<CharType> newBuffer(std::max(
-						std::max(newSize, buffer_.size() * 2), +MinCapacityForGrow));
-					std::memcpy(newBuffer.data(), view_.data(), view_.size() * sizeof(CharType));
-					buffer_ = std::move(newBuffer);
-				}
-			}
+			reserve(newSize);
 			view_ = { buffer_.data(), newSize };
 			return buffer_.data() + oldSize;
 		}
@@ -48,7 +54,9 @@ namespace cpv {
 
 		/** Append string view to end */
 		BasicSharedStringBuilder& append(std::basic_string_view<CharType> view) {
-			std::memcpy(grow(view.size()), view.data(), view.size() * sizeof(CharType));
+			if (CPV_LIKELY(!view.empty())) {
+				std::memcpy(grow(view.size()), view.data(), view.size() * sizeof(CharType));
+			}
 			return *this;
 		}
 
@@ -98,10 +106,13 @@ namespace cpv {
 		// Convenient functions
 		std::size_t size() const { return view_.size(); }
 		std::size_t capacity() const { return buffer_.size(); }
+		bool empty() const { return view_.empty(); }
 		CharType* data() { return buffer_.data(); }
-		const CharType* data() const { return buffer_.get(); }
+		const CharType* data() const { return buffer_.data(); }
 		CharType* begin() { return buffer_.data(); }
+		const CharType* begin() const { return buffer_.data(); }
 		CharType* end() { return buffer_.data() + view_.size(); }
+		const CharType* end() const { return buffer_.data() + view_.size(); }
 
 		/** Constructor */
 		BasicSharedStringBuilder() :

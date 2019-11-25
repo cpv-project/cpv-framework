@@ -1,26 +1,25 @@
 #pragma once
-#include <string_view>
 #include "../Allocators/StackAllocator.hpp"
+#include "../Utility/SharedString.hpp"
 
 namespace cpv {
 	/**
 	 * Cookies collection for http request
 	 * Notice:
-	 * this collection only contains string_view, the storage is hold in HttpRequest.
-	 * also it will assume cookies are already encoded by url encoding or base64.
+	 * It will assume cookies are already encoded by url encoding or base64.
 	 */
 	class HttpRequestCookies {
 	public:
-		using CookiesType = StackAllocatedMap<std::string_view, std::string_view, 3>;
+		using CookiesType = StackAllocatedMap<SharedString, SharedString, 3>;
 		
 		/** Get cookie value for given key, return empty string if key not exists */
-		std::string_view get(std::string_view key) const;
+		SharedString get(const SharedString& key) const;
 		
 		/** Get all cookies */
 		const CookiesType& getAll() const&;
 		
 		/** Parse the value from Cookie header */
-		void parse(std::string_view cookies);
+		void parse(const SharedString& cookies);
 		
 		/** Clear all parsed cookies */
 		void clear();

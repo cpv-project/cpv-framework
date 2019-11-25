@@ -1,11 +1,8 @@
 #pragma once
-#include <string_view>
 #include <limits>
-#include <seastar/core/temporary_buffer.hh>
-#include "../Allocators/StackAllocator.hpp"
 #include "../Stream/InputStreamBase.hpp"
 #include "../Utility/Reusable.hpp"
-#include "../Utility/BufferUtils.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./HttpRequestHeaders.hpp"
 #include "./HttpRequestUri.hpp"
 #include "./HttpRequestCookies.hpp"
@@ -20,36 +17,30 @@ namespace cpv {
 	 */
 	class HttpRequest {
 	public:
-		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
-		
 		/** Get the request method, e.g. "GET" */
-		std::string_view getMethod() const&;
+		const SharedString& getMethod() const&;
 		
-		/* Set the request method, must add underlying buffer first unless it's static string */
-		void setMethod(std::string_view method);
+		/* Set the request method */
+		void setMethod(SharedString&& method);
 		
 		/** Get the request url, e.g. "/test" */
-		std::string_view getUrl() const&;
+		const SharedString& getUrl() const&;
 		
-		/** Set the request url, must add underlying buffer first unless it's static string */
-		void setUrl(std::string_view url);
+		/** Set the request url */
+		void setUrl(SharedString&& url);
 		
 		/** Get the http version string, e.g. "HTTP/1.1" */
-		std::string_view getVersion() const&;
+		const SharedString& getVersion() const&;
 		
-		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(std::string_view version);
+		/** Set the http version string */
+		void setVersion(SharedString&& version);
 		
 		/** Get request headers */
 		HttpRequestHeaders& getHeaders() &;
 		const HttpRequestHeaders& getHeaders() const&;
 		
-		/** Set request header, must add underlying buffer first unless it's a static string */
-		void setHeader(std::string_view key, std::string_view value);
-		
-		/** Set request header to integer value */
-		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-		void setHeader(std::string_view key, T value);
+		/** Set request header */
+		void setHeader(SharedString&& key, SharedString&& value);
 		
 		/** Get request body input stream, must check whether is null before access */
 		const Reusable<InputStreamBase>& getBodyStream() const&;
@@ -65,13 +56,6 @@ namespace cpv {
 		HttpRequestCookies& getCookies() &;
 		const HttpRequestCookies& getCookies() const&;
 		
-		/** Get underlying buffers */
-		UnderlyingBuffersType& getUnderlyingBuffers() &;
-		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
-		
-		/** Add underlying buffer that owns the storage of string views */
-		std::string_view addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
-		
 		/** Constructor */
 		HttpRequest();
 		
@@ -81,17 +65,5 @@ namespace cpv {
 	private:
 		Reusable<HttpRequestData> data_;
 	};
-	
-	/** Set request header to integer value */
-	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	void HttpRequest::setHeader(std::string_view key, T value) {
-		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
-			// optimize for small integer values
-			setHeader(key, constants::Integers[value]);
-		} else {
-			auto buf = convertIntToBuffer(value);
-			setHeader(key, addUnderlyingBuffer(std::move(buf)));
-		}
-	}
 }
 

@@ -8,7 +8,7 @@ TEST_FUTURE(HttpServerRequest404Handler, handle) {
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
 		cpv::HttpContext(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& handlers, auto& context, auto& str) {
 		context.getResponse().setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
@@ -20,8 +20,8 @@ TEST_FUTURE(HttpServerRequest404Handler, handle) {
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength),
-				cpv::constants::Integers.at(cpv::constants::NotFound.size()));
-			ASSERT_EQ(*str, cpv::constants::NotFound);
+				cpv::constants::Integers.at(sizeof(cpv::constants::NotFound)-1));
+			ASSERT_EQ(str->view(), cpv::constants::NotFound);
 		});
 	});
 }

@@ -6,13 +6,13 @@
 
 namespace cpv {
 	/**
-	 * String with shared storage, or no storage for static string.
+	 * Reference counted slice of string.
 	 *
 	 * It's an extension of seastar::temporary_buffer with better string view support.
 	 *
 	 * Notice:
 	 * It can point to a static const buffer (const_cast is used),
-	 * if you need to modify the buffer, please ensure the buffer is mutable.
+	 * if you need to modify the buffer, please ensure the buffer is not static const.
 	 *
 	 * Conversion:
 	 * convert from std::string_view: explicit (copy)
@@ -27,7 +27,6 @@ namespace cpv {
 
 	public:
 		using Base::temporary_buffer;
-		using Base::operator=;
 		using Base::operator[];
 		using Base::operator bool;
 		using Base::size;
@@ -51,25 +50,44 @@ namespace cpv {
 		Base buffer() && { Base buf(data(), size(), release()); trim(0); return buf; }
 
 		/** Create an instance that shared the same storage */
-		BasicSharedString share() { return BasicSharedString(Base::share()); }
-
-		/** Create an instance that shared the same storage with given range */
-		BasicSharedString share(std::size_t pos, std::size_t len) {
-			assert(pos <= size() && size() - pos >= len);
-			return BasicSharedString(Base::share(pos, len));
+		BasicSharedString share() const {
+			// use const_cast to make this function be const, only refcount will change
+			return BasicSharedString(
+				const_cast<BasicSharedString*>(this)->Base::share());
 		}
 
 		/** Create an instance that shared the same storage with given range */
-		BasicSharedString share(std::size_t pos) {
-			assert(pos <= size());
-			return BasicSharedString(Base::share(pos, size() - pos));
+		BasicSharedString share(std::size_t pos, std::size_t len) const {
+			assert(len == 0 || (pos <= size() && size() - pos >= len));
+			// use const_cast to make this function be const, only refcount will change
+			return BasicSharedString(
+				const_cast<BasicSharedString*>(this)->Base::share(pos, len));
+		}
+
+		/** Create an instance that shared the same storage with given range */
+		BasicSharedString share(std::size_t pos) const {
+			return share(pos, size() - pos);
+		}
+
+		/** Create an instance that shared the same storage with given sub view */
+		BasicSharedString share(std::string_view view) const {
+			return share(view.data() - begin(), view.size());
+		}
+
+		/** Trim this string by it's sub view */
+		void trim(std::string_view view) {
+			assert(view.size() == 0 || (view.data() >= begin() && view.data() <= end()));
+			assert(view.size() == 0 ||
+				(static_cast<std::size_t>(end() - view.data()) >= view.size()));
+			trim_front(view.data() - begin());
+			trim(view.size());
 		}
 
 		/** Construct with data copied from given string view */
 		explicit BasicSharedString(View view) :
 			BasicSharedString(view.data(), view.size()) { }
 
-		/** Construct with static string */
+		/** Construct with static string (use empty deleter) */
 		// cppcheck-suppress noExplicitConstructor
 		template <std::size_t Size>
 		BasicSharedString(const CharType(&str)[Size]) :
@@ -161,6 +179,13 @@ namespace cpv {
 			}
 		}
 	};
+
+	/** Print string */
+	template <class CharType>
+	std::ostream& operator<<(
+		std::ostream& stream, const BasicSharedString<CharType>& str) {
+		return stream << str.view();
+	}
 
 	// Type aliases
 	using SharedString = BasicSharedString<char>;

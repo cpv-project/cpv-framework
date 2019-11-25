@@ -12,28 +12,10 @@ namespace cpv {
 			Path,
 			Query
 		};
-
-		inline std::string_view urlDecodeForUriParser(
-			const char* begin, const char* end, Uri::UnderlyingBuffersType& underlyingBuffers) {
-			auto result = urlDecode(std::string_view(begin, end - begin));
-			if (result.second.size() > 0) {
-				underlyingBuffers.emplace_back(std::move(result.second));
-			}
-			return result.first;
-		}
-
-		inline void urlEncodeThenAppendToPacket(std::string_view view, Packet& packet) {
-			auto result = urlEncode(view);
-			if (result.second.size() == 0) {
-				packet.append(result.first);
-			} else {
-				packet.append(std::move(result.second));
-			}
-		}
 	}
 	
 	/** Parse given uri */
-	void Uri::parse(std::string_view uri) {
+	void Uri::parse(const SharedString& uri) {
 		// examples:
 		// http://www.example.com:8000/articles/today?sort=comments
 		// Protocol => Hostname => Port => Path => Query
@@ -54,34 +36,35 @@ namespace cpv {
 		const char* pathMark = mark;
 		const char* ptr = mark;
 		const char* end = uri.end();
-		std::string_view queryKey;
+		SharedString queryKey;
 		for (; ptr < end; ++ptr) {
 			const char c = *ptr;
 			if (c == '/') {
 				if (state == UriParserState::Protocol) {
 					if (ptr != mark) {
 						// path only without leading /, e.g. articles/today
-						pathFragments_.emplace_back(
-							urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+						pathFragments_.emplace_back(urlDecode(uri.share(
+							{ mark, static_cast<std::size_t>(ptr - mark) })));
 					}
 					// if ptr == mark, that mean first character is /, pathMark == mark
 					mark = ptr + 1;
 					state = UriParserState::Path;
 				} else if (state == UriParserState::Path) {
 					// end of following path segments
-					pathFragments_.emplace_back(
-						urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+					pathFragments_.emplace_back(urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) })));
 					mark = ptr + 1;
 				} else if (state == UriParserState::Hostname) {
 					// end of hostname, start of path
-					hostname_ = urlDecodeForUriParser(mark, ptr, underlyingBuffers_);
+					hostname_ = urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) }));
 					mark = ptr + 1;
 					pathMark = ptr;
 					state = UriParserState::Path;
 				} else if (state == UriParserState::Port) {
 					// end of port, start of path
 					// port should be numeric, thus no url decode is required
-					port_ = std::string_view(mark, ptr - mark);
+					port_ = uri.share({ mark, static_cast<std::size_t>(ptr - mark) });
 					mark = ptr + 1;
 					pathMark = ptr;
 					state = UriParserState::Path;
@@ -91,10 +74,11 @@ namespace cpv {
 					// end of path, start of query parameters
 					if (ptr > mark) {
 						// /path/?key=value should not adding empty path fragment
-						pathFragments_.emplace_back(
-							urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+						pathFragments_.emplace_back(urlDecode(uri.share(
+							{ mark, static_cast<std::size_t>(ptr - mark) })));
 					}
-					path_ = urlDecodeForUriParser(pathMark, ptr, underlyingBuffers_);
+					path_ = urlDecode(uri.share(
+						{ pathMark, static_cast<std::size_t>(ptr - pathMark) }));
 					mark = ptr + 1;
 					state = UriParserState::Query;
 				} else if (state == UriParserState::Protocol) {
@@ -105,26 +89,30 @@ namespace cpv {
 			} else if (c == '=') {
 				if (state == UriParserState::Query) {
 					// end of key, start of value
-					queryKey = urlDecodeForUriParser(mark, ptr, underlyingBuffers_);
+					queryKey = urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) }));
 					mark = ptr + 1;
 				}
 			} else if (c == '&') {
 				if (state == UriParserState::Query) {
 					// end of value
-					queryParameters_.insert_or_assign(queryKey,
-						urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+					queryParameters_.insert_or_assign(
+						std::move(queryKey), urlDecode(uri.share(
+							{ mark, static_cast<std::size_t>(ptr - mark) })));
 					mark = ptr + 1;
 				}
 			} else if (c == ':') {
 				if (state == UriParserState::Protocol) {
 					// end of protocol, start of hostname
-					protocol_ = urlDecodeForUriParser(mark, ptr, underlyingBuffers_);
+					protocol_ = urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) }));
 					ptr += 2;
 					mark = ptr + 1;
 					state = UriParserState::Hostname;
 				} else if (state == UriParserState::Hostname) {
 					// end of hostname, start of port
-					hostname_ = urlDecodeForUriParser(mark, ptr, underlyingBuffers_);
+					hostname_ = urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) }));
 					mark = ptr + 1;
 					state = UriParserState::Port;
 				}
@@ -137,7 +125,8 @@ namespace cpv {
 				if (state == UriParserState::HostnameV6) {
 					// end of hostname v6, start of port or path
 					// hostname v6 will include [ and ]
-					hostname_ = urlDecodeForUriParser(mark, ptr + 1, underlyingBuffers_);
+					hostname_ = urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr + 1 - mark) }));
 					mark = ptr + 1;
 					if (mark < end && *mark == ':') {
 						ptr += 1;
@@ -154,66 +143,63 @@ namespace cpv {
 		if (ptr > mark) {
 			if (state == UriParserState::Path) {
 				// ends with path
-				pathFragments_.emplace_back(
-					urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+				pathFragments_.emplace_back(urlDecode(uri.share(
+					{ mark, static_cast<std::size_t>(ptr - mark) })));
 			} else if (state == UriParserState::Hostname) {
 				// ends with hostname
-				hostname_ = urlDecodeForUriParser(mark, ptr, underlyingBuffers_);
+				hostname_ = urlDecode(uri.share(
+					{ mark, static_cast<std::size_t>(ptr - mark) }));
 			} else if (state == UriParserState::Port) {
 				// ends with port
-				port_ = std::string_view(mark, ptr - mark);
+				port_ = uri.share({ mark, static_cast<std::size_t>(ptr - mark) });
 			} else if (state == UriParserState::Query) {
 				// ends with query value
-				queryParameters_.insert_or_assign(queryKey,
-					urlDecodeForUriParser(mark, ptr, underlyingBuffers_));
+				queryParameters_.insert_or_assign(
+					std::move(queryKey), urlDecode(uri.share(
+						{ mark, static_cast<std::size_t>(ptr - mark) })));
 			}
 		}
 		if (state == UriParserState::Path) {
 			// ends with path, path may be "/" so don't put this inside if (ptr > mark)
-			path_ = urlDecodeForUriParser(pathMark, ptr, underlyingBuffers_);
+			path_ = urlDecode(uri.share(
+				{ pathMark, static_cast<std::size_t>(ptr - pathMark) }));
 		}
-	}
-	
-	/**
-	 * Parse given uri
-	 * Newly allocated contents for url decoder will append to underlyingBuffers.
-	 */
-	void Uri::parse(seastar::temporary_buffer<char>&& uri) {
-		parse(addUnderlyingBuffer(std::move(uri)));
 	}
 	
 	/** Append uri string to packet */
 	void Uri::build(Packet& packet) const {
+		auto& fragments = packet.getOrConvertToMultiple();
 		if (!protocol_.empty()) {
-			urlEncodeThenAppendToPacket(protocol_, packet);
-			packet.append(constants::ColonSlashSlash);
-			urlEncodeThenAppendToPacket(hostname_, packet);
+			fragments.append(urlEncode(protocol_.share()));
+			fragments.append(constants::ColonSlashSlash);
+			fragments.append(urlEncode(hostname_.share()));
 			if (!port_.empty()) {
-				packet.append(constants::Colon).append(port_);
+				fragments.append(constants::Colon);
+				fragments.append(port_.share());
 			}
 		}
 		if (!pathFragments_.empty()) {
 			// perfer path segments if it's set
 			// in case user parse an url, modify single fragment, then rebuild
 			for (const auto& fragment : pathFragments_) {
-				packet.append(constants::Slash);
-				urlEncodeThenAppendToPacket(fragment, packet);
+				fragments.append(constants::Slash);
+				fragments.append(urlEncode(fragment.share()));
 			}
 		} else if (!path_.empty()) {
-			urlEncodeThenAppendToPacket(path_, packet);
+			fragments.append(urlEncode(path_.share()));
 		}
 		if (!queryParameters_.empty()) {
-			packet.append(constants::QuestionMark);
+			fragments.append(constants::QuestionMark);
 			bool isFirst = true;
 			for (const auto& parameter : queryParameters_) {
 				if (isFirst) {
 					isFirst = false;
 				} else {
-					packet.append(constants::Ampersand);
+					fragments.append(constants::Ampersand);
 				}
-				urlEncodeThenAppendToPacket(parameter.first, packet);
-				packet.append(constants::EqualsSign);
-				urlEncodeThenAppendToPacket(parameter.second, packet);
+				fragments.append(urlEncode(parameter.first.share()));
+				fragments.append(constants::EqualsSign);
+				fragments.append(urlEncode(parameter.second.share()));
 			}
 		}
 	}
@@ -226,7 +212,6 @@ namespace cpv {
 		path_ = {};
 		pathFragments_.clear();
 		queryParameters_.clear();
-		underlyingBuffers_.clear();
 	}
 	
 	/** Constructor */
@@ -236,7 +221,6 @@ namespace cpv {
 		port_(),
 		path_(),
 		pathFragments_(),
-		queryParameters_(),
-		underlyingBuffers_() { }
+		queryParameters_() { }
 }
 

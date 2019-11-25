@@ -1,10 +1,10 @@
 #pragma once
-#include <seastar/core/temporary_buffer.hh>
+#include "../Utility/Packet.hpp"
 #include "./InputStreamBase.hpp"
 
 namespace cpv {
-	/** Input stream that use given temporary buffer as data source */
-	class BufferInputStream : public InputStreamBase {
+	/** Input stream that use given packet as data source */
+	class PacketInputStream : public InputStreamBase {
 	public:
 		/** Read data from stream */
 		seastar::future<InputStreamReadResult> read() override;
@@ -16,14 +16,15 @@ namespace cpv {
 		void freeResources();
 		
 		/** For Reusable<> */
-		void reset(seastar::temporary_buffer<char>&& buf);
+		void reset(Packet&& packet);
 		
 		/** Constructor */
-		BufferInputStream();
+		PacketInputStream();
 		
 	private:
-		seastar::temporary_buffer<char> buf_;
+		Packet packet_;
 		std::size_t sizeHint_;
+		std::size_t index_;
 	};
 }
 

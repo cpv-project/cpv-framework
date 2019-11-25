@@ -9,12 +9,8 @@ TEST_FUTURE(TestHttpResponse, all) {
 	response.setVersion("HTTP/1.1");
 	response.setStatusCode("404");
 	response.setStatusMessage("Not Found");
-	seastar::temporary_buffer buf("abc asd", 7);
-	std::string_view key(buf.get(), 3);
-	std::string_view value(buf.get() + 4, 3);
-	response.setHeader("all", response.addUnderlyingBuffer(std::move(buf)));
-	response.setHeader(key, value);
-	auto str = seastar::make_lw_shared<std::string>();
+	response.setHeader(cpv::SharedString(std::string_view("abc")), "asd");
+	auto str = seastar::make_lw_shared<cpv::SharedStringBuilder>();
 	response.setBodyStream(cpv::makeReusable<cpv::StringOutputStream>(str).cast<cpv::OutputStreamBase>());
 	return seastar::do_with(std::move(response), std::move(str),
 		[] (auto& response, auto& str) {
@@ -23,25 +19,9 @@ TEST_FUTURE(TestHttpResponse, all) {
 			ASSERT_EQ(response.getStatusCode(), "404");
 			ASSERT_EQ(response.getStatusMessage(), "Not Found");
 			ASSERT_EQ(response.getHeaders().getHeader("abc"), "asd");
-			ASSERT_EQ(response.getHeaders().getHeader("all"), "abc asd");
-			ASSERT_EQ(response.getUnderlyingBuffers().size(), 1U);
-			ASSERT_EQ(std::string(
-				response.getUnderlyingBuffers().at(0).get(),
-				response.getUnderlyingBuffers().at(0).size()), "abc asd");
-			ASSERT_EQ(*str, "test body");
+			ASSERT_EQ(str->view(), "test body");
 		});
 	});
-}
-
-TEST(TestHttpResponse, setHeaderWithInteger) {
-	cpv::HttpResponse response;
-	response.setHeader("Test-First", 123);
-	response.setHeader("Test-Second", 987654321);
-	response.setHeader("Test-Third", -321);
-	ASSERT_EQ(response.getHeaders().getHeader("Test-First"), "123");
-	ASSERT_EQ(response.getHeaders().getHeader("Test-Second"), "987654321");
-	ASSERT_EQ(response.getHeaders().getHeader("Test-Third"), "-321");
-	ASSERT_FALSE(response.getUnderlyingBuffers().empty());
 }
 
 TEST(TestHttpResponse, headersBasic) {

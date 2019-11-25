@@ -7,7 +7,7 @@
 
 namespace cpv {
 	/** A shortcut function to read file contents */
-	std::string readFile(std::string_view filename) {
+	SharedString readFile(std::string_view filename) {
 		std::ifstream file(
 			std::string(filename), // replace to std::filesystem::u8path?
 			std::ios::in | std::ios::binary);
@@ -17,10 +17,10 @@ namespace cpv {
 		} else {
 			file.seekg(0, std::ios::end);
 			std::size_t size = file.tellg();
-			std::string result(size, '\x00');
+			SharedString str(size);
 			file.seekg(0);
-			file.read(&result[0], size);
-			return result;
+			file.read(str.data(), size);
+			return str;
 		}
 	}
 

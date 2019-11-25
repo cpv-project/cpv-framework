@@ -1,19 +1,43 @@
 #pragma once
 #include <memory>
 #include <optional>
-#include <string_view>
 #include <seastar/core/shared_ptr.hh>
-#include <seastar/core/temporary_buffer.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Exceptions/DeserializeException.hpp"
 #include "../Utility/Reusable.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./JsonDeserializer.sajson.hpp"
 
 namespace cpv {
 	// alias of sajson types
 	using JsonType = sajson::type;
-	using JsonValue = sajson::value;
 	using JsonDocument = sajson::document;
+
+	/** Combine sajson::value and original json string */
+	struct JsonValue : public sajson::value {
+	public:
+		using sajson::value::value;
+
+		/** Constructor */
+		JsonValue(const sajson::value& value, const SharedString& str) :
+			sajson::value(value), str_(str) { }
+
+		/** Get original json string */
+		const SharedString& jsonStr() const& { return str_; }
+
+		/** Get value by key for object, return TYPE_NOKEY if key not exists */
+		JsonValue operator[](std::string_view key) const {
+			return { get_value_of_key(sajson::string(key.data(), key.size())), str_ };
+		}
+
+		/** Get value by index for array, use out of range index is undefined behavior */
+		JsonValue operator[](std::size_t index) const {
+			return { get_array_element(index), str_ };
+		}
+
+	private:
+		const SharedString& str_;
+	};
 
 	/**
 	 * The class used to convert json value to model.
@@ -82,13 +106,15 @@ namespace cpv {
 		}
 	};
 
-	/** Specialize for std::string_view */
+	/** Specialize for SharedString */
 	template <>
-	struct JsonValueConverter<std::string_view> {
-		/** Convert json value to std::string_view if type matched */
-		static bool convert(std::string_view& target, const JsonValue& value) {
+	struct JsonValueConverter<SharedString> {
+		/** Convert json value to SharedString if type matched */
+		static bool convert(SharedString& target, const JsonValue& value) {
 			if (CPV_LIKELY(value.get_type() == JsonType::TYPE_STRING)) {
-				target = std::string_view(value.as_cstring(), value.get_string_length());
+				target = value.jsonStr().share();
+				target.trim(std::string_view(
+					value.as_cstring(), value.get_string_length()));
 				return true;
 			}
 			return false;
@@ -119,7 +145,7 @@ namespace cpv {
 				bool result = true;
 				for (std::size_t i = 0; i < length; ++i) {
 					result = JsonValueConverter<T>::convert(
-						models.emplace_back(), value.get_array_element(i)) && result;
+						models.emplace_back(), value[i]) && result;
 				}
 				return result;
 			}
@@ -212,29 +238,24 @@ namespace cpv {
 	 * 
 	 * The model should be convertible from JsonValue by using JsonValueConverter.
 	 *
-	 * Notice:
-	 * The storage of all string values are in the buffer parameter,
-	 * if you construct any string view from JsonValue, you must keep
-	 * the buffer alive before all related string views destroyed.
-	 *
-	 * Since it uses sajson, and sajson is a in-situ parser, the buffer
+	 * Since it uses sajson, and sajson is a in-situ parser, the json string
 	 * must be mutable so encoded strings can be replaced by decoded strings.
-	 * And since the contents of buffer can be changed, the deserialize
-	 * operation can only perform once for the given buffer.
+	 * And since the contents of json string can be changed, the deserialize
+	 * operation can only perform once for the given json string.
 	 */
 	template <class T, class = void /* for enable_if */>
 	class JsonDeserializer {
 	public:
 		/** Deserialize json to model */
 		static std::optional<DeserializeException> deserialize(
-			T& model, seastar::temporary_buffer<char>& buffer) {
+			T& model, SharedString& str) {
 			JsonDocument document = sajson::parse_single_allocation(
-				sajson::mutable_string_view(buffer.size(), buffer.get_write()));
+				sajson::mutable_string_view(str.size(), str.data()));
 			if (CPV_UNLIKELY(!document.is_valid())) {
 				return DeserializeException(CPV_CODEINFO,
 					document.get_error_message_as_cstring());
 			}
-			JsonValue root = document.get_root();
+			JsonValue root(document.get_root(), str);
 			if (CPV_UNLIKELY(!JsonValueConverter<T>::convert(model, root))) {
 				return DeserializeException(CPV_CODEINFO, "convert failed");
 			}
@@ -248,9 +269,9 @@ namespace cpv {
 	public:
 		/** Deserialize json to model */
 		static std::optional<DeserializeException> deserialize(
-			std::optional<JsonDocument>& model, seastar::temporary_buffer<char>& buffer) {
+			std::optional<JsonDocument>& model, SharedString& str) {
 			JsonDocument document = sajson::parse_single_allocation(
-				sajson::mutable_string_view(buffer.size(), buffer.get_write()));
+				sajson::mutable_string_view(str.size(), str.data()));
 			if (CPV_UNLIKELY(!document.is_valid())) {
 				return DeserializeException(CPV_CODEINFO,
 					document.get_error_message_as_cstring());
@@ -267,8 +288,8 @@ namespace cpv {
 	/** Convenient static function for JsonDeserializer */
 	template <class T>
 	static inline std::optional<DeserializeException> deserializeJson(
-		T& model, seastar::temporary_buffer<char>& buffer) {
-		return JsonDeserializer<T>::deserialize(model, buffer);
+		T& model, SharedString& str) {
+		return JsonDeserializer<T>::deserialize(model, str);
 	}
 }
 

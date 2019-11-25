@@ -1,25 +1,23 @@
 #include <algorithm>
 #include <seastar/core/future-util.hh>
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
-#include <CPVFramework/Exceptions/OverflowException.hpp>
-#include <CPVFramework/Utility/BufferUtils.hpp>
 
 namespace cpv::extensions {
 	namespace {
-		static const constexpr std::size_t ReadBufferSize = 4096;
+		// avoid out-of-memory attack and handle overflow
 		static const constexpr std::size_t MaxReservedCapacity = 1048576;
 	}
 
-	/** Read all data from stream and append to given string */
-	seastar::future<> readAll(InputStreamBase& stream, std::string& str) {
-		// pre allocate string if size hint of stream is available
+	/** Read all data from stream and append to given string builder */
+	seastar::future<> readAll(InputStreamBase& stream, SharedStringBuilder& builder) {
 		std::size_t sizeHint = stream.sizeHint().value_or(0);
 		if (sizeHint > 0) {
-			str.reserve(str.size() + std::min(sizeHint, MaxReservedCapacity));
+			// reserve buffer if size hint of stream is available
+			builder.reserve(std::min(builder.size() + sizeHint, MaxReservedCapacity));
 		}
-		return seastar::repeat([&stream, &str] {
-			return stream.read().then([&str] (auto&& result) {
-				str.append(result.view());
+		return seastar::repeat([&stream, &builder] {
+			return stream.read().then([&builder] (auto&& result) {
+				builder.append(result.data);
 				return result.isEnd ?
 					seastar::stop_iteration::yes :
 					seastar::stop_iteration::no;
@@ -28,58 +26,46 @@ namespace cpv::extensions {
 	}
 
 	/** Read all data from stream and return it as string */
-	seastar::future<std::string> readAll(InputStreamBase& stream) {
-		return seastar::do_with(std::string(), [&stream] (auto& str) {
-			return readAll(stream, str).then([&str] {
-				return std::move(str);
-			});
-		});
-	}
-
-	/** Read all data from stream and return it as buffer, must keep stream live until future resolved */
-	seastar::future<seastar::temporary_buffer<char>> readAllAsBuffer(InputStreamBase& stream) {
+	seastar::future<SharedString> readAll(InputStreamBase& stream) {
 		// optimize for fast path
 		auto f = stream.read();
-		seastar::temporary_buffer<char> buf;
 		if (f.available()) {
 			if (CPV_LIKELY(!f.failed())) {
 				InputStreamReadResult result = f.get0();
 				if (result.isEnd) {
 					// fast path
-					return seastar::make_ready_future<
-						seastar::temporary_buffer<char>>(std::move(result.data));
+					return seastar::make_ready_future<SharedString>(std::move(result.data));
 				} else {
-					buf = std::move(result.data);
+					f = seastar::make_ready_future<InputStreamReadResult>(std::move(result));
 				}
 			} else {
-				return seastar::make_exception_future<
-					seastar::temporary_buffer<char>>(f.get_exception());
+				return seastar::make_exception_future<SharedString>(f.get_exception());
 			}
 		}
-		// pre allocate buffer if size of stream is available
-		std::string_view existsContent;
-		std::size_t sizeHint = stream.sizeHint().value_or(0);
-		if (sizeHint > 0) {
-			seastar::temporary_buffer<char> newBuf(std::min(sizeHint, MaxReservedCapacity));
-			mergeContent(newBuf, existsContent, std::string_view(buf.get(), buf.size()));
-			buf = std::move(newBuf);
-		} else {
-			existsContent = std::string_view(buf.get(), buf.size());
-		}
-		// append following parts to buffer
-		return seastar::do_with(
-			std::move(buf), existsContent,
-			[&stream] (auto& buf, auto& existsContent) {
-			return seastar::repeat([&stream, &buf, &existsContent] {
-				return stream.read().then([&buf, &existsContent] (auto&& result) {
-					mergeContent(buf, existsContent, result.view());
-					return result.isEnd ?
-						seastar::stop_iteration::yes :
-						seastar::stop_iteration::no;
+		// enter normal path
+		return f.then([&stream] (auto&& result) {
+			if (result.isEnd) {
+				// the first result is the last result
+				return seastar::make_ready_future<SharedString>(std::move(result.data));
+			}
+			SharedStringBuilder builder;
+			std::size_t sizeHint = stream.sizeHint().value_or(0);
+			if (sizeHint > 0) {
+				// reserve buffer if size hint of stream is available
+				builder.reserve(std::min(sizeHint - result.data.size(), MaxReservedCapacity));
+			}
+			builder.append(result.data);
+			return seastar::do_with(std::move(builder), [&stream] (auto& builder) {
+				return seastar::repeat([&stream, &builder] {
+					return stream.read().then([&builder] (auto&& result) {
+						builder.append(result.data);
+						return result.isEnd ?
+							seastar::stop_iteration::yes :
+							seastar::stop_iteration::no;
+					});
+				}).then([&builder] {
+					return builder.build();
 				});
-			}).then([&buf, &existsContent] {
-				buf.trim(existsContent.size());
-				return std::move(buf);
 			});
 		});
 	}

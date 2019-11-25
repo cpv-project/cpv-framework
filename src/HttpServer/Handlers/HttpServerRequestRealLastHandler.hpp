@@ -8,7 +8,7 @@ namespace cpv {
 		/** Return exception future */
 		seastar::future<> handle(
 			cpv::HttpContext&,
-			const cpv::HttpServerRequestHandlerIterator&) const override;
+			cpv::HttpServerRequestHandlerIterator) const override;
 	};
 }
 

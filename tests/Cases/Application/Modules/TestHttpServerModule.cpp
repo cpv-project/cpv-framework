@@ -10,7 +10,7 @@ namespace {
 	class Test500Handler : public cpv::HttpServerRequestHandlerBase {
 	public:
 		seastar::future<> handle(cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator& next) const override {
+			cpv::HttpServerRequestHandlerIterator next) const override {
 			return seastar::futurize_apply([&context, &next] {
 				return (*next)->handle(context, next + 1);
 			}).handle_exception([&context] (std::exception_ptr) {

@@ -7,7 +7,7 @@
 
 namespace cpv {
 	/** Parse socket listen address */
-	seastar::socket_address parseListenAddress(const std::string& address) {
+	seastar::socket_address parseListenAddress(std::string_view address) {
 		std::size_t index = address.find_first_of(':');
 		if (CPV_UNLIKELY(index == std::string::npos)) {
 			throw FormatException(CPV_CODEINFO, "no ':' in listen address:", address);
@@ -15,13 +15,13 @@ namespace cpv {
 		seastar::net::inet_address inetAddress;
 		try {
 			inetAddress = seastar::net::inet_address(
-				index > 0 ? address.substr(0, index) : "0.0.0.0");
+				index > 0 ? seastar::sstring(address.data(), index) : "0.0.0.0");
 		} catch (const std::invalid_argument&) {
 			throw FormatException(CPV_CODEINFO, "invalid listen ip address:", address);
 		}
 		if (CPV_UNLIKELY(inetAddress.in_family() != seastar::net::inet_address::family::INET)) {
-			// seastar's socket_address only support ipv4 now so throw an exception for ipv6
-			throw NotImplementedException(CPV_CODEINFO, "ipv6 address isn't supported yet");
+			// seastar's socket_address only support ipv4 now, so throw an exception for ipv6
+			throw NotImplementedException(CPV_CODEINFO, "ipv6 address is unsupported for now");
 		}
 		char* endptr = nullptr;
 		std::uint64_t port = std::strtoull(address.data() + index + 1, &endptr, 10);

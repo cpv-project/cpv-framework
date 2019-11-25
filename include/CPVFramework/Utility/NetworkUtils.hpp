@@ -1,5 +1,5 @@
 #pragma once
-#include <string>
+#include <string_view>
 #include <seastar/net/api.hh>
 
 namespace cpv {
@@ -10,6 +10,6 @@ namespace cpv {
 	 * - ":port", e.g. ":80"
 	 * Hostname is unsupported.
 	 */
-	seastar::socket_address parseListenAddress(const std::string& address);
+	seastar::socket_address parseListenAddress(std::string_view address);
 }
 

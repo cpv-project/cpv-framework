@@ -10,10 +10,9 @@ namespace {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator&) const {
+			cpv::HttpServerRequestHandlerIterator) const {
 			auto& response = context.getResponse();
-			auto buffer = cpv::convertIntToBuffer(Number);
-			return cpv::extensions::reply(response, std::move(buffer));
+			return cpv::extensions::reply(response, cpv::SharedString::fromInt(Number));
 		}
 	};
 }
@@ -75,7 +74,7 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
 		cpv::HttpContext(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& handlers, auto& context, auto& str) {
 		auto handler = seastar::make_shared<cpv::HttpServerRequestRoutingHandler>();
 		handler->route(cpv::constants::GET, "/", seastar::make_shared<MyHandler<0>>());
@@ -99,9 +98,9 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 		context.getResponse().setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 
-		auto test = [&handlers, &context, &str] (std::string_view method, std::string_view path) {
-			context.getRequest().setMethod(method);
-			context.getRequest().setUrl(path);
+		auto test = [&handlers, &context, &str] (cpv::SharedString&& method, cpv::SharedString&& path) {
+			context.getRequest().setMethod(std::move(method));
+			context.getRequest().setUrl(std::move(path));
 			return handlers.at(0)->handle(context, handlers.begin() + 1).then([&str] {
 				str->append(",");
 			});
@@ -128,7 +127,7 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, handle) {
 			.then([test] { return test(cpv::constants::GET, "/remove/tree/123"); })
 			.then([test] { return test(cpv::constants::GET, "/non-exist"); })
 			.then([&str] {
-				ASSERT_EQ(*str, "0,1,2,3,4,4,4,5,5,5,Not Found,Not Found,6,7,7,7,Not Found,Not Found,Not Found,Not Found,");
+				ASSERT_EQ(str->view(), "0,1,2,3,4,4,4,5,5,5,Not Found,Not Found,6,7,7,7,Not Found,Not Found,Not Found,Not Found,");
 			});
 	});
 }
@@ -137,17 +136,21 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, routeFunc) {
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
 		cpv::HttpContext(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& handlers, auto& context, auto& str) {
+		using namespace cpv::extensions::http_context_parameters;
 		auto handler = seastar::make_shared<cpv::HttpServerRequestRoutingHandler>();
 		handler->route(cpv::constants::GET, "/func", [](auto& context) {
 			auto& response = context.getResponse();
 			return cpv::extensions::reply(response, "test function handler");
 		});
-		handler->route(cpv::constants::GET, "/get/*/details", std::make_tuple(1, "keyword"),
+		handler->route(cpv::constants::GET, "/get/*/details",
+			std::make_tuple(PathFragment(1), Query("keyword")),
 			[](auto& context, auto id, auto keyword) {
 				auto& response = context.getResponse();
-				return cpv::extensions::reply(response, cpv::joinString("-", id, keyword));
+				cpv::Packet p;
+				p.append(std::move(id)).append("-").append(std::move(keyword));
+				return cpv::extensions::reply(response, std::move(p));
 			});
 
 		handlers.emplace_back(handler);
@@ -156,9 +159,9 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, routeFunc) {
 		context.getResponse().setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
 
-		auto test = [&handlers, &context, &str] (std::string_view method, std::string_view path) {
-			context.getRequest().setMethod(method);
-			context.getRequest().setUrl(path);
+		auto test = [&handlers, &context, &str] (cpv::SharedString method, cpv::SharedString path) {
+			context.getRequest().setMethod(std::move(method));
+			context.getRequest().setUrl(std::move(path));
 			return handlers.at(0)->handle(context, handlers.begin() + 1).then([&str] {
 				str->append(",");
 			});
@@ -167,7 +170,7 @@ TEST_FUTURE(HttpServerRequestRoutingHandler, routeFunc) {
 		return test(cpv::constants::GET, "/func")
 			.then([test] { return test(cpv::constants::GET, "/get/123/details?keyword=abc"); })
 			.then([&str] {
-				ASSERT_EQ(*str, "test function handler,123-abc,");
+				ASSERT_EQ(str->view(), "test function handler,123-abc,");
 			});
 	});
 }

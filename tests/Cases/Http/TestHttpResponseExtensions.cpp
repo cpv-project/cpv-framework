@@ -5,7 +5,7 @@
 TEST_FUTURE(TestHttpResponseExtensions, reply) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& response, auto& str) {
 		response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
@@ -15,7 +15,7 @@ TEST_FUTURE(TestHttpResponseExtensions, reply) {
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "13");
-			ASSERT_EQ(*str, "test contents");
+			ASSERT_EQ(str->view(), "test contents");
 		});
 	});
 }
@@ -23,7 +23,7 @@ TEST_FUTURE(TestHttpResponseExtensions, reply) {
 TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& response, auto& str) {
 		response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
@@ -34,7 +34,7 @@ TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::ApplicationJsonUtf8);
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "3");
-			ASSERT_EQ(*str, "{ }");
+			ASSERT_EQ(str->view(), "{ }");
 		});
 	});
 }
@@ -42,20 +42,20 @@ TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
 TEST_FUTURE(TestHttpResponseExtensions, replyWithMimeAndStatusCode) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& response, auto& str) {
 		response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
-		return cpv::extensions::reply(
-			response, std::string("{} //test", 3), cpv::constants::ApplicationJsonUtf8,
-			cpv::constants::_404, cpv::constants::NotFound)
+		return cpv::extensions::reply(response,
+			cpv::SharedString(std::string_view("{} //test", 3)),
+			cpv::constants::ApplicationJsonUtf8, cpv::constants::_404, cpv::constants::NotFound)
 			.then([&response, &str] {
 			ASSERT_EQ(response.getStatusCode(), cpv::constants::_404);
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::NotFound);
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::ApplicationJsonUtf8);
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength), "3");
-			ASSERT_EQ(*str, "{} ");
+			ASSERT_EQ(str->view(), "{} ");
 		});
 	});
 }
@@ -63,7 +63,7 @@ TEST_FUTURE(TestHttpResponseExtensions, replyWithMimeAndStatusCode) {
 TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& response, auto& str) {
 		response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
@@ -72,7 +72,7 @@ TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::Found);
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::Location), "/login");
-			ASSERT_EQ(*str, "");
+			ASSERT_EQ(str->view(), "");
 		});
 	});
 }
@@ -80,7 +80,7 @@ TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
 TEST_FUTURE(TestHttpResponseExtensions, redirectToPermanently) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		[] (auto& response, auto& str) {
 		response.setBodyStream(
 			cpv::makeReusable<cpv::StringOutputStream>(str).template cast<cpv::OutputStreamBase>());
@@ -89,7 +89,7 @@ TEST_FUTURE(TestHttpResponseExtensions, redirectToPermanently) {
 			ASSERT_EQ(response.getStatusMessage(), cpv::constants::MovedPermanently);
 			auto& headers = response.getHeaders();
 			ASSERT_EQ(headers.getHeader(cpv::constants::Location), "/login");
-			ASSERT_EQ(*str, "");
+			ASSERT_EQ(str->view(), "");
 		});
 	});
 }

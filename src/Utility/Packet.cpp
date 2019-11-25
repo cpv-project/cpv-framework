@@ -1,3 +1,4 @@
+#include <cstring>
 #include <CPVFramework/Utility/Packet.hpp>
 
 namespace cpv {
@@ -7,9 +8,9 @@ namespace cpv {
 		ReusableStorageInstance<Packet::MultipleFragments>;
 
 	/** Get MultipleFragments, or convert to MultipleFragments if it's not */
-	Packet::MultipleFragments* Packet::getOrConvertToMultiple() & {
+	Packet::MultipleFragments& Packet::getOrConvertToMultiple() & {
 		if (auto ptr = getIfMultiple()) {
-			return ptr;
+			return *ptr;
 		}
 		auto multipleFragments = makeReusable<Packet::MultipleFragments>();
 		if (auto ptr = getIfSingle()) {
@@ -20,62 +21,30 @@ namespace cpv {
 		}
 		auto multiplePtr = multipleFragments.get();
 		data_ = std::move(multipleFragments);
-		return multiplePtr;
+		return *multiplePtr;
 	}
 
-	/** Append static string to packet */
-	Packet& Packet::append(std::string_view str) & {
+	/** Append string to packet */
+	Packet& Packet::append(SharedString&& str) & {
 		if (auto ptr = getIfMultiple()) {
-			ptr->fragments.emplace_back(Packet::toFragment(str));
+			ptr->append(std::move(str));
 		} else if (auto ptr = getIfSingle()) {
 			if (ptr->fragment.size == 0) {
 				// replace empty single fragment
-				ptr->fragment = Packet::toFragment(str);
+				data_ = Packet::SingleFragment(std::move(str));
 			} else {
 				// convert single fragment to multiple fragments
 				auto multipleFragments = makeReusable<Packet::MultipleFragments>();
 				multipleFragments->fragments.emplace_back(ptr->fragment);
-				multipleFragments->fragments.emplace_back(Packet::toFragment(str));
 				multipleFragments->deleter = std::move(ptr->deleter);
+				multipleFragments->append(std::move(str));
 				data_ = std::move(multipleFragments);
 			}
 		} else {
 			// replace valueless
-			data_ = Packet::SingleFragment(Packet::toFragment(str));
+			data_ = Packet::SingleFragment(std::move(str));
 		}
 		return *this;
-	}
-
-	/** Append dynamic string and it's deleter to packet */
-	Packet& Packet::append(std::string_view str, seastar::deleter&& deleter) & {
-		if (auto ptr = getIfMultiple()) {
-			ptr->fragments.emplace_back(Packet::toFragment(str));
-			ptr->deleter.append(std::move(deleter));
-		} else if (auto ptr = getIfSingle()) {
-			if (ptr->fragment.size == 0) {
-				// replace empty single fragment
-				ptr->fragment = Packet::toFragment(str);
-				ptr->deleter = std::move(deleter);
-			} else {
-				// convert single fragment to multiple fragments
-				auto multipleFragments = makeReusable<Packet::MultipleFragments>();
-				multipleFragments->fragments.emplace_back(ptr->fragment);
-				multipleFragments->fragments.emplace_back(Packet::toFragment(str));
-				multipleFragments->deleter = std::move(ptr->deleter);
-				multipleFragments->deleter.append(std::move(deleter));
-				data_ = std::move(multipleFragments);
-			}
-		} else {
-			// replace valueless
-			data_ = Packet::SingleFragment(Packet::toFragment(str), std::move(deleter));
-		}
-		return *this;
-	}
-
-	/** Append temporary_buffer to packet */
-	Packet& Packet::append(seastar::temporary_buffer<char>&& buf) & {
-		std::string_view view(buf.get(), buf.size());
-		return Packet::append(view, buf.release());
 	}
 
 	/** Append other packet to this packet */
@@ -163,6 +132,28 @@ namespace cpv {
 		return true;
 	}
 
+	/** Concat all fragments and return as string */
+	SharedString Packet::toString() const {
+		if (auto ptr = getIfMultiple()) {
+			SharedString str(size());
+			char* buf = str.data();
+			for (auto& f : ptr->fragments) {
+				if (CPV_LIKELY(f.size > 0)) {
+					std::memcpy(buf, f.base, f.size);
+					buf += f.size;
+				}
+			}
+			return str;
+		} else if (auto ptr = getIfSingle()) {
+			// use const_cast to increase refcount
+			return SharedString(
+				ptr->fragment.base,
+				ptr->fragment.size,
+				const_cast<seastar::deleter&>(ptr->deleter).share());
+		}
+		return SharedString();
+	}
+
 	/** Print packet fragments */
 	std::ostream& operator<<(std::ostream& stream, const Packet& packet) {
 		if (auto ptr = packet.getIfMultiple()) {
@@ -175,17 +166,17 @@ namespace cpv {
 		return stream;
 	}
 
-	/** Append packet fragments to string */
-	std::string& operator<<(std::string& str, const Packet& packet) {
-		str.reserve(str.size() + packet.size());
+	/** Write packet fragments to string builder */
+	SharedStringBuilder& operator<<(SharedStringBuilder& builder, const Packet& packet) {
 		if (auto ptr = packet.getIfMultiple()) {
+			builder.reserve(builder.size() + packet.size());
 			for (auto& f : ptr->fragments) {
-				str.append(std::string_view(f.base, f.size));
+				builder.append(std::string_view(f.base, f.size));
 			}
 		} else if (auto ptr = packet.getIfSingle()) {
-			str.append(std::string_view(ptr->fragment.base, ptr->fragment.size));
+			builder.append(std::string_view(ptr->fragment.base, ptr->fragment.size));
 		}
-		return str;
+		return builder;
 	}
 }
 

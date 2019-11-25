@@ -2,6 +2,7 @@
 #include <seastar/core/byteorder.hh>
 #include <CPVFramework/Exceptions/FormatException.hpp>
 #include <CPVFramework/Exceptions/UUIDConflictException.hpp>
+#include <CPVFramework/Utility/SharedStringBuilder.hpp>
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Utility/UUIDUtils.hpp>
 
@@ -39,7 +40,7 @@ namespace cpv {
 	}
 
 	/** Set the uuid by it's string representation */
-	UUIDDataType strToUUID(const std::string& str) {
+	UUIDDataType strToUUID(std::string_view str) {
 		// example: 00112233-4455-6677-8899-aabbccddeeff
 		if (CPV_UNLIKELY(str.size() != 36)) {
 			throw FormatException(CPV_CODEINFO,
@@ -52,12 +53,12 @@ namespace cpv {
 		std::uint16_t e = 0;
 		std::uint32_t f = 0;
 		if (CPV_UNLIKELY(
-			!loadIntFromHex(str.c_str(), a) ||
-			!loadIntFromHex(str.c_str() + 9, b) ||
-			!loadIntFromHex(str.c_str() + 14, c) ||
-			!loadIntFromHex(str.c_str() + 19, d) ||
-			!loadIntFromHex(str.c_str() + 24, e) ||
-			!loadIntFromHex(str.c_str() + 28, f))) {
+			!loadIntFromHex(str.data(), a) ||
+			!loadIntFromHex(str.data() + 9, b) ||
+			!loadIntFromHex(str.data() + 14, c) ||
+			!loadIntFromHex(str.data() + 19, d) ||
+			!loadIntFromHex(str.data() + 24, e) ||
+			!loadIntFromHex(str.data() + 28, f))) {
 			throw FormatException(CPV_CODEINFO,
 				"invalid uuid string: contains non-hex character, str is", str);
 		}
@@ -69,20 +70,20 @@ namespace cpv {
 	}
 
 	/** Get the string representation of uuid */
-	std::string uuidToStr(const UUIDDataType& uuid) {
+	SharedString uuidToStr(const UUIDDataType& uuid) {
 		// example: 00112233-4455-6677-8899-aabbccddeeff
-		std::string result;
-		dumpIntToHex(static_cast<std::uint32_t>(uuid.first >> 32), result);
-		result.append("-", 1);
-		dumpIntToHex(static_cast<std::uint16_t>((uuid.first >> 16) & 0xffff), result);
-		result.append("-", 1);
-		dumpIntToHex(static_cast<std::uint16_t>(uuid.first & 0xffff), result);
-		result.append("-", 1);
-		dumpIntToHex(static_cast<std::uint16_t>((uuid.second >> 48) & 0xffff), result);
-		result.append("-", 1);
-		dumpIntToHex(static_cast<std::uint16_t>((uuid.second >> 32) & 0xffff), result);
-		dumpIntToHex(static_cast<std::uint32_t>(uuid.second & 0xffffffff), result);
-		return result;
+		SharedStringBuilder builder(36);
+		dumpIntToHex(static_cast<std::uint32_t>(uuid.first >> 32), builder);
+		builder.append(1, '-');
+		dumpIntToHex(static_cast<std::uint16_t>((uuid.first >> 16) & 0xffff), builder);
+		builder.append(1, '-');
+		dumpIntToHex(static_cast<std::uint16_t>(uuid.first & 0xffff), builder);
+		builder.append(1, '-');
+		dumpIntToHex(static_cast<std::uint16_t>((uuid.second >> 48) & 0xffff), builder);
+		builder.append(1, '-');
+		dumpIntToHex(static_cast<std::uint16_t>((uuid.second >> 32) & 0xffff), builder);
+		dumpIntToHex(static_cast<std::uint32_t>(uuid.second & 0xffffffff), builder);
+		return builder.build();
 	}
 
 	/** Make a empty uuid */

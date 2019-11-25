@@ -13,7 +13,9 @@ namespace cpv {
 		if (connection_->replyLoopData_.requestBodyConsumed) {
 			return seastar::make_ready_future<InputStreamReadResult>(InputStreamReadResult());
 		}
-		return connection_->requestBodyQueue_.pop_eventually().then([this] (auto bodyEntry) {
+		// optimize for fast path
+		// because normal path won't make the result future available immediately
+		auto handleBodyEntry = [this](auto bodyEntry) {
 			if (CPV_UNLIKELY(bodyEntry.id != connection_->replyLoopData_.requestId)) {
 				return seastar::make_exception_future<InputStreamReadResult>(
 					LogicException(CPV_CODEINFO, "request id not matched, body belongs to request",
@@ -24,7 +26,12 @@ namespace cpv {
 			}
 			return seastar::make_ready_future<InputStreamReadResult>(InputStreamReadResult(
 				std::move(bodyEntry.buffer), bodyEntry.isEnd));
-		});
+		};
+		if (!connection_->requestBodyQueue_.empty()) {
+			return handleBodyEntry(connection_->requestBodyQueue_.pop());
+		}
+		// enter normal path
+		return connection_->requestBodyQueue_.pop_eventually().then(handleBodyEntry);
 	}
 	
 	/** Get the hint of total size of stream */

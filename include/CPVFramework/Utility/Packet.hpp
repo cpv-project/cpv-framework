@@ -1,14 +1,12 @@
 #pragma once
-#include <string_view>
 #include <variant>
 #include <vector>
 #include <iostream>
-#include <seastar/core/temporary_buffer.hh>
 #include <seastar/net/api.hh>
 #include <seastar/net/packet.hh>
-#include "./BufferUtils.hpp"
-#include "./ConstantStrings.hpp"
 #include "./Reusable.hpp"
+#include "./SharedString.hpp"
+#include "./SharedStringBuilder.hpp"
 
 namespace cpv {
 	/**
@@ -52,17 +50,15 @@ namespace cpv {
 			}
 
 			SingleFragment() : fragment(), deleter() { }
-			explicit SingleFragment(const seastar::net::fragment& fragmentVal) :
-				fragment(fragmentVal), deleter() { }
-			SingleFragment(const seastar::net::fragment& fragmentVal, seastar::deleter&& deleterVal) :
-				fragment(fragmentVal), deleter(std::move(deleterVal)) { }
+			explicit SingleFragment(SharedString&& str) :
+				fragment({ str.data(), str.size() }), deleter(str.release()) { }
 
-			SingleFragment(const SingleFragment&) = default;
+			SingleFragment(const SingleFragment&) = delete;
 			SingleFragment(SingleFragment&& other) :
 				fragment(other.fragment), deleter(std::move(other.deleter)) {
 				other.fragment.size = 0;
 			}
-			SingleFragment& operator=(const SingleFragment&) = default;
+			SingleFragment& operator=(const SingleFragment&) = delete;
 			SingleFragment& operator=(SingleFragment&& other) {
 				fragment = other.fragment;
 				deleter = std::move(other.deleter);
@@ -85,30 +81,18 @@ namespace cpv {
 			/** For Reusable */
 			static void reset() { }
 
+			/** Append string to fragments */
+			void append(SharedString&& str) {
+				fragments.emplace_back(seastar::net::fragment({ str.data(), str.size() }));
+				deleter.append(str.release());
+			}
+
 			/** Append static string to fragments */
-			void append(std::string_view str) {
-				fragments.emplace_back(toFragment(str));
+			template <std::size_t Size>
+			void append(const char(&str)[Size]) {
+				fragments.emplace_back(toFragment({ str, Size - 1 }));
+				static_assert(Size >= 1, "static string should contains tailing zero");
 			}
-
-			/** Append dynamic string and it's deleter to fragments */
-			void append(std::string_view str, seastar::deleter&& deleter) {
-				fragments.emplace_back(toFragment(str));
-				deleter.append(std::move(deleter));
-			}
-
-			/** Append temporary_buffer to fragments */
-			void append(seastar::temporary_buffer<char>&& buf) & {
-				fragments.emplace_back(seastar::net::fragment({ buf.get_write(), buf.size() }));
-				deleter.append(buf.release());
-			}
-
-			/** Append string representation of integer value to fragments */
-			template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-			void append(T value);
-
-			/** Append string representation of floating point value to fragments */
-			template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-			void append(T value);
 
 			/** Move content of fragments to packet */
 			seastar::net::packet release() {
@@ -151,27 +135,13 @@ namespace cpv {
 		}
 
 		/** Get MultipleFragments, or convert to MultipleFragments if it's not */
-		MultipleFragments* getOrConvertToMultiple() &;
+		MultipleFragments& getOrConvertToMultiple() &;
 
-		/** Append static string to packet */
-		Packet& append(std::string_view str) &;
-
-		/** Append dynamic string and it's deleter to packet */
-		Packet& append(std::string_view str, seastar::deleter&& deleter) &;
-
-		/** Append temporary_buffer to packet */
-		Packet& append(seastar::temporary_buffer<char>&& buf) &;
+		/** Append string to packet */
+		Packet& append(SharedString&& str) &;
 
 		/** Append other packet to this packet */
 		Packet& append(Packet&& other) &;
-
-		/** Append string representation of integer value to packet */
-		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-		Packet& append(T value) &;
-
-		/** Append string representation of floating point value to packet */
-		template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-		Packet& append(T value) &;
 
 		/** Get total size in bytes for this packet, notice it's dynamically calculated  */
 		std::size_t size() const;
@@ -182,20 +152,15 @@ namespace cpv {
 		/** Get whether this packet is empty (size == 0) */
 		bool empty() const;
 
+		/** Concat all fragments and return as string */
+		SharedString toString() const;
+
 		/** Constructor */
 		Packet() : data_(SingleFragment()) { }
 
-		/** Constructor with static string */
-		explicit Packet(std::string_view str) :
-			data_(SingleFragment(toFragment(str))) { }
-
-		/** Constructor with dynamic string and it's deleter to packet */
-		Packet(std::string_view str, seastar::deleter&& deleter) :
-			data_(SingleFragment(toFragment(str), std::move(deleter))) { }
-
-		/** Constructor with temporary_buffer */
-		explicit Packet(seastar::temporary_buffer<char>&& buf) :
-			data_(SingleFragment({ buf.get_write(), buf.size() }, buf.release())) { }
+		/** Construct with string */
+		explicit Packet(SharedString&& str) :
+			data_(SingleFragment(std::move(str))) { }
 
 		/** Constructor with capacity prepare for multiple fragments */
 		explicit Packet(std::size_t capacity) :
@@ -209,61 +174,15 @@ namespace cpv {
 		std::variant<SingleFragment, Reusable<MultipleFragments>> data_;
 	};
 
-	/** Print packet fragments */
-	std::ostream& operator<<(std::ostream& stream, const Packet& packet);
-
-	/** Append packet fragments to string */
-	std::string& operator<<(std::string& str, const Packet& packet);
-
 	/** Increase free list size */
 	template <>
 	const constexpr std::size_t ReusableStorageCapacity<Packet::MultipleFragments> = 28232;
 
-	/** Append string representation of integer value to fragments */
-	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	void Packet::MultipleFragments::append(T value) {
-		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
-			// optimize for small integer values
-			return append(constants::Integers[value]);
-		} else {
-			return append(convertIntToBuffer(value));
-		}
-	}
+	/** Print packet fragments */
+	std::ostream& operator<<(std::ostream& stream, const Packet& packet);
 
-	/** Append string representation of floating point value to fragments */
-	template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-	void Packet::MultipleFragments::append(T value) {
-		size_t intValue = value;
-		if (value == static_cast<T>(intValue) && intValue < constants::Integers.size()) {
-			// optimize for small integer values
-			return append(constants::Integers[intValue]);
-		} else {
-			return append(convertDoubleToBuffer(value));
-		}
-	}
-
-	/** Append string representation of integer value to packet */
-	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	Packet& Packet::append(T value) & {
-		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
-			// optimize for small integer values
-			return append(constants::Integers[value]);
-		} else {
-			return append(convertIntToBuffer(value));
-		}
-	}
-
-	/** Append string representation of floating point value to packet */
-	template <class T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
-	Packet& Packet::append(T value) & {
-		size_t intValue = value;
-		if (value == static_cast<T>(intValue) && intValue < constants::Integers.size()) {
-			// optimize for small integer values
-			return append(constants::Integers[intValue]);
-		} else {
-			return append(convertDoubleToBuffer(value));
-		}
-	}
+	/** Write packet fragments to string builder */
+	SharedStringBuilder& operator<<(SharedStringBuilder& builder, const Packet& packet);
 
 	/** Write packet to seastar::data_sink */
 	static inline seastar::future<> operator<<(seastar::data_sink& out, Packet&& packet) {

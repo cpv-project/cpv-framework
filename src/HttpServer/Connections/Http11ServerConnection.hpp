@@ -113,7 +113,7 @@ namespace cpv {
 		struct RequestEntry { HttpRequest request; std::uint32_t id; bool hasBody; };
 		seastar::queue<RequestEntry> requestQueue_;
 		// the queue store received body buffers for all requests
-		struct BodyEntry { seastar::temporary_buffer<char> buffer; std::uint32_t id; bool isEnd; };
+		struct BodyEntry { SharedString buffer; std::uint32_t id; bool isEnd; };
 		seastar::queue<BodyEntry> requestBodyQueue_;
 		// the new request, when headers completed it will move to requestQueue_
 		HttpRequest newRequest_;
@@ -123,7 +123,7 @@ namespace cpv {
 		HttpContext processingContext_;
 		// the error response send to client before close connection
 		// usually it's cause by invalid format or headers too large
-		std::string_view lastErrorResponse_;
+		SharedString lastErrorResponse_;
 		// the shutdown reason used for logging
 		const char* shutdownReason_;
 		// the parser used to parse http request
@@ -133,21 +133,18 @@ namespace cpv {
 			// new request id (only for internal error check)
 			std::uint32_t requestId = 0;
 			// the last buffer received, store from receiveSingleRequest or request stream
-			seastar::temporary_buffer<char> lastBuffer;
+			SharedString lastBuffer;
 			// for initial request size check
 			std::size_t receivedBytes = 0;
 			std::size_t receivedPackets = 0;
-			// for url splited in multiple packets
-			seastar::temporary_buffer<char> urlMerged;
-			std::string_view urlView;
-			// for header field splited in multiple packets
-			seastar::temporary_buffer<char> headerFieldMerged;
-			std::string_view headerFieldView;
-			// for header value splited in multiple packets
-			seastar::temporary_buffer<char> headerValueMerged;
-			std::string_view headerValueView;
+			// for url that may splited in multiple packets
+			SharedStringBuilder url;
+			// for header field that may splited in multiple packets
+			SharedStringBuilder headerField;
+			// for header value that may splited in multiple packets
+			SharedStringBuilder headerValue;
 			// for body, may splited as multiple parts if encoding is chunked
-			StackAllocatedVector<seastar::temporary_buffer<char>, 3> bodyBuffers;
+			StackAllocatedVector<SharedString, 3> bodyBuffers;
 			std::size_t bodyBufferEnqueueIndex = 0;
 			// is newRequest_ enqueued (empty now)
 			bool requestEnqueued = false;

@@ -10,14 +10,12 @@ namespace cpv {
 			const seastar::shared_ptr<Logger>& logger) {
 			auto& response = context.getResponse();
 			// generate a time uuid as error id
-			std::string uuidStr(uuidToStr(makeTimeUUID()));
+			SharedString uuidStr = uuidToStr(makeTimeUUID());
 			// log error
 			logger->log(LogLevel::Error, "Http server request error, ID:", uuidStr, "\n", ex);
 			// build response content
 			Packet p;
-			p.append(constants::InternalServerError)
-				.append("\nID: ")
-				.append(seastar::temporary_buffer<char>(uuidStr.data(), uuidStr.size()));
+			p.append(constants::InternalServerError).append("\nID: ").append(std::move(uuidStr));
 			// reply with 500 (headers may already write to client,
 			// in this case the error message will append to content and the behavior is undefined,
 			// most of the time user can see it in network tab of developer tool)
@@ -29,7 +27,7 @@ namespace cpv {
 	/** Return 500 internal server error */
 	seastar::future<> HttpServerRequest500Handler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator& next) const {
+		HttpServerRequestHandlerIterator next) const {
 		// expand futurize_apply manually to reduce overhead
 		try {
 			auto f = (*next)->handle(context, next + 1);

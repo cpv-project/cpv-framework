@@ -3,9 +3,9 @@
 
 namespace cpv {
 	/** Get cookie value for given key, return empty string if key not exists */
-	std::string_view HttpRequestCookies::get(std::string_view key) const {
+	SharedString HttpRequestCookies::get(const SharedString& key) const {
 		auto it = cookies_.find(key);
-		return it != cookies_.end() ? it->second : std::string_view();
+		return it != cookies_.end() ? it->second.share() : SharedString();
 	}
 	
 	/** Get all cookies */
@@ -14,7 +14,7 @@ namespace cpv {
 	}
 	
 	/** Parse the value from Cookie header */
-	void HttpRequestCookies::parse(std::string_view cookies) {
+	void HttpRequestCookies::parse(const SharedString& cookies) {
 		// examples:
 		// key
 		// key=value
@@ -22,31 +22,34 @@ namespace cpv {
 		const char* mark = cookies.begin();
 		const char* ptr = mark;
 		const char* end = cookies.end();
-		std::string_view key;
-		std::string_view value;
+		SharedString key;
+		SharedString value;
 		for (; ptr < end; ++ptr) {
 			const char c = *ptr;
 			if (c == '=') {
-				key = trimString(std::string_view(mark, ptr - mark));
+				key = cookies.share(trimString(
+					{ mark, static_cast<std::size_t>(ptr - mark) }));
 				mark = ptr + 1;
 			} else if (c == ';') {
-				value = trimString(std::string_view(mark, ptr - mark));
+				value = cookies.share(trimString(
+					{ mark, static_cast<std::size_t>(ptr - mark) }));
 				mark = ptr + 1;
 				if (!key.empty()) {
-					cookies_.insert_or_assign(key, value);
+					cookies_.insert_or_assign(std::move(key), std::move(value));
 				} else if (!value.empty()) {
-					cookies_.insert_or_assign(value, "");
+					cookies_.insert_or_assign(std::move(value), "");
 				}
 				key = {};
 				value = {};
 			}
 		}
 		if (mark < ptr) {
-			value = trimString(std::string_view(mark, ptr - mark));
+			value = cookies.share(trimString(
+				{ mark, static_cast<std::size_t>(ptr - mark) }));
 			if (!key.empty()) {
-				cookies_.insert_or_assign(key, value);
+				cookies_.insert_or_assign(std::move(key), std::move(value));
 			} else if (!value.empty()) {
-				cookies_.insert_or_assign(value, "");
+				cookies_.insert_or_assign(std::move(value), "");
 			}
 		}
 	}

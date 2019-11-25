@@ -1,5 +1,5 @@
 #pragma once
-#include <string_view>
+#include "../../Utility/SharedString.hpp"
 #include "./HttpServerRequestHandlerBase.hpp"
 
 namespace cpv {
@@ -35,7 +35,7 @@ namespace cpv {
 		/** Return content of request file */
 		seastar::future<> handle(
 			HttpContext& context,
-			const HttpServerRequestHandlerIterator& next) const override;
+			HttpServerRequestHandlerIterator next) const override;
 
 		/** Clear cached file contents */
 		void clearCache();
@@ -43,11 +43,11 @@ namespace cpv {
 		/** Constructor */
 		HttpServerRequestStaticFileHandler(
 			// like "/static"
-			std::string_view urlBase,
+			SharedString&& urlBase,
 			// like "./storage/static"
-			std::string_view pathBase,
+			SharedString&& pathBase,
 			// like "max-age=84600, public" or "" (not sending Cache-Control)
-			std::string_view cacheControl = "",
+			SharedString&& cacheControl = "",
 			std::size_t maxCacheFileEntities = DefaultMaxCacheFileEntities,
 			std::size_t maxCacheFileSize = DefaultMaxCacheFileSize);
 

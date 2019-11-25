@@ -54,7 +54,7 @@ namespace cpv::gtest {
 					return seastar::repeat([&s, &parts, &interval, &index] {
 						if (index < parts.size()) {
 							using namespace cpv;
-							Packet p(parts[index++]);
+							Packet p(SharedString::fromStatic(parts[index++]));
 							return (s.out() << std::move(p)).then([&interval] {
 								return seastar::sleep(interval);
 							}).then([] {

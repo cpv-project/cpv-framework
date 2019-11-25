@@ -5,7 +5,7 @@
 namespace cpv {
 	class HttpRequestHeaders::Internal {
 	public:
-		using FixedMembersType = std::unordered_map<std::string_view, std::string_view(HttpRequestHeaders::*)>;
+		using FixedMembersType = std::unordered_map<std::string_view, SharedString(HttpRequestHeaders::*)>;
 		static FixedMembersType FixedMembers;
 	};
 
@@ -26,34 +26,34 @@ namespace cpv {
 	});
 
 	/** Set header value */
-	void HttpRequestHeaders::setHeader(std::string_view key, std::string_view value) {
+	void HttpRequestHeaders::setHeader(SharedString&& key, SharedString&& value) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			this->*(it->second) = value;
+			this->*(it->second) = std::move(value);
 		} else {
-			remainHeaders_.insert_or_assign(key, value);
+			remainHeaders_.insert_or_assign(std::move(key), std::move(value));
 		}
 	}
 	
 	/** Get header value */
-	std::string_view HttpRequestHeaders::getHeader(std::string_view key) const {
+	SharedString HttpRequestHeaders::getHeader(const SharedString& key) const {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			return this->*(it->second);
+			return (this->*(it->second)).share();
 		} else {
 			auto rit = remainHeaders_.find(key);
 			if (rit != remainHeaders_.end()) {
-				return rit->second;
+				return rit->second.share();
 			}
-			return { };
+			return {};
 		}
 	}
 	
 	/** Remove header */
-	void HttpRequestHeaders::removeHeader(std::string_view key) {
+	void HttpRequestHeaders::removeHeader(const SharedString& key) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			this->*(it->second) = { };
+			this->*(it->second) = {};
 		} else {
 			remainHeaders_.erase(key);
 		}

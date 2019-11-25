@@ -1,11 +1,8 @@
 #pragma once
-#include <string_view>
-#include <limits>
-#include <seastar/core/temporary_buffer.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Stream/OutputStreamBase.hpp"
 #include "../Utility/Reusable.hpp"
-#include "../Utility/BufferUtils.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./HttpResponseHeaders.hpp"
 
 namespace cpv {
@@ -18,52 +15,36 @@ namespace cpv {
 	 */
 	class HttpResponse {
 	public:
-		using UnderlyingBuffersType = StackAllocatedVector<seastar::temporary_buffer<char>, 32>;
-		
 		/** Get the http version string, e.g. "HTTP/1.1" */
-		std::string_view getVersion() const&;
+		const SharedString& getVersion() const&;
 		
-		/** Set the http version string, must add underlying buffer first unless it's static string */
-		void setVersion(std::string_view version);
+		/** Set the http version string */
+		void setVersion(SharedString&& version);
 		
 		/** Get the status code, e.g. "404" */
-		std::string_view getStatusCode() const&;
+		const SharedString& getStatusCode() const&;
 		
-		/** Set the status code, must add underlying buffer first unless it's static string */
-		void setStatusCode(std::string_view statusCode);
+		/** Set the status code */
+		void setStatusCode(SharedString&& statusCode);
 		
 		/** Get the reason message of status code, e.g. "Not Found" */
-		std::string_view getStatusMessage() const&;
+		const SharedString& getStatusMessage() const&;
 		
-		/**
-		 * Set the reason message of status code,
-		 *	must add underlying buffer first unless it's static string.
-		 */
-		void setStatusMessage(std::string_view statusMessage);
+		/** Set the reason message of status code */
+		void setStatusMessage(SharedString&& statusMessage);
 		
 		/** Get response headers */
 		HttpResponseHeaders& getHeaders() &;
 		const HttpResponseHeaders& getHeaders() const&;
 		
-		/** Set response header, must add underlying buffer first unless it's a static string */
-		void setHeader(std::string_view key, std::string_view value);
-		
-		/** Set response header to integer value */
-		template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-		void setHeader(std::string_view key, T value);
+		/** Set response header */
+		void setHeader(SharedString&& key, SharedString&& value);
 		
 		/** Get response body output stream, must check whether is null before access */
 		const Reusable<OutputStreamBase>& getBodyStream() const&;
 		
 		/** Set response body output stream */
 		void setBodyStream(Reusable<OutputStreamBase>&& bodyStream);
-		
-		/** Get underlying buffers */
-		UnderlyingBuffersType& getUnderlyingBuffers() &;
-		const UnderlyingBuffersType& getUnderlyingBuffers() const&;
-		
-		/** Add underlying buffer that owns the storage of string views */
-		std::string_view addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf);
 		
 		/** Constructor */
 		HttpResponse();
@@ -74,16 +55,5 @@ namespace cpv {
 	private:
 		Reusable<HttpResponseData> data_;
 	};
-	
-	/** Set response header to integer value */
-	template <class T, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
-	void HttpResponse::setHeader(std::string_view key, T value) {
-		if (value >= 0 && static_cast<std::size_t>(value) < constants::Integers.size()) {
-			setHeader(key, constants::Integers[value]);
-		} else {
-			auto buf = convertIntToBuffer(value);
-			setHeader(key, addUnderlyingBuffer(std::move(buf)));
-		}
-	}
 }
 

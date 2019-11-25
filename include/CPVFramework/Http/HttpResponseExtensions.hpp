@@ -1,10 +1,9 @@
 #pragma once
 #include <ctime>
-#include <string_view>
-#include <string>
 #include <optional>
 #include "../Stream/OutputStreamExtensions.hpp"
 #include "../Utility/StringUtils.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./HttpResponse.hpp"
 
 namespace cpv::extensions {
@@ -13,20 +12,22 @@ namespace cpv::extensions {
 	seastar::future<> reply(
 		HttpResponse& response,
 		T&& text,
-		std::string_view mimeType,
-		std::string_view statusCode,
-		std::string_view statusMessage) {
-		response.setStatusCode(statusCode);
-		response.setStatusMessage(statusMessage);
-		response.setHeader(constants::ContentType, mimeType);
-		response.setHeader(constants::ContentLength, sizeofString(text));
+		SharedString&& mimeType,
+		SharedString&& statusCode,
+		SharedString&& statusMessage) {
+		response.setStatusCode(std::move(statusCode));
+		response.setStatusMessage(std::move(statusMessage));
+		response.setHeader(constants::ContentType, std::move(mimeType));
+		response.setHeader(constants::ContentLength,
+			SharedString::fromInt(sizeofString(text)));
 		return writeAll(response.getBodyStream(), std::forward<T>(text));
 	}
 
 	/** Reply text or binary contents to http response in once */
 	template <class T>
-	seastar::future<> reply(HttpResponse& response, T&& text, std::string_view mimeType) {
-		return reply(response, std::forward<T>(text), mimeType, constants::_200, constants::OK);
+	seastar::future<> reply(HttpResponse& response, T&& text, SharedString&& mimeType) {
+		return reply(response, std::forward<T>(text),
+			std::move(mimeType), constants::_200, constants::OK);
 	}
 
 	/** Reply text or binary contents to http response in once */
@@ -36,28 +37,28 @@ namespace cpv::extensions {
 	}
 
 	/** Reply 302 Found with given location to http response */
-	seastar::future<> redirectTo(HttpResponse& response, std::string_view location);
+	seastar::future<> redirectTo(HttpResponse& response, SharedString&& location);
 
 	/** Reply 301 Moved Permanently with give location to http response */
-	seastar::future<> redirectToPermanently(HttpResponse& response, std::string_view location);
+	seastar::future<> redirectToPermanently(HttpResponse& response, SharedString&& location);
 
 	/** Add or replace cookie on client side */
 	void setCookie(
 		HttpResponse& response,
-		std::string_view key,
-		std::string_view value,
-		std::string_view path = "/",
-		std::string_view domain = "",
+		const SharedString& key,
+		const SharedString& value,
+		const SharedString& path = "/",
+		const SharedString& domain = "",
 		std::optional<std::time_t> expires = std::nullopt,
 		bool httpOnly = false,
 		bool secure = false,
-		std::string_view sameSite = "");
+		const SharedString& sameSite = "");
 
 	/** Remove cookie on client side */
 	void removeCookie(
 		HttpResponse& response,
-		std::string_view key,
-		std::string_view path = "/",
-		std::string_view domain = "");
+		const SharedString& key,
+		const SharedString& path = "/",
+		const SharedString& domain = "");
 }
 

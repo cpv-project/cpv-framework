@@ -56,23 +56,23 @@ namespace cpv::gtest {
 	
 	namespace {
 		// Provide a fixed date value to make the response content always same
-		const std::string_view PesudoDate("Thu, 01 Jan 1970 00:00:00 GMT");
+		static const constexpr char PesudoDate[] = "Thu, 01 Jan 1970 00:00:00 GMT";
 	}
 	
 	/** Reply request url and header values in response body */
 	seastar::future<> HttpCheckHeadersHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator&) const {
+		HttpServerRequestHandlerIterator) const {
 		using namespace cpv;
 		auto& request = context.getRequest();
 		auto& response = context.getResponse();
 		Packet p;
-		p.append("request method: ").append(request.getMethod()).append("\r\n")
-			.append("request url: ").append(request.getUrl()).append("\r\n")
-			.append("request version: ").append(request.getVersion()).append("\r\n")
+		p.append("request method: ").append(request.getMethod().share()).append("\r\n")
+			.append("request url: ").append(request.getUrl().share()).append("\r\n")
+			.append("request version: ").append(request.getVersion().share()).append("\r\n")
 			.append("request headers:\r\n");
-		request.getHeaders().foreach([&p] (const auto& key, const auto& value) {
-			p.append("  ").append(key).append(": ").append(value).append("\r\n");
+		request.getHeaders().foreach([&p] (const cpv::SharedString& key, const cpv::SharedString& value) {
+			p.append("  ").append(key.share()).append(": ").append(value.share()).append("\r\n");
 		});
 		response.setHeader(constants::Date, PesudoDate);
 		return extensions::reply(response, std::move(p));
@@ -81,7 +81,7 @@ namespace cpv::gtest {
 	/** Reply request body in response body */
 	seastar::future<> HttpCheckBodyHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator&) const {
+		HttpServerRequestHandlerIterator) const {
 		auto& request = context.getRequest();
 		auto& response = context.getResponse();
 		return extensions::readAll(request.getBodyStream()).then([&request, &response] (auto str) {
@@ -94,7 +94,7 @@ namespace cpv::gtest {
 	/** Reply response with body but without content length header */
 	seastar::future<> HttpLengthNotFixedHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator&) const {
+		HttpServerRequestHandlerIterator) const {
 		auto& response = context.getResponse();
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
@@ -106,13 +106,13 @@ namespace cpv::gtest {
 	/** Reply response with body but size not matched to content length header */
 	seastar::future<> HttpWrittenSizeNotMatchedHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator&) const {
+		HttpServerRequestHandlerIterator) const {
 		auto& response = context.getResponse();
 		response.setStatusCode(constants::_200);
 		response.setStatusMessage(constants::OK);
 		response.setHeader(constants::ContentType, constants::TextPlainUtf8);
 		response.setHeader(constants::Date, PesudoDate);
-		response.setHeader(constants::ContentLength, 1);
+		response.setHeader(constants::ContentLength, SharedString::fromInt(1));
 		return extensions::writeAll(response.getBodyStream(), "Written Size Not Matched");
 	}
 }

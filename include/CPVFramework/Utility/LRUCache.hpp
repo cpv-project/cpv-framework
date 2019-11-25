@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <functional>
 #include <list>
 #include <map>
@@ -21,18 +22,37 @@ namespace cpv {
 	public:
 		/** Associate value with key, remove finally not used value if size is over */
 		template <class TKey, class TValue>
-		void set(TKey&& key, TValue&& value) {
-			auto it = map_.find(key);
+		void set(TKey&& keyForMap, TKey&& keyForList, TValue&& value) {
+			assert(keyForMap == keyForList);
+			auto it = map_.find(keyForMap);
 			if (it != map_.end()) {
 				list_.erase(it->second);
 				map_.erase(it);
 			}
-			list_.emplace_front(key, std::forward<TValue>(value));
-			map_.emplace(std::forward<TKey>(key), list_.begin());
+			list_.emplace_front(
+				std::forward<TKey>(keyForList), std::forward<TValue>(value));
+			map_.emplace(std::forward<TKey>(keyForMap), list_.begin());
 			if (map_.size() > maxSize_) {
 				map_.erase(list_.back().first);
 				list_.pop_back();
 			}
+		}
+
+		/** Associate value with key, remove finally not used value if size is over */
+		template <class TKey, class TValue>
+		void set(const TKey& key, TValue&& value) {
+			set(key, key, std::forward<TValue>(value));
+		}
+
+		/** Associate value with key, remove finally not used value if size is over */
+		void set(Key&& keyForMap, Key&& keyForList, Value&& value) {
+			assert(keyForMap == keyForList);
+			set(std::move(keyForMap), std::move(keyForList), std::move(value));
+		}
+
+		/** Associate value with key, remove finally not used value if size is over */
+		void set(const Key& key, Value&& value) {
+			set(key, key, std::move(value));
 		}
 
 		/** Get pointer of value associated with key or return nullptr */
@@ -47,6 +67,11 @@ namespace cpv {
 			}
 		}
 
+		/** Get pointer of value associated with key or return nullptr */
+		Value* get(const Key& key) & {
+			return get<const Key&>(key);
+		}
+
 		/** Erase value associated with key, return whether key was exists */
 		template <class TKey>
 		bool erase(TKey&& key) {
@@ -58,6 +83,11 @@ namespace cpv {
 				map_.erase(it);
 				return true;
 			}
+		}
+
+		/** Erase value associated with key, return whether key was exists */
+		bool erase(const Key& key) {
+			return erase<const Key&>(key);
 		}
 
 		/** Erase all values in cache */

@@ -18,14 +18,18 @@ TEST_FUTURE(TestHttpServerRoutingModule, route) {
 		});
 	});
 	application.add<cpv::HttpServerRoutingModule>([] (auto& module) {
+		using namespace cpv::extensions::http_context_parameters;
 		module.route(cpv::constants::GET, "/", [] (auto& context) {
 			return cpv::extensions::reply(context.getResponse(), "index page");
 		});
 		module.route(cpv::constants::GET, "/get/*",
-			std::make_tuple(1, "page", "sort"),
+			std::make_tuple(PathFragment(1), Query("page"), Query("sort")),
 			[] (auto& context, auto category, auto page, auto sort) {
-				return cpv::extensions::reply(
-					context.getResponse(), cpv::joinString("-", category, page, sort));
+				cpv::Packet p;
+				p.append(std::move(category)).append("-")
+					.append(std::move(page)).append("-")
+					.append(std::move(sort));
+				return cpv::extensions::reply(context.getResponse(), std::move(p));
 			});
 	});
 	return application.start()

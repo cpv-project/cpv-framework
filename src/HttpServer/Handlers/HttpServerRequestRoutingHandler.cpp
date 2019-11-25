@@ -3,10 +3,61 @@
 #include <utility>
 #include <seastar/core/shared_ptr.hh>
 #include <CPVFramework/Utility/Uri.hpp>
-#include <CPVFramework/Utility/HashUtils.hpp>
 #include <CPVFramework/HttpServer/Handlers/HttpServerRequestRoutingHandler.hpp>
 
 namespace cpv {
+	/** Handler map associated with a single routing node */
+	class HttpServerRequestRoutingHandlerMap {
+	public:
+		/** Get handler associated with given method, return nullptr for not exists */
+		seastar::shared_ptr<HttpServerRequestHandlerBase> get(
+			const SharedString& method) const {
+			if (method == constants::GET) {
+				return getHandler;
+			} else if (method == constants::POST) {
+				return postHandler;
+			}
+			auto it = handlers.find(method);
+			if (it != handlers.end()) {
+				return it->second;
+			}
+			return {};
+		}
+
+		/** Associate handler with given method */
+		void set(SharedString&& method,
+			const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler) {
+			if (method == constants::GET) {
+				getHandler = handler;
+			} else if (method == constants::POST) {
+				postHandler = handler;
+			}
+			handlers.emplace(std::move(method), handler);
+		}
+
+		/** Remove handler associated with given method */
+		void remove(const SharedString& method) {
+			if (method == constants::GET) {
+				getHandler = nullptr;
+			} else if (method == constants::POST) {
+				postHandler = nullptr;
+			}
+			handlers.erase(method);
+		}
+
+		/** Constructor */
+		HttpServerRequestRoutingHandlerMap() :
+			getHandler(),
+			postHandler(),
+			handlers() { }
+
+	public:
+		seastar::shared_ptr<HttpServerRequestHandlerBase> getHandler;
+		seastar::shared_ptr<HttpServerRequestHandlerBase> postHandler;
+		std::unordered_map<SharedString,
+			seastar::shared_ptr<HttpServerRequestHandlerBase>> handlers;
+	};
+
 	/** Represents a single path fragment in the routing tree */
 	class HttpServerRequestRoutingNode {
 	public:
@@ -55,7 +106,7 @@ namespace cpv {
 			for (const auto& pathFragment : pathFragments) {
 				auto childIt = node->childs.find(pathFragment);
 				if (childIt == node->childs.end()) {
-					childIt = node->childs.emplace(pathFragment,
+					childIt = node->childs.emplace(pathFragment.share(),
 						std::make_unique<HttpServerRequestRoutingNode>()).first;
 				}
 				node = childIt->second.get();
@@ -65,159 +116,127 @@ namespace cpv {
 
 		/** Constructor */
 		HttpServerRequestRoutingNode() :
-			handlers(),
+			map(),
 			childs() { }
 
 	public:
 		// { method: handler, ... }
-		std::unordered_map<std::string_view,
-			seastar::shared_ptr<HttpServerRequestHandlerBase>> handlers;
+		HttpServerRequestRoutingHandlerMap map;
 		// { pathFragment: node, ... }
-		std::unordered_map<std::string_view,
+		std::unordered_map<SharedString,
 			std::unique_ptr<HttpServerRequestRoutingNode>> childs;
 	};
 
 	/** Members of HttpServerRequestRoutingHandler */
 	class HttpServerRequestRoutingHandlerData {
 	public:
-		/** Get string view with same contents but the storage owned by this object */
-		std::string_view remember(std::string_view view) {
-			auto it = underlyingBuffers.find(view);
-			if (it != underlyingBuffers.end()) {
-				return std::string_view(it->second.get(), it->second.size());
-			} else {
-				seastar::temporary_buffer<char> buf(view.data(), view.size());
-				std::string_view result(buf.get(), buf.size());
-				underlyingBuffers.emplace(result, std::move(buf));
-				return result;
-			}
-		}
-
 		/** Constructor */
 		HttpServerRequestRoutingHandlerData() :
 			fullPathRoutingMap(),
-			wildcardRoutingTree(std::make_unique<HttpServerRequestRoutingNode>()),
-			underlyingBuffers() { }
+			wildcardRoutingTree(std::make_unique<HttpServerRequestRoutingNode>()) { }
 
 	public:
-		// { (method, fullPath): handler, ... }
-		std::unordered_map<
-			std::pair<std::string_view, std::string_view>,
-			seastar::shared_ptr<HttpServerRequestHandlerBase>,
-			hash<std::pair<std::string_view, std::string_view>>> fullPathRoutingMap;
+		// { fullPath: { method: handler, ... }, ... }
+		std::unordered_map<SharedString,
+			HttpServerRequestRoutingHandlerMap> fullPathRoutingMap;
 		// node { { pathFragment: node, ... }, { method: handler, ... } }
 		std::unique_ptr<HttpServerRequestRoutingNode> wildcardRoutingTree;
-		// { view: buffer, ... }
-		std::unordered_map<std::string_view, seastar::temporary_buffer<char>> underlyingBuffers;
 	};
 
-	/** Associate handler with given path */
+	/** Associate handler with given method and path */
 	void HttpServerRequestRoutingHandler::route(
-		std::string_view method, std::string_view path,
+		SharedString&& method, SharedString&& path,
 		const seastar::shared_ptr<HttpServerRequestHandlerBase>& handler) {
-		// remember method and path (hold the underlying buffers)
-		std::string_view methodRemembered = data_->remember(method);
-		std::string_view pathRemembered = data_->remember(path);
-		if (pathRemembered.find_first_of('*') == pathRemembered.npos) {
+		if (path.view().find_first_of('*') == std::string_view::npos) {
 			// path not contains * at all
-			data_->fullPathRoutingMap.insert_or_assign(
-				std::make_pair(methodRemembered, pathRemembered), handler);
+			data_->fullPathRoutingMap[std::move(path)].set(std::move(method), handler);
 			return;
 		}
 		// parse path as uri
-		Uri uri(pathRemembered);
+		Uri uri(path);
 		auto& pathFragments = uri.getPathFragments();
 		bool containsWildcard = std::count_if(
 			pathFragments.begin(), pathFragments.end(),
 			[] (auto& f) { return f == "*" || f == "**"; }) > 0;
 		if (!containsWildcard) {
 			// path contains * but not as a path fragment (e.g. /abc/*123/321* is a full path)
-			data_->fullPathRoutingMap.insert_or_assign(
-				std::make_pair(methodRemembered, pathRemembered), handler);
+			data_->fullPathRoutingMap[std::move(path)].set(std::move(method), handler);
 			return;
 		}
 		// add nodes to wildcard routing tree
 		auto* node = data_->wildcardRoutingTree->findOrCreateForModify(pathFragments);
-		node->handlers.insert_or_assign(methodRemembered, handler);
+		node->map.set(std::move(method), handler);
 	}
 
-	/** Remove associated handler with given path */
+	/** Remove associated handler with given method and path */
 	void HttpServerRequestRoutingHandler::removeRoute(
-		std::string_view method, std::string_view path) {
+		const SharedString& method, const SharedString& path) {
 		// erase from full path routing map
-		data_->fullPathRoutingMap.erase(std::make_pair(method, path));
+		auto it = data_->fullPathRoutingMap.find(path);
+		if (it != data_->fullPathRoutingMap.end()) {
+			it->second.remove(method);
+		}
 		// erase from wildcard routing tree
 		Uri uri(path);
 		auto* node = data_->wildcardRoutingTree->findForModify(uri.getPathFragments());
 		if (node != nullptr) {
-			node->handlers.erase(method);
+			node->map.remove(method);
 		}
 	}
 
-	/** Get associated handler with given path, return nullptr if not found */
+	/** Get associated handler with given method and uri, return nullptr if not found */
 	seastar::shared_ptr<HttpServerRequestHandlerBase>
 	HttpServerRequestRoutingHandler::getRoute(
-		std::string_view method, std::string_view path) const {
+		const SharedString& method, const Uri& uri) const {
 		// get handler from full path routing map
-		bool containsQuery = path.find_first_of('?') != path.npos;
-		if (!containsQuery) {
-			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
-			if (it != data_->fullPathRoutingMap.end()) {
-				return it->second;
-			}
-		}
-		Uri uri(path);
-		if (containsQuery) {
-			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, uri.getPath()));
-			if (it != data_->fullPathRoutingMap.end()) {
-				return it->second;
-			}
+		auto it = data_->fullPathRoutingMap.find(uri.getPath());
+		if (it != data_->fullPathRoutingMap.end()) {
+			return it->second.get(method);
 		}
 		// get handler from wildcard routing tree
 		auto* node = data_->wildcardRoutingTree->findForRoute(uri.getPathFragments());
 		if (node != nullptr) {
-			auto handlerIt = node->handlers.find(method);
-			if (handlerIt != node->handlers.end()) {
-				return handlerIt->second;
-			}
+			return node->map.get(method);
 		}
 		// not found
 		return nullptr;
 	}
 
+	/** Get associated handler with given method and path, return nullptr if not found */
+	seastar::shared_ptr<HttpServerRequestHandlerBase>
+	HttpServerRequestRoutingHandler::getRoute(
+		const SharedString& method, const SharedString& path) const {
+		return getRoute(method, Uri(path));
+	}
+
 	/** Handle request depends on the routing table */
 	seastar::future<> HttpServerRequestRoutingHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator& next) const {
+		HttpServerRequestHandlerIterator next) const {
 		// notice here will not use getRoute, because:
-		// - getRoute will make a copy of shared_ptr
 		// - getRoute will parse uri if not found in full path routing map,
 		//   but we should use request.getUri() so other code and reuse the parse result
 		auto& request = context.getRequest();
-		std::string_view method = request.getMethod();
-		std::string_view path = request.getUrl();
-		// use handler from full path routing map
-		bool containsQuery = path.find_first_of('?') != path.npos;
-		if (!containsQuery) {
-			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, path));
-			if (it != data_->fullPathRoutingMap.end()) {
-				return it->second->handle(context, next);
+		auto& method = request.getMethod();
+		auto& path = request.getUrl();
+		// optimize for fast path
+		auto it = data_->fullPathRoutingMap.find(path);
+		if (it != data_->fullPathRoutingMap.end()) {
+			auto& map = it->second;
+			if (method == constants::GET && map.getHandler != nullptr) {
+				return map.getHandler->handle(context, next);
+			} else if (method == constants::POST && map.postHandler != nullptr) {
+				return map.postHandler->handle(context, next);
+			}
+			auto hit = map.handlers.find(method);
+			if (hit != map.handlers.end() && hit->second != nullptr) {
+				return hit->second->handle(context, next);
 			}
 		}
-		Uri& uri = request.getUri();
-		if (containsQuery) {
-			auto it = data_->fullPathRoutingMap.find(std::make_pair(method, uri.getPath()));
-			if (it != data_->fullPathRoutingMap.end()) {
-				return it->second->handle(context, next);
-			}
-		}
-		// get handler from wildcard routing tree
-		auto* node = data_->wildcardRoutingTree->findForRoute(uri.getPathFragments());
-		if (node != nullptr) {
-			auto handlerIt = node->handlers.find(method);
-			if (handlerIt != node->handlers.end()) {
-				return handlerIt->second->handle(context, next);
-			}
+		// normal path (url constants query string or wildcard is needed)
+		auto handler = getRoute(method, request.getUri());
+		if (handler != nullptr) {
+			return handler->handle(context, next);
 		}
 		// not found, use next handler
 		return (*next)->handle(context, next + 1);

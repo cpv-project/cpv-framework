@@ -9,7 +9,7 @@
 
 namespace cpv {
 	/** Encode string for use in url */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> urlEncode(std::string_view str) {
+	SharedString urlEncode(SharedString&& str) {
 		std::size_t encodedSize = 0;
 		for (char c : str) {
 			encodedSize += UrlEncodeMapping[static_cast<unsigned char>(c)].size();
@@ -17,10 +17,10 @@ namespace cpv {
 		if (encodedSize == str.size()) {
 			// no change, return original string
 			// notice space will not convert to +, so we can sure by checking encoded size
-			return std::make_pair(str, seastar::temporary_buffer<char>());
+			return std::move(str);
 		}
-		seastar::temporary_buffer<char> buf(encodedSize);
-		char* dst = buf.get_write();
+		SharedString buf(encodedSize);
+		char* dst = buf.data();
 		for (char c : str) {
 			auto mapped = UrlEncodeMapping[static_cast<unsigned char>(c)];
 			if (CPV_LIKELY(mapped.size() == 1)) {
@@ -30,11 +30,11 @@ namespace cpv {
 				dst += mapped.size();
 			}
 		}
-		return std::make_pair(std::string_view(buf.get(), buf.size()), std::move(buf));
+		return buf;
 	}
 
 	/** Decode string from url parts */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> urlDecode(std::string_view str) {
+	SharedString urlDecode(SharedString&& str) {
 		bool changed = false;
 		for (char c : str) {
 			if (c == '%' || c == '+') {
@@ -44,10 +44,10 @@ namespace cpv {
 		}
 		if (!changed) {
 			// no change, return original string
-			return std::make_pair(str, seastar::temporary_buffer<char>());
+			return std::move(str);
 		}
-		seastar::temporary_buffer<char> buf(str.size());
-		char* dst = buf.get_write();
+		SharedString buf(str.size());
+		char* dst = buf.data();
 		const char* src = str.begin();
 		const char* srcEnd = str.end();
 		std::uint8_t charFromHex = 0;
@@ -67,22 +67,22 @@ namespace cpv {
 				*dst++ = c;
 			}
 		}
-		buf.trim(dst - buf.get());
-		return std::make_pair(std::string_view(buf.get(), buf.size()), std::move(buf));
+		buf.trim(dst - buf.data());
+		return buf;
 	}
 
 	/** Encode string for use in html */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> htmlEncode(std::string_view str) {
+	SharedString htmlEncode(SharedString&& str) {
 		std::size_t encodedSize = 0;
 		for (char c : str) {
 			encodedSize += HtmlEncodeMapping[static_cast<unsigned char>(c)].size();
 		}
 		if (encodedSize == str.size()) {
 			// no change, return original string
-			return std::make_pair(str, seastar::temporary_buffer<char>());
+			return std::move(str);
 		}
-		seastar::temporary_buffer<char> buf(encodedSize);
-		char* dst = buf.get_write();
+		SharedString buf(encodedSize);
+		char* dst = buf.data();
 		for (char c : str) {
 			auto mapped = HtmlEncodeMapping[static_cast<unsigned char>(c)];
 			if (CPV_LIKELY(mapped.size() == 1)) {
@@ -92,11 +92,11 @@ namespace cpv {
 				dst += mapped.size();
 			}
 		}
-		return std::make_pair(std::string_view(buf.get(), buf.size()), std::move(buf));
+		return buf;
 	}
 
 	/** Decode string from html content */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> htmlDecode(std::string_view str) {
+	SharedString htmlDecode(SharedString&& str) {
 		bool changed = false;
 		for (char c : str) {
 			if (c == '&') {
@@ -106,10 +106,10 @@ namespace cpv {
 		}
 		if (!changed) {
 			// no change, return original string
-			return std::make_pair(str, seastar::temporary_buffer<char>());
+			return std::move(str);
 		}
-		seastar::temporary_buffer<char> buf(str.size());
-		char* dst = buf.get_write();
+		SharedString buf(str.size());
+		char* dst = buf.data();
 		const char* src = str.begin();
 		const char* srcEnd = str.end();
 		const char* srcLast = str.end() - 1; // empty str will hit no change
@@ -166,17 +166,17 @@ namespace cpv {
 				// ignore unsupported entity
 			}
 		}
-		buf.trim(dst - buf.get());
-		return std::make_pair(std::string_view(buf.get(), buf.size()), std::move(buf));
+		buf.trim(dst - buf.data());
+		return buf;
 	}
 
 	/** Get mime type of file path (path can be extension only) */
-	std::string_view getMimeType(std::string_view path) {
+	SharedString getMimeType(std::string_view path) {
 		auto dotPos = path.find_last_of('.');
 		std::string_view extension = (dotPos == path.npos) ? path : path.substr(dotPos + 1);
 		auto it = MimeMapping.find(extension);
 		if (it != MimeMapping.end()) {
-			return it->second;
+			return SharedString::fromStatic(it->second);
 		}
 		return "application/octet-stream";
 	}

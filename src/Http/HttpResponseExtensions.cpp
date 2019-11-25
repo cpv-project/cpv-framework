@@ -6,78 +6,69 @@
 
 namespace cpv::extensions {
 	/** Reply 302 Found with given location to http response */
-	seastar::future<> redirectTo(HttpResponse& response, std::string_view location) {
+	seastar::future<> redirectTo(HttpResponse& response, SharedString&& location) {
 		response.setStatusCode(constants::_302);
 		response.setStatusMessage(constants::Found);
-		response.setHeader(constants::Location, location);
+		response.setHeader(constants::Location, std::move(location));
 		return seastar::make_ready_future<>();
 	}
 
 	/** Reply 301 Moved Permanently with give location to http response */
-	seastar::future<> redirectToPermanently(HttpResponse& response, std::string_view location) {
+	seastar::future<> redirectToPermanently(HttpResponse& response, SharedString&& location) {
 		response.setStatusCode(constants::_301);
 		response.setStatusMessage(constants::MovedPermanently);
-		response.setHeader(constants::Location, location);
+		response.setHeader(constants::Location, std::move(location));
 		return seastar::make_ready_future<>();
 	}
 
 	/** Add or replace cookie on client side */
 	void setCookie(
 		HttpResponse& response,
-		std::string_view key,
-		std::string_view value,
-		std::string_view path,
-		std::string_view domain,
+		const SharedString& key,
+		const SharedString& value,
+		const SharedString& path,
+		const SharedString& domain,
 		std::optional<std::time_t> expires,
 		bool httpOnly,
 		bool secure,
-		std::string_view sameSite) {
+		const SharedString& sameSite) {
 		// complete field example:
 		// Set-Cookie: {}={}; Path={}; Domain={}; Expires={}; HttpOnly; Secure; SameSite={}
-		seastar::temporary_buffer<char> buf(
+		SharedStringBuilder builder(
 			key.size() + value.size() +
 			path.size() + domain.size() + sameSite.size() +
 			HttpHeaderTimeStringSize + 57);
-		std::string_view view;
-		mergeContent(buf, view, key);
+		builder.append(key);
 		if (!value.empty()) {
-			mergeContent(buf, view, "=");
-			mergeContent(buf, view, value);
+			builder.append("=").append(value);
 		}
 		if (!path.empty()) {
-			mergeContent(buf, view, "; Path=");
-			mergeContent(buf, view, path);
+			builder.append("; Path=").append(path);
 		}
 		if (!domain.empty()) {
-			mergeContent(buf, view, "; Domain=");
-			mergeContent(buf, view, domain);
+			builder.append("; Domain=").append(domain);
 		}
 		if (expires.has_value()) {
-			HttpHeaderTimeStringBufferType buffer;
-			formatTimeForHttpHeader(*expires, buffer.data(), buffer.size());
-			mergeContent(buf, view, "; Expires=");
-			mergeContent(buf, view, std::string_view(buffer.data(), buffer.size()-1));
+			builder.append("; Expires=").append(formatTimeForHttpHeader(*expires));
 		}
 		if (httpOnly) {
-			mergeContent(buf, view, "; HttpOnly");
+			builder.append("; HttpOnly");
 		}
 		if (secure) {
-			mergeContent(buf, view, "; Secure");
+			builder.append("; Secure");
 		}
 		if (!sameSite.empty()) {
-			mergeContent(buf, view, "; SameSite=");
-			mergeContent(buf, view, sameSite);
+			builder.append("; SameSite=").append(sameSite);
 		}
-		response.addUnderlyingBuffer(std::move(buf));
-		response.getHeaders().addAdditionHeader(constants::SetCookie, view);
+		response.getHeaders().addAdditionHeader(constants::SetCookie, builder.build());
 	}
 
 	/** Remove cookie on client side */
 	void removeCookie(
 		HttpResponse& response,
-		std::string_view key,
-		std::string_view path,
-		std::string_view domain) {
+		const SharedString& key,
+		const SharedString& path,
+		const SharedString& domain) {
 		setCookie(response, key, "", path, domain, 0);
 	}
 }

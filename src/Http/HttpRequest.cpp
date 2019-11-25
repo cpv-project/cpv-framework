@@ -1,8 +1,3 @@
-#include <string_view>
-#include <unordered_map>
-#include <vector>
-#include <seastar/core/temporary_buffer.hh>
-#include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Utility/Reusable.hpp>
 #include <CPVFramework/Http/HttpRequest.hpp>
 
@@ -10,9 +5,9 @@ namespace cpv {
 	/** Members of HttpRequest */
 	class HttpRequestData {
 	public:
-		std::string_view method;
-		std::string_view url;
-		std::string_view version;
+		SharedString method;
+		SharedString url;
+		SharedString version;
 		HttpRequestHeaders headers;
 		Reusable<InputStreamBase> bodyStream;
 		// mutable for lazy parse
@@ -20,15 +15,17 @@ namespace cpv {
 		mutable HttpRequestUri uri;
 		mutable std::string_view sourceOfCookies;
 		mutable HttpRequestCookies cookies;
-		HttpRequest::UnderlyingBuffersType underlyingBuffers;
 		
 		HttpRequestData() :
 			method(),
+			url(),
 			version(),
 			headers(),
 			bodyStream(),
+			sourceOfUri(),
 			uri(),
-			underlyingBuffers() { }
+			sourceOfCookies(),
+			cookies() { }
 		
 		void freeResources() {
 			method = {};
@@ -40,7 +37,6 @@ namespace cpv {
 			uri.clear();
 			sourceOfCookies = {};
 			cookies.clear();
-			underlyingBuffers.clear();
 		}
 		
 		inline void ensureUriUpdated() const {
@@ -56,7 +52,7 @@ namespace cpv {
 		}
 		
 		inline void ensureCookiesUpdated() const {
-			auto cookieHeader = headers.getCookie();
+			auto& cookieHeader = headers.getCookie();
 			if (sourceOfCookies.empty()) {
 				sourceOfCookies = cookieHeader;
 				cookies.parse(cookieHeader);
@@ -81,33 +77,33 @@ namespace cpv {
 		ReusableStorageInstance<HttpRequestData>;
 	
 	/** Get the request method */
-	std::string_view HttpRequest::getMethod() const& {
+	const SharedString& HttpRequest::getMethod() const& {
 		return data_->method;
 	}
 	
 	/* Set the request method */
-	void HttpRequest::setMethod(std::string_view method) {
-		data_->method = method;
+	void HttpRequest::setMethod(SharedString&& method) {
+		data_->method = std::move(method);
 	}
 	
 	/** Get the request url */
-	std::string_view HttpRequest::getUrl() const& {
+	const SharedString& HttpRequest::getUrl() const& {
 		return data_->url;
 	}
 	
 	/** Set the request url */
-	void HttpRequest::setUrl(std::string_view url) {
-		data_->url = url;
+	void HttpRequest::setUrl(SharedString&& url) {
+		data_->url = std::move(url);
 	}
 	
 	/** Get the http version string */
-	std::string_view HttpRequest::getVersion() const& {
+	const SharedString& HttpRequest::getVersion() const& {
 		return data_->version;
 	}
 	
 	/** Set the http version string */
-	void HttpRequest::setVersion(std::string_view version) {
-		data_->version = version;
+	void HttpRequest::setVersion(SharedString&& version) {
+		data_->version = std::move(version);
 	}
 	
 	/** Get request headers */
@@ -121,13 +117,18 @@ namespace cpv {
 	}
 	
 	/** Set request header */
-	void HttpRequest::setHeader(std::string_view key, std::string_view value) {
-		data_->headers.setHeader(key, value);
+	void HttpRequest::setHeader(SharedString&& key, SharedString&& value) {
+		data_->headers.setHeader(std::move(key), std::move(value));
 	}
 	
-	/** Get underlying buffers */
-	HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() & {
-		return data_->underlyingBuffers;
+	/** Get request body input stream */
+	const Reusable<InputStreamBase>& HttpRequest::getBodyStream() const& {
+		return data_->bodyStream;
+	}
+	
+	/** Set request body input stream */
+	void HttpRequest::setBodyStream(Reusable<InputStreamBase>&& bodyStream) {
+		data_->bodyStream = std::move(bodyStream);
 	}
 	
 	/** Get the uri instance parsed from url */
@@ -152,28 +153,6 @@ namespace cpv {
 	const HttpRequestCookies& HttpRequest::getCookies() const& {
 		data_->ensureCookiesUpdated();
 		return data_->cookies;
-	}
-	
-	/** Get request body input stream */
-	const Reusable<InputStreamBase>& HttpRequest::getBodyStream() const& {
-		return data_->bodyStream;
-	}
-	
-	/** Set request body input stream */
-	void HttpRequest::setBodyStream(Reusable<InputStreamBase>&& bodyStream) {
-		data_->bodyStream = std::move(bodyStream);
-	}
-	
-	/** Get underlying buffers */
-	const HttpRequest::UnderlyingBuffersType& HttpRequest::getUnderlyingBuffers() const& {
-		return data_->underlyingBuffers;
-	}
-	
-	/** Add underlying buffer that owns the storage of string views */
-	std::string_view HttpRequest::addUnderlyingBuffer(seastar::temporary_buffer<char>&& buf) {
-		std::string_view view(buf.get(), buf.size());
-		data_->underlyingBuffers.emplace_back(std::move(buf));
-		return view;
 	}
 	
 	/** Constructor */

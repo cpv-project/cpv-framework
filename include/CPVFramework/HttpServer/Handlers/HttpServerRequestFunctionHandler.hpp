@@ -11,7 +11,7 @@ namespace cpv {
 		/** Invoke custom function object */
 		seastar::future<> handle(
 			HttpContext& context,
-			const HttpServerRequestHandlerIterator&) const override {
+			HttpServerRequestHandlerIterator) const override {
 			return func_(context);
 		}
 

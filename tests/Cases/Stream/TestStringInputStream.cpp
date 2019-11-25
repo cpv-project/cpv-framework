@@ -12,12 +12,12 @@ TEST_FUTURE(TestStringInputStream, all) {
 		return stream.read().then([&stream] (auto&& result) {
 			ASSERT_TRUE(stream.sizeHint().has_value());
 			ASSERT_EQ(*stream.sizeHint(), 9U);
-			ASSERT_EQ(result.view(), "test data");
+			ASSERT_EQ(result.data, "test data");
 			ASSERT_TRUE(result.isEnd);
 		}).then([&stream] {
 			return stream.read();
 		}).then([&stream] (auto&& result) {
-			ASSERT_EQ(result.view(), "");
+			ASSERT_EQ(result.data, "");
 			ASSERT_TRUE(result.isEnd);
 		});
 	});

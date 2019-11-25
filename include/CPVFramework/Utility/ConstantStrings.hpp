@@ -5,33 +5,33 @@
 
 namespace cpv::constants {
 	// server name
-	static const constexpr std::string_view CPVFramework("cpv-framework");
+	static const constexpr char CPVFramework[] = "cpv-framework";
 	
 	// common strings
-	static const constexpr std::string_view Space(" ");
-	static const constexpr std::string_view Tab("\t");
-	static const constexpr std::string_view Colon(":");
-	static const constexpr std::string_view SemiColon(";");
-	static const constexpr std::string_view Slash("/");
-	static const constexpr std::string_view Comma(",");
-	static const constexpr std::string_view QuestionMark("?");
-	static const constexpr std::string_view EqualsSign("=");
-	static const constexpr std::string_view Ampersand("&");
-	static const constexpr std::string_view SingleQuote("'");
-	static const constexpr std::string_view DoubleQuote("\"");
-	static const constexpr std::string_view RoundBacketStart("(");
-	static const constexpr std::string_view RoundBacketEnd(")");
-	static const constexpr std::string_view CurlyBacketStart("{");
-	static const constexpr std::string_view CurlyBacketEnd("}");
-	static const constexpr std::string_view SquareBacketStart("[");
-	static const constexpr std::string_view SquareBacketEnd("]");
-	static const constexpr std::string_view ColonSpace(": ");
-	static const constexpr std::string_view ColonSlashSlash("://");
-	static const constexpr std::string_view LF("\n");
-	static const constexpr std::string_view CRLF("\r\n");
-	static const constexpr std::string_view True("true");
-	static const constexpr std::string_view False("false");
-	static const constexpr std::string_view Null("null");
+	static const constexpr char Space[] = " ";
+	static const constexpr char Tab[] = "\t";
+	static const constexpr char Colon[] = ":";
+	static const constexpr char SemiColon[] = ";";
+	static const constexpr char Slash[] = "/";
+	static const constexpr char Comma[] = ",";
+	static const constexpr char QuestionMark[] = "?";
+	static const constexpr char EqualsSign[] = "=";
+	static const constexpr char Ampersand[] = "&";
+	static const constexpr char SingleQuote[] = "'";
+	static const constexpr char DoubleQuote[] = "\"";
+	static const constexpr char RoundBacketStart[] = "(";
+	static const constexpr char RoundBacketEnd[] = ")";
+	static const constexpr char CurlyBacketStart[] = "{";
+	static const constexpr char CurlyBacketEnd[] = "}";
+	static const constexpr char SquareBacketStart[] = "[";
+	static const constexpr char SquareBacketEnd[] = "]";
+	static const constexpr char ColonSpace[] = ": ";
+	static const constexpr char ColonSlashSlash[] = "://";
+	static const constexpr char LF[] = "\n";
+	static const constexpr char CRLF[] = "\r\n";
+	static const constexpr char True[] = "true";
+	static const constexpr char False[] = "false";
+	static const constexpr char Null[] = "null";
 	
 	// numbers
 	static const std::size_t MaxConstantInteger = 65535;

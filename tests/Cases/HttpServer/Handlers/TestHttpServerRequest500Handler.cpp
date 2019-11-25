@@ -10,7 +10,7 @@ namespace {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext&,
-			const cpv::HttpServerRequestHandlerIterator&) const override {
+			cpv::HttpServerRequestHandlerIterator) const override {
 			return seastar::make_exception_future<>(cpv::FormatException(
 				CPV_CODEINFO, "test exception"));
 		}
@@ -33,7 +33,7 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 	return seastar::do_with(
 		cpv::HttpServerRequestHandlerCollection(),
 		cpv::HttpContext(),
-		seastar::make_lw_shared<std::string>(),
+		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
 		seastar::make_shared<TestLogger>(),
 		[] (auto& handlers, auto& context, auto& str, auto& logger) {
 		context.getResponse().setBodyStream(
@@ -48,10 +48,10 @@ TEST_FUTURE(HttpServerRequest500Handler, handle) {
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentType), cpv::constants::TextPlainUtf8);
 			ASSERT_EQ(headers.getHeader(cpv::constants::ContentLength),
 				cpv::constants::Integers.at(str->size()));
-			ASSERT_CONTAINS(*str, cpv::constants::InternalServerError);
-			ASSERT_CONTAINS(*str, "ID: ");
-			std::size_t index = str->find("ID: ");
-			std::string id = str->substr(index);
+			ASSERT_CONTAINS(str->view(), cpv::constants::InternalServerError);
+			ASSERT_CONTAINS(str->view(), "ID: ");
+			std::size_t index = str->view().find("ID: ");
+			std::string_view id = str->view().substr(index);
 			ASSERT_EQ(id.size(), 40U); // length of uuid is 36
 			ASSERT_CONTAINS(logger->content, "Http server request error, ID: ");
 			ASSERT_CONTAINS(logger->content, "test exception");

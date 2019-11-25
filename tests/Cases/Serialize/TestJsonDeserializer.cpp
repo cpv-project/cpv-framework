@@ -19,7 +19,7 @@ namespace {
 		std::size_t sizeValue;
 		double doubleValue;
 		std::string stringValue;
-		std::string_view stringViewValue;
+		cpv::SharedString sharedStringValue;
 		ChildModel childValue;
 		std::vector<ChildModel> childValues;
 		std::vector<int> intValues;
@@ -33,7 +33,7 @@ namespace {
 			sizeValue << value["sizeValue"];
 			doubleValue << value["doubleValue"];
 			stringValue << value["stringValue"];
-			stringViewValue << value["stringViewValue"];
+			sharedStringValue << value["sharedStringValue"];
 			childValue << value["childValue"];
 			childValues << value["childValues"];
 			intValues << value["intValues"];
@@ -47,7 +47,7 @@ namespace {
 			sizeValue(-1),
 			doubleValue(-1),
 			stringValue("default"),
-			stringViewValue("default"),
+			sharedStringValue("default"),
 			childValue(),
 			childValues(),
 			intValues(),
@@ -70,7 +70,7 @@ namespace {
 		};
 
 		std::optional<int> optionalValue;
-		std::unique_ptr<std::string_view> uniquePtrValue;
+		std::unique_ptr<cpv::SharedString> uniquePtrValue;
 		seastar::shared_ptr<std::vector<int>> sharedPtrValue;
 		cpv::Reusable<ChildModel> reusableValue;
 
@@ -95,14 +95,14 @@ thread_local cpv::ReusableStorageType<MyPtrModel::ChildModel>
 	cpv::ReusableStorageInstance<MyPtrModel::ChildModel>;
 
 TEST(TestJsonDeserializer, model) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
 			"requiredValue": 100,
 			"intValue": 101,
 			"sizeValue": 102,
 			"doubleValue": 103,
 			"stringValue": "test 一二三",
-			"stringViewValue": "\u4e00\u4e8c\u4e09",
+			"sharedStringValue": "\u4e00\u4e8c\u4e09",
 			"childValue": { "count": -1 },
 			"childValues": [
 				{ "count": 1 },
@@ -112,17 +112,16 @@ TEST(TestJsonDeserializer, model) {
 			"intValues": [ 1, 2, 3, 4, 5 ],
 			"intValuesOnStack": [ -1, -2, -3 ]
 		}
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	MyModel model;
-	auto error = cpv::deserializeJson(model, buffer);
+	auto error = cpv::deserializeJson(model, json);
 	ASSERT_FALSE(error.has_value());
 	ASSERT_EQ(model.requiredValue, 100);
 	ASSERT_EQ(model.intValue, 101);
 	ASSERT_EQ(model.sizeValue, 102U);
 	ASSERT_EQ((int)model.doubleValue, 103);
 	ASSERT_EQ(model.stringValue, "test 一二三");
-	ASSERT_EQ(model.stringViewValue, "一二三");
+	ASSERT_EQ(model.sharedStringValue, "一二三");
 	ASSERT_EQ(model.childValue.count, -1);
 	ASSERT_EQ(model.childValues.size(), 3U);
 	ASSERT_EQ(model.childValues.at(0).count, 1);
@@ -141,16 +140,15 @@ TEST(TestJsonDeserializer, model) {
 }
 
 TEST(TestJsonDeserializer, vectorModel) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		[
 			{ "requiredValue": 100 },
 			{ "requiredValue": 101 },
 			{ "requiredValue": 102 }
 		]
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	std::vector<MyModel> models;
-	auto error = cpv::deserializeJson(models, buffer);
+	auto error = cpv::deserializeJson(models, json);
 	ASSERT_FALSE(error.has_value());
 	ASSERT_EQ(models.size(), 3U);
 	ASSERT_EQ(models.at(0).requiredValue, 100);
@@ -159,16 +157,15 @@ TEST(TestJsonDeserializer, vectorModel) {
 }
 
 TEST(TestJsonDeserializer, stackAllocatedVectorModel) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		[
 			{ "requiredValue": 100 },
 			{ "requiredValue": 101 },
 			{ "requiredValue": 102 }
 		]
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	cpv::StackAllocatedVector<MyModel, 3> models;
-	auto error = cpv::deserializeJson(models, buffer);
+	auto error = cpv::deserializeJson(models, json);
 	ASSERT_FALSE(error.has_value());
 	ASSERT_EQ(models.size(), 3U);
 	ASSERT_EQ(models.at(0).requiredValue, 100);
@@ -177,18 +174,18 @@ TEST(TestJsonDeserializer, stackAllocatedVectorModel) {
 }
 
 TEST(TestJsonDeserializer, ptrModel) {
-	std::string json(R"(
-		{
-			"optionalValue": 123,
-			"uniquePtrValue": "test",
-			"sharedPtrValue": [ 1, 2, 3 ],
-			"reusableValue": { "count": 321 }
-		}
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
 	MyPtrModel model;
 	{
-		auto error = cpv::deserializeJson(model, buffer);
+		cpv::SharedString json(std::string_view(R"(
+			{
+				"optionalValue": 123,
+				"uniquePtrValue": "test",
+				"sharedPtrValue": [ 1, 2, 3 ],
+				"reusableValue": { "count": 321 }
+			}
+		)"));
+		auto error = cpv::deserializeJson(model, json);
+		json = {};
 		ASSERT_FALSE(error.has_value());
 		ASSERT_TRUE(model.optionalValue.has_value());
 		ASSERT_EQ(*model.optionalValue, 123);
@@ -203,9 +200,9 @@ TEST(TestJsonDeserializer, ptrModel) {
 		ASSERT_EQ(model.reusableValue->count, 321);
 	}
 	{
-		json.assign("{}");
-		buffer = seastar::temporary_buffer<char>(json.data(), json.size(), {});
-		auto error = cpv::deserializeJson(model, buffer);
+		cpv::SharedString json(std::string_view("{}"));
+		auto error = cpv::deserializeJson(model, json);
+		json = {};
 		ASSERT_FALSE(error.has_value());
 		ASSERT_TRUE(model.optionalValue.has_value());
 		ASSERT_EQ(*model.optionalValue, 123);
@@ -220,16 +217,16 @@ TEST(TestJsonDeserializer, ptrModel) {
 		ASSERT_EQ(model.reusableValue->count, 321);
 	}
 	{
-		json.assign(R"(
+		cpv::SharedString json(std::string_view(R"(
 			{
 				"optionalValue": null,
 				"uniquePtrValue": null,
 				"sharedPtrValue": null,
 				"reusableValue": null
 			}
-		)");
-		buffer = seastar::temporary_buffer<char>(json.data(), json.size(), {});
-		auto error = cpv::deserializeJson(model, buffer);
+		)"));
+		auto error = cpv::deserializeJson(model, json);
+		json = {};
 		ASSERT_FALSE(error.has_value());
 		ASSERT_FALSE(model.optionalValue.has_value());
 		ASSERT_FALSE(model.uniquePtrValue != nullptr);
@@ -239,75 +236,71 @@ TEST(TestJsonDeserializer, ptrModel) {
 }
 
 TEST(TestJsonDeserializer, modelWithEmptyJson) {
-	std::string json;
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	cpv::SharedString json;
 	MyModel model;
-	auto error = cpv::deserializeJson(model, buffer);
+	auto error = cpv::deserializeJson(model, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "missing root element");
 }
 
 TEST(TestJsonDeserializer, modelWithNotContainsRequiredValueJson) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
 		}
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	MyModel model;
-	auto error = cpv::deserializeJson(model, buffer);
+	auto error = cpv::deserializeJson(model, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "convert failed");
 }
 
 TEST(TestJsonDeserializer, modelWithCorruptedJson) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	MyModel model;
-	auto error = cpv::deserializeJson(model, buffer);
+	auto error = cpv::deserializeJson(model, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "unexpected end of input");
 }
 
 TEST(TestJsonDeserializer, modelWithTypeUnmatchedJson) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
 			"requiredValue": "1"
 		}
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	MyModel model;
-	auto error = cpv::deserializeJson(model, buffer);
+	auto error = cpv::deserializeJson(model, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "convert failed");
 }
 
 TEST(TestJsonDeserializer, jsonDocument) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
 			"test-key": "test-value"
 		}
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	std::optional<cpv::JsonDocument> document;
-	auto error = cpv::deserializeJson(document, buffer);
+	auto error = cpv::deserializeJson(document, json);
 	ASSERT_FALSE(error.has_value());
 	ASSERT_TRUE(document.has_value());
 	std::string value;
-	ASSERT_TRUE(cpv::convertJsonValue(value, document->get_root()["test-key"]));
+	ASSERT_TRUE(cpv::convertJsonValue(value,
+		cpv::JsonValue(document->get_root(), json)["test-key"]));
 	ASSERT_EQ(value, "test-value");
-	ASSERT_FALSE(cpv::convertJsonValue(value, document->get_root()["not-exists"]));
+	ASSERT_FALSE(cpv::convertJsonValue(value,
+		cpv::JsonValue(document->get_root(), json)["not-exists"]));
 	ASSERT_EQ(value, "test-value");
 }
 
 TEST(TestJsonDeserializer, jsonDocumentWithCorruptedJson) {
-	std::string json(R"(
+	cpv::SharedString json(std::string_view(R"(
 		{
-	)");
-	seastar::temporary_buffer buffer(json.data(), json.size(), {});
+	)"));
 	std::optional<cpv::JsonDocument> document;
-	auto error = cpv::deserializeJson(document, buffer);
+	auto error = cpv::deserializeJson(document, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_FALSE(document.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "unexpected end of input");

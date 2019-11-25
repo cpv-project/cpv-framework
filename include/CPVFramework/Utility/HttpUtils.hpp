@@ -1,45 +1,44 @@
 #pragma once
-#include <string_view>
 #include <utility>
-#include <seastar/core/temporary_buffer.hh>
+#include "./SharedString.hpp"
 
 namespace cpv {
 	/**
 	 * Encode string for use in url,
-	 * may return original string and empty buffer if no change.
+	 * may return original string if not changed.
 	 * Notice: space will not replace to '+'.
 	 */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> urlEncode(std::string_view str);
+	SharedString urlEncode(SharedString&& str);
 
 	/**
 	 * Decode string from url parts,
-	 * may return original string and empty buffer if no change.
+	 * may return original string if not changed.
 	 * Notice:
 	 * it will ignore format errors.
 	 * '+' will replace to space for compatibility.
 	 * unicode characters such as "%u4e00" are unsupported.
 	 */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> urlDecode(std::string_view str);
+	SharedString urlDecode(SharedString&& str);
 
 	/**
 	 * Encode string for use in html,
-	 * may return original string and empty buffer if no change.
+	 * may return original string if not changed.
 	 * Notice:
 	 * characters except '<', '>', '&', '"', '\'' are keep as is,
 	 * please use "Content-Type: text/html; charset=utf-8" to support unicode characters.
 	 */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> htmlEncode(std::string_view str);
+	SharedString htmlEncode(SharedString&& str);
 
 	/**
 	 * Decode string from html content,
-	 * may return original string and empty buffer if no change.
+	 * may return original string if not changed.
 	 * Notice:
 	 * it will ignore format errors.
 	 * unicode characters such as "&#x4e00;" and "&#120171;" are supported.
 	 */
-	std::pair<std::string_view, seastar::temporary_buffer<char>> htmlDecode(std::string_view str);
+	SharedString htmlDecode(SharedString&& str);
 
 	/** Get mime type of file path (path can be extension only) */
-	std::string_view getMimeType(std::string_view path);
+	SharedString getMimeType(std::string_view path);
 }
 

@@ -1,42 +1,39 @@
 #pragma once
-#include <string_view>
 #include "../Allocators/StackAllocator.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./HttpConstantStrings.hpp"
 
 namespace cpv {
-	/**
-	 * Headers collection for http request
-	 * Notice: this collection only contains string_view, the storage is hold in HttpRequest
-	 */
+	/** Headers collection for http request */
 	class HttpRequestHeaders {
 	public:
 		// getters and setters for fixed members
-		std::string_view getHost() const { return host_; }
-		std::string_view getContentType() const { return contentType_; }
-		std::string_view getContentLength() const { return contentLength_; }
-		std::string_view getConnection() const { return connection_; }
-		std::string_view getPragma() const { return pragma_; }
-		std::string_view getUpgradeInsecureRequests() const { return upgradeInsecureRequests_; }
-		std::string_view getDNT() const { return dnt_; }
-		std::string_view getUserAgent() const { return userAgent_; }
-		std::string_view getAccept() const { return accept_; }
-		std::string_view getAcceptEncoding() const { return acceptEncoding_; }
-		std::string_view getAcceptLanguage() const { return acceptLanguage_; }
-		std::string_view getCookie() const { return cookie_; }
-		std::string_view getXRequestedWith() const { return xRequestedWith_; }
-		void setHost(std::string_view value) { host_ = value; }
-		void setContentType(std::string_view value) { contentType_ = value; }
-		void setContentLength(std::string_view value) { contentLength_ = value; }
-		void setConnection(std::string_view value) { connection_ = value; }
-		void setPragma(std::string_view value) { pragma_ = value; }
-		void setUpgradeInsecureRequests(std::string_view value) { upgradeInsecureRequests_ = value; }
-		void setDNT(std::string_view value) { dnt_ = value; }
-		void setUserAgent(std::string_view value) { userAgent_ = value; }
-		void setAccept(std::string_view value) { accept_ = value; }
-		void setAcceptEncoding(std::string_view value) { acceptEncoding_ = value; }
-		void setAcceptLanguage(std::string_view value) { acceptLanguage_ = value; }
-		void setCookie(std::string_view value) { cookie_ = value; }
-		void setXRequestedWith(std::string_view value) { xRequestedWith_ = value; }
+		const SharedString& getHost() const& { return host_; }
+		const SharedString& getContentType() const& { return contentType_; }
+		const SharedString& getContentLength() const& { return contentLength_; }
+		const SharedString& getConnection() const& { return connection_; }
+		const SharedString& getPragma() const& { return pragma_; }
+		const SharedString& getUpgradeInsecureRequests() const& { return upgradeInsecureRequests_; }
+		const SharedString& getDNT() const& { return dnt_; }
+		const SharedString& getUserAgent() const& { return userAgent_; }
+		const SharedString& getAccept() const& { return accept_; }
+		const SharedString& getAcceptEncoding() const& { return acceptEncoding_; }
+		const SharedString& getAcceptLanguage() const& { return acceptLanguage_; }
+		const SharedString& getCookie() const& { return cookie_; }
+		const SharedString& getXRequestedWith() const& { return xRequestedWith_; }
+		void setHost(SharedString&& value) { host_ = std::move(value); }
+		void setContentType(SharedString&& value) { contentType_ = std::move(value); }
+		void setContentLength(SharedString&& value) { contentLength_ = std::move(value); }
+		void setConnection(SharedString&& value) { connection_ = std::move(value); }
+		void setPragma(SharedString&& value) { pragma_ = std::move(value); }
+		void setUpgradeInsecureRequests(SharedString&& value) { upgradeInsecureRequests_ = std::move(value); }
+		void setDNT(SharedString&& value) { dnt_ = std::move(value); }
+		void setUserAgent(SharedString&& value) { userAgent_ = std::move(value); }
+		void setAccept(SharedString&& value) { accept_ = std::move(value); }
+		void setAcceptEncoding(SharedString&& value) { acceptEncoding_ = std::move(value); }
+		void setAcceptLanguage(SharedString&& value) { acceptLanguage_ = std::move(value); }
+		void setCookie(SharedString&& value) { cookie_ = std::move(value); }
+		void setXRequestedWith(SharedString&& value) { xRequestedWith_ = std::move(value); }
 		
 		/** Apply function to all headers */
 		template <class Func>
@@ -60,13 +57,13 @@ namespace cpv {
 		}
 		
 		/** Set header value */
-		void setHeader(std::string_view key, std::string_view value);
+		void setHeader(SharedString&& key, SharedString&& value);
 		
-		/** Get header value */
-		std::string_view getHeader(std::string_view key) const;
+		/** Get header value, return empty string if key not exists */
+		SharedString getHeader(const SharedString& key) const;
 		
 		/** Remove header */
-		void removeHeader(std::string_view key);
+		void removeHeader(const SharedString& key);
 		
 		/** Get maximum count of headers, may greater than actual count */
 		std::size_t maxSize() const;
@@ -88,20 +85,20 @@ namespace cpv {
 		friend class HttpRequestData;
 		
 	private:
-		StackAllocatedMap<std::string_view, std::string_view, 3> remainHeaders_;
-		std::string_view host_;
-		std::string_view contentType_;
-		std::string_view contentLength_;
-		std::string_view connection_;
-		std::string_view pragma_;
-		std::string_view upgradeInsecureRequests_;
-		std::string_view dnt_;
-		std::string_view userAgent_;
-		std::string_view accept_;
-		std::string_view acceptEncoding_;
-		std::string_view acceptLanguage_;
-		std::string_view cookie_;
-		std::string_view xRequestedWith_;
+		StackAllocatedMap<SharedString, SharedString, 3> remainHeaders_;
+		SharedString host_;
+		SharedString contentType_;
+		SharedString contentLength_;
+		SharedString connection_;
+		SharedString pragma_;
+		SharedString upgradeInsecureRequests_;
+		SharedString dnt_;
+		SharedString userAgent_;
+		SharedString accept_;
+		SharedString acceptEncoding_;
+		SharedString acceptLanguage_;
+		SharedString cookie_;
+		SharedString xRequestedWith_;
 	};
 }
 

@@ -33,26 +33,26 @@ namespace cpv {
 	namespace {
 		/** Static response strings */
 		namespace {
-			static const std::string ReachedBytesLimitationOfInitialRequestData(
+			static const constexpr char ReachedBytesLimitationOfInitialRequestData[] =
 				"HTTP/1.0 400 Bad Request\r\n"
 				"Content-Type: text/plain;charset=utf-8\r\n"
 				"Content-Length: 58\r\n"
 				"Connection: close\r\n\r\n"
-				"Error: reached bytes limitation of initial request data.\r\n");
+				"Error: reached bytes limitation of initial request data.\r\n";
 			
-			static const std::string ReachedPacketsLimitationOfInitialRequestData(
+			static const constexpr char ReachedPacketsLimitationOfInitialRequestData[] =
 				"HTTP/1.0 400 Bad Request\r\n"
 				"Content-Type: text/plain;charset=utf-8\r\n"
 				"Content-Length: 60\r\n"
 				"Connection: close\r\n\r\n"
-				"Error: reached packets limitation of initial request data.\r\n");
+				"Error: reached packets limitation of initial request data.\r\n";
 			
-			static const std::string InvalidHttpRequestFormat(
+			static const constexpr char InvalidHttpRequestFormat[] =
 				"HTTP/1.0 400 Bad Request\r\n"
 				"Content-Type: text/plain;charset=utf-8\r\n"
 				"Content-Length: 37\r\n"
 				"Connection: close\r\n\r\n"
-				"Error: invalid http request format.\r\n");
+				"Error: invalid http request format.\r\n";
 		}
 		
 		/**
@@ -70,17 +70,8 @@ namespace cpv {
 			#endif
 		})();
 		
-		/** Move temporary buffer to request if buffer not empty */
-		static inline void addUnderlyingBufferIfNotEmpty(
-			HttpRequest& request,
-			seastar::temporary_buffer<char>& buffer) {
-			if (CPV_UNLIKELY(buffer.size() > 0)) {
-				request.addUnderlyingBuffer(std::move(buffer));
-			}
-		}
-		
-		/** Get http version string from parser, return empty for version not supported */
-		static inline std::string_view getHttpVersionString(
+		/** Get http version string from parser */
+		static inline SharedString getHttpVersionString(
 			const internal::http_parser::http_parser& parser) {
 			if (CPV_LIKELY(parser.http_major == 1)) {
 				if (CPV_LIKELY(parser.http_minor == 1)) {
@@ -91,7 +82,12 @@ namespace cpv {
 					return constants::Http12;
 				}
 			}
-			return std::string_view();
+			return SharedStringBuilder(9)
+				.append("HTTP/")
+				.append(parser.http_major)
+				.append(".")
+				.append(parser.http_minor)
+				.build();
 		}
 	}
 	
@@ -283,7 +279,7 @@ namespace cpv {
 			std::size_t parsedSize = internal::http_parser::http_parser_execute(
 				&parser_,
 				this,
-				lastBuffer.get(),
+				lastBuffer.data(),
 				lastBuffer.size());
 			// check parse result
 			if (parsedSize != lastBuffer.size()) {
@@ -292,7 +288,7 @@ namespace cpv {
 					parsedSize > 1 &&
 					state_ == Http11ServerConnectionState::ReceiveRequestMessageComplete)) {
 					// received next request from pipeline
-					nextRequestBuffer_ = lastBuffer.share();
+					nextRequestBuffer_ = lastBuffer.buffer();
 					nextRequestBuffer_.trim_front(parsedSize - 1);
 				} else {
 					// parse error, log level is info because it may not cause by server
@@ -307,11 +303,6 @@ namespace cpv {
 					shutdown("invalid request format");
 					return seastar::make_ready_future<>();
 				}
-			}
-			// add underlying buffer to request
-			// if request is enqueued, then lastBuffer is shared to bodyBuffers
-			if (CPV_LIKELY(!receiveLoopData_.requestEnqueued)) {
-				newRequest_.addUnderlyingBuffer(std::move(lastBuffer));
 			}
 			// enqueue body buffers => enqueue request when headers completed => continue receiving
 			if (receiveLoopData_.bodyBuffers.empty()) {
@@ -391,7 +382,7 @@ namespace cpv {
 			if (CPV_LIKELY(lastErrorResponse_.empty() || !socket_.isConnected())) {
 				return seastar::make_ready_future<>();
 			}
-			return (socket_.out() << Packet(lastErrorResponse_))
+			return (socket_.out() << Packet(std::move(lastErrorResponse_)))
 				.then([this] { return socket_.out().flush(); })
 				.handle_exception([] (std::exception_ptr) { });
 		}
@@ -473,16 +464,10 @@ namespace cpv {
 		replyLoopData_.responseHeadersAppended = true;
 		auto& response = processingContext_.getResponse();
 		// set protocol version
-		std::string_view version = response.getVersion();
-		if (CPV_LIKELY(version.empty())) {
+		if (CPV_LIKELY(response.getVersion().empty())) {
 			// copy version from request
-			version = processingContext_.getRequest().getVersion();
-			if (CPV_UNLIKELY(version.empty())) {
-				// request version is unsupported
-				version = constants::Http10;
-			}
-			// store version for keepalive determination later
-			response.setVersion(version);
+			response.setVersion(
+				processingContext_.getRequest().getVersion().share());
 		}
 		// return a special status code for handler didn't set it
 		if (CPV_UNLIKELY(
@@ -494,7 +479,7 @@ namespace cpv {
 		// set date header
 		auto& responseHeaders = response.getHeaders();
 		if (CPV_LIKELY(responseHeaders.getDate().empty())) {
-			responseHeaders.setDate(formatNowForHttpHeader());
+			responseHeaders.setDate(SharedString::fromStatic(formatNowForHttpHeader()));
 		}
 		// set server header
 		if (CPV_LIKELY(responseHeaders.getServer().empty())) {
@@ -503,7 +488,7 @@ namespace cpv {
 		}
 		// set connection header
 		replyLoopData_.keepConnection = checkKeepaliveByConnnectionHeader();
-		auto connectionValue = responseHeaders.getConnection();
+		auto& connectionValue = responseHeaders.getConnection();
 		if (CPV_LIKELY(connectionValue.empty())) {
 			if (CPV_LIKELY(replyLoopData_.keepConnection)) {
 				responseHeaders.setConnection(constants::Keepalive);
@@ -518,29 +503,29 @@ namespace cpv {
 		}
 		// append response headers to packet
 		// manipulate fragments vector directly to avoid variant and boundary checks
-		auto& fragments = packet.getOrConvertToMultiple()->fragments;
-		std::size_t index = fragments.size();
-		fragments.resize(index + getResponseHeadersFragmentsCount());
-		fragments[index++] = Packet::toFragment(version);
-		fragments[index++] = Packet::toFragment(constants::Space);
-		fragments[index++] = Packet::toFragment(response.getStatusCode());
-		fragments[index++] = Packet::toFragment(constants::Space);
-		fragments[index++] = Packet::toFragment(response.getStatusMessage());
-		fragments[index++] = Packet::toFragment(constants::CRLF);
-		responseHeaders.foreach([&fragments, &index] (const auto& key, const auto& value) {
-			fragments[index++] = Packet::toFragment(key);
-			fragments[index++] = Packet::toFragment(constants::ColonSpace);
-			fragments[index++] = Packet::toFragment(value);
-			fragments[index++] = Packet::toFragment(constants::CRLF);
+		auto& fragments = packet.getOrConvertToMultiple();
+		fragments.fragments.reserve(
+			fragments.fragments.size() + getResponseHeadersFragmentsCount());
+		fragments.append(response.getVersion().share());
+		fragments.append(constants::Space);
+		fragments.append(response.getStatusCode().share());
+		fragments.append(constants::Space);
+		fragments.append(response.getStatusMessage().share());
+		fragments.append(constants::CRLF);
+		responseHeaders.foreach(
+			[&fragments] (const SharedString& key, const SharedString& value) {
+			fragments.append(key.share());
+			fragments.append(constants::ColonSpace);
+			fragments.append(value.share());
+			fragments.append(constants::CRLF);
 		});
-		fragments[index++] = Packet::toFragment(constants::CRLF);
-		fragments.resize(index); // reduce to actual fragments count
+		fragments.append(constants::CRLF);
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
 	bool Http11ServerConnection::checkKeepaliveByConnnectionHeader() const {
 		auto& requestHeaders = processingContext_.getRequest().getHeaders();
-		auto connectionValue = requestHeaders.getConnection();
+		auto& connectionValue = requestHeaders.getConnection();
 		if (CPV_LIKELY(connectionValue == constants::Keepalive)) {
 			// client wants to keepalive
 			// most browser will send connection header even for http 1.1
@@ -562,7 +547,7 @@ namespace cpv {
 	bool Http11ServerConnection::checkKeepaliveByContentLength() const {
 		// check whether content length is fixed or chunked
 		auto& responseHeaders = processingContext_.getResponse().getHeaders();
-		auto contentLengthValue = responseHeaders.getContentLength();
+		auto& contentLengthValue = responseHeaders.getContentLength();
 		if (CPV_UNLIKELY(contentLengthValue.empty())) {
 			// content length did not set, check transfer encoding
 			if (responseHeaders.getTransferEncoding() != constants::Chunked) {
@@ -614,13 +599,11 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
 			// the first time received the url
 			state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-			receiveLoopData_.urlView = std::string_view(data, size);
+			receiveLoopData_.url = SharedStringBuilder(
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// url splited in multiple packets, merge them to a temporary buffer
-			mergeContent(
-				receiveLoopData_.urlMerged,
-				receiveLoopData_.urlView,
-				std::string_view(data, size));
+			// url splited in multiple packets, merge them
+			receiveLoopData_.url.append({ data, size });
 		} else {
 			// state error
 			return -1;
@@ -632,22 +615,19 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// the first time received a new header field, store last header field and value
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerFieldMerged);
-			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerValueMerged);
 			newRequest_.setHeader(
-				receiveLoopData_.headerFieldView,
-				receiveLoopData_.headerValueView);
-			receiveLoopData_.headerFieldView = std::string_view(data, size);
+				receiveLoopData_.headerField.build(),
+				receiveLoopData_.headerValue.build());
+			receiveLoopData_.headerField = SharedStringBuilder(
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// the first time received the first header field
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			receiveLoopData_.headerFieldView = std::string_view(data, size);
+			receiveLoopData_.headerField = SharedStringBuilder(
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
-			// header field splited in multiple packets, merge them to a temporary buffer
-			mergeContent(
-				receiveLoopData_.headerFieldMerged,
-				receiveLoopData_.headerFieldView,
-				std::string_view(data, size));
+			// header field splited in multiple packets, merge them
+			receiveLoopData_.headerField.append({ data, size });
 		} else {
 			// state error
 			return -1;
@@ -659,13 +639,11 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
 			// the first time received a header value after header field
 			state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
-			receiveLoopData_.headerValueView = std::string_view(data, size);
+			receiveLoopData_.headerValue = SharedStringBuilder(
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// header value splited in multiple packets, merge them to a temporary buffer
-			mergeContent(
-				receiveLoopData_.headerValueMerged,
-				receiveLoopData_.headerValueView,
-				std::string_view(data, size));
+			// header value splited in multiple packets, merge them
+			receiveLoopData_.headerValue.append({ data, size });
 		} else {
 			// state error
 			return -1;
@@ -677,11 +655,9 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
 			// all headers received, store last header field and value
 			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerFieldMerged);
-			addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.headerValueMerged);
 			newRequest_.setHeader(
-				receiveLoopData_.headerFieldView,
-				receiveLoopData_.headerValueView);
+				receiveLoopData_.headerField.build(),
+				receiveLoopData_.headerValue.build());
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
 			// no headers but url
 			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
@@ -690,10 +666,10 @@ namespace cpv {
 			return -1;
 		}
 		// store method, url and version
-		addUnderlyingBufferIfNotEmpty(newRequest_, receiveLoopData_.urlMerged);
-		newRequest_.setMethod(internal::http_parser::http_method_str(
-			static_cast<enum internal::http_parser::http_method>(parser_.method)));
-		newRequest_.setUrl(receiveLoopData_.urlView);
+		newRequest_.setMethod(SharedString::fromStatic(
+			internal::http_parser::http_method_str(
+				static_cast<enum internal::http_parser::http_method>(parser_.method))));
+		newRequest_.setUrl(receiveLoopData_.url.build());
 		newRequest_.setVersion(getHttpVersionString(parser_));
 		return 0;
 	}
@@ -704,14 +680,12 @@ namespace cpv {
 		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
 			// received initial body, share lastBuffer to bodyBuffers
 			state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			auto& lastBuffer = receiveLoopData_.lastBuffer;
 			receiveLoopData_.bodyBuffers.emplace_back(
-				lastBuffer.share(data - lastBuffer.get(), size));
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
 			// received following body, share lastBuffer to bodyBuffers
-			auto& lastBuffer = receiveLoopData_.lastBuffer;
 			receiveLoopData_.bodyBuffers.emplace_back(
-				lastBuffer.share(data - lastBuffer.get(), size));
+				receiveLoopData_.lastBuffer.share({ data, size }));
 		} else {
 			// state error
 			return -1;

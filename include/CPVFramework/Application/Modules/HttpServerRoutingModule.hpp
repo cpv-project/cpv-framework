@@ -13,15 +13,18 @@ namespace cpv {
 	 *     module.route(constants::GET, "/", [] (HttpContext& context) {
 	 *         return extensions::reply(context.getResponse(), "index page");
 	 *     });
-	 *     // pass a tuple to route function can make it retrive parameters automatically.
-	 *     // integer means index of path fragments: 1 => request.getUri().getPathFragment(1)
-	 *     // string means key of query parameters: "key" => request.getUri().getQueryParameter("key")
-	 *     // you can make it support more types by provide cpv::extensions::getParameter(request, yourType).
-	 *     // please remove space between / and * (comment syntax problem).
-	 *     module.route(constants::GET, "/get/ *", std::make_tuple(1),
-	 *         [] (HttpContext& context, std::string_view id) {
-	 *             return extensions::reply(context.getResponse(), id);
-	 *         });
+	 *     // pass a tuple to route function can make it retrive parameters automatically
+	 *     // for more information please see:
+	 *     // ../HttpServer/Handlers/HttpServerRequestParametersFunctionHandler.hpp
+	 *     // please remove space between / and * (comment syntax problem)
+	 *     using namespace cpv::extensions::http_context_parameters;
+	 *     module.route(constants::GET, "/get/ *",
+	 *         std::make_tuple(PathFragment(1), Query("abc")),
+	 *         [] (HttpContext& context, SharedString id, SharedString name) {
+	 *         Packet p;
+	 *         p.append(std::move(id)).append(": ").append(std::move(name));
+	 *         return extensions::reply(context.getResponse(), std::move(p));
+	 *     });
 	 * });
 	 * ```
 	 * 

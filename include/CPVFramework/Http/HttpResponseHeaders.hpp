@@ -1,44 +1,41 @@
 #pragma once
-#include <string_view>
 #include <utility>
 #include "../Allocators/StackAllocator.hpp"
+#include "../Utility/SharedString.hpp"
 #include "./HttpConstantStrings.hpp"
 
 namespace cpv {
-	/**
-	 * Headers collection for http response
-	 * Notice: this collection only contains string_view, the storage is hold in HttpResponse
-	 */
+	/** Headers collection for http response */
 	class HttpResponseHeaders {
 	public:
 		using AdditionHeadersType = StackAllocatedVector<
-			std::pair<std::string_view, std::string_view>, 3>;
+			std::pair<SharedString, SharedString>, 3>;
 		
 		// getters and setters for fixed members
-		std::string_view getDate() const { return date_; }
-		std::string_view getContentType() const { return contentType_; }
-		std::string_view getContentLength() const { return contentLength_; }
-		std::string_view getContentEncoding() const { return contentEncoding_; }
-		std::string_view getTransferEncoding() const { return transferEncoding_; }
-		std::string_view getConnection() const { return connection_; }
-		std::string_view getServer() const { return server_; }
-		std::string_view getVary() const { return vary_; }
-		std::string_view getETag() const { return etag_; }
-		std::string_view getCacheControl() const { return cacheControl_; }
-		std::string_view getExpires() const { return expires_; }
-		std::string_view getLastModified() const { return lastModified_; }
-		void setDate(std::string_view value) { date_ = value; }
-		void setContentType(std::string_view value) { contentType_ = value; }
-		void setContentLength(std::string_view value) { contentLength_ = value; }
-		void setContentEncoding(std::string_view value) { contentEncoding_ = value; }
-		void setTransferEncoding(std::string_view value) { transferEncoding_ = value; }
-		void setConnection(std::string_view value) { connection_ = value; }
-		void setServer(std::string_view value) { server_ = value; }
-		void setVary(std::string_view value) { vary_ = value; }
-		void setETag(std::string_view value) { etag_ = value; }
-		void setCacheControl(std::string_view value) { cacheControl_ = value; }
-		void setExpires(std::string_view value) { expires_ = value; }
-		void setLastModified(std::string_view value) { lastModified_ = value; }
+		const SharedString& getDate() const& { return date_; }
+		const SharedString& getContentType() const& { return contentType_; }
+		const SharedString& getContentLength() const& { return contentLength_; }
+		const SharedString& getContentEncoding() const& { return contentEncoding_; }
+		const SharedString& getTransferEncoding() const& { return transferEncoding_; }
+		const SharedString& getConnection() const& { return connection_; }
+		const SharedString& getServer() const& { return server_; }
+		const SharedString& getVary() const& { return vary_; }
+		const SharedString& getETag() const& { return etag_; }
+		const SharedString& getCacheControl() const& { return cacheControl_; }
+		const SharedString& getExpires() const& { return expires_; }
+		const SharedString& getLastModified() const& { return lastModified_; }
+		void setDate(SharedString&& value) { date_ = std::move(value); }
+		void setContentType(SharedString&& value) { contentType_ = std::move(value); }
+		void setContentLength(SharedString&& value) { contentLength_ = std::move(value); }
+		void setContentEncoding(SharedString&& value) { contentEncoding_ = std::move(value); }
+		void setTransferEncoding(SharedString&& value) { transferEncoding_ = std::move(value); }
+		void setConnection(SharedString&& value) { connection_ = std::move(value); }
+		void setServer(SharedString&& value) { server_ = std::move(value); }
+		void setVary(SharedString&& value) { vary_ = std::move(value); }
+		void setETag(SharedString&& value) { etag_ = std::move(value); }
+		void setCacheControl(SharedString&& value) { cacheControl_ = std::move(value); }
+		void setExpires(SharedString&& value) { expires_ = std::move(value); }
+		void setLastModified(SharedString&& value) { lastModified_ = std::move(value); }
 		
 		/** Apply function to all headers */
 		template <class Func>
@@ -64,16 +61,16 @@ namespace cpv {
 		}
 		
 		/** Set header value */
-		void setHeader(std::string_view key, std::string_view value);
+		void setHeader(SharedString&& key, SharedString&& value);
 		
-		/** Get header value */
-		std::string_view getHeader(std::string_view key) const;
+		/** Get header value, return empty string if key not exists */
+		SharedString getHeader(const SharedString& key) const;
 		
 		/** Remove header */
-		void removeHeader(std::string_view key);
+		void removeHeader(const SharedString& key);
 		
 		/** Add header that may occurs multiple times */
-		void addAdditionHeader(std::string_view key, std::string_view value);
+		void addAdditionHeader(SharedString&& key, SharedString&& value);
 		
 		/** Get headers that may occurs multiple times */
 		AdditionHeadersType& getAdditionHeaders() &;
@@ -99,20 +96,20 @@ namespace cpv {
 		friend class HttpResponseData;
 		
 	private:
-		StackAllocatedMap<std::string_view, std::string_view, 3> remainHeaders_;
+		StackAllocatedMap<SharedString, SharedString, 3> remainHeaders_;
 		AdditionHeadersType additionHeaders_; // mostly for Set-Cookie
-		std::string_view date_;
-		std::string_view contentType_;
-		std::string_view contentLength_;
-		std::string_view contentEncoding_;
-		std::string_view transferEncoding_;
-		std::string_view connection_;
-		std::string_view server_;
-		std::string_view vary_;
-		std::string_view etag_;
-		std::string_view cacheControl_;
-		std::string_view expires_;
-		std::string_view lastModified_;
+		SharedString date_;
+		SharedString contentType_;
+		SharedString contentLength_;
+		SharedString contentEncoding_;
+		SharedString transferEncoding_;
+		SharedString connection_;
+		SharedString server_;
+		SharedString vary_;
+		SharedString etag_;
+		SharedString cacheControl_;
+		SharedString expires_;
+		SharedString lastModified_;
 	};
 }
 

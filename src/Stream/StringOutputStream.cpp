@@ -12,10 +12,10 @@ namespace cpv {
 	seastar::future<> StringOutputStream::write(Packet&& data) {
 		if (auto ptr = data.getIfSingle()) {
 			auto& fragment = ptr->fragment;
-			str_->append(fragment.base, fragment.size);
+			builder_->append({ fragment.base, fragment.size });
 		} else if (auto ptr = data.getIfMultiple()) {
 			for (auto& fragment : ptr->fragments) {
-				str_->append(fragment.base, fragment.size);
+				builder_->append({ fragment.base, fragment.size });
 			}
 		}
 		return seastar::make_ready_future<>();
@@ -23,16 +23,17 @@ namespace cpv {
 	
 	/** For Reusable<> */
 	void StringOutputStream::freeResources() {
-		str_ = {};
+		builder_ = {};
 	}
 	
 	/** For Reusable<> */
-	void StringOutputStream::reset(const seastar::lw_shared_ptr<std::string>& str) {
-		str_ = str;
+	void StringOutputStream::reset(
+		const seastar::lw_shared_ptr<SharedStringBuilder>& builder) {
+		builder_ = builder;
 	}
 	
 	/** Constructor */
 	StringOutputStream::StringOutputStream() :
-		str_() { }
+		builder_() { }
 }
 

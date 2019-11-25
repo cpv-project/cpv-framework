@@ -1,22 +1,18 @@
 #pragma once
-#include <string_view>
 #include <optional>
 #include <seastar/core/future.hh>
-#include <seastar/core/temporary_buffer.hh>
+#include "../Utility/SharedString.hpp"
 
 namespace cpv {
 	/** Contains data read from stream */
 	struct InputStreamReadResult {
 		/** Data read from stream */
-		seastar::temporary_buffer<char> data;
+		SharedString data;
 		/** Whether data is the last part of stream */
 		bool isEnd;
 		
-		/** Get string view of the data read from stream */
-		std::string_view view() const { return std::string_view(data.get(), data.size()); }
-		
 		/** Constructor */
-		InputStreamReadResult(seastar::temporary_buffer<char>&& dataVal, bool isEndVal) :
+		InputStreamReadResult(SharedString&& dataVal, bool isEndVal) :
 			data(std::move(dataVal)), isEnd(isEndVal) { }
 		
 		/** Constructor */

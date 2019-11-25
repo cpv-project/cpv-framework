@@ -51,10 +51,12 @@ TEST(TestSharedString, share) {
 	cpv::SharedString strShared = str.share();
 	cpv::SharedString strAbc = str.share(0, 3);
 	cpv::SharedString strDef = str.share(4);
+	cpv::SharedString strCde = str.share(str.view().substr(2, 4));
 	ASSERT_EQ(str, "abc def");
 	ASSERT_EQ(strShared, "abc def");
 	ASSERT_EQ(strAbc, "abc");
 	ASSERT_EQ(strDef, "def");
+	ASSERT_EQ(strCde, "c de");
 }
 
 TEST(TestSharedString, compare) {

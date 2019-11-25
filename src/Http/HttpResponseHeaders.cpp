@@ -5,7 +5,7 @@
 namespace cpv {
 	class HttpResponseHeaders::Internal {
 	public:
-		using FixedMembersType = std::unordered_map<std::string_view, std::string_view(HttpResponseHeaders::*)>;
+		using FixedMembersType = std::unordered_map<std::string_view, SharedString(HttpResponseHeaders::*)>;
 		static FixedMembersType FixedMembers;
 	};
 	
@@ -25,34 +25,34 @@ namespace cpv {
 	});
 	
 	/** Set header value */
-	void HttpResponseHeaders::setHeader(std::string_view key, std::string_view value) {
+	void HttpResponseHeaders::setHeader(SharedString&& key, SharedString&& value) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			this->*(it->second) = value;
+			this->*(it->second) = std::move(value);
 		} else {
-			remainHeaders_.insert_or_assign(key, value);
+			remainHeaders_.insert_or_assign(std::move(key), std::move(value));
 		}
 	}
 	
 	/** Get header value */
-	std::string_view HttpResponseHeaders::getHeader(std::string_view key) const {
+	SharedString HttpResponseHeaders::getHeader(const SharedString& key) const {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			return this->*(it->second);
+			return (this->*(it->second)).share();
 		} else {
 			auto rit = remainHeaders_.find(key);
 			if (rit != remainHeaders_.end()) {
-				return rit->second;
+				return rit->second.share();
 			}
-			return { };
+			return {};
 		}
 	}
 	
 	/** Remove header */
-	void HttpResponseHeaders::removeHeader(std::string_view key) {
+	void HttpResponseHeaders::removeHeader(const SharedString& key) {
 		auto it = Internal::FixedMembers.find(key);
 		if (CPV_LIKELY(it != Internal::FixedMembers.end())) {
-			this->*(it->second) = { };
+			this->*(it->second) = {};
 		} else {
 			remainHeaders_.erase(key);
 		}
@@ -60,8 +60,8 @@ namespace cpv {
 	
 	/** Add header that may occurs multiple times */
 	void HttpResponseHeaders::addAdditionHeader(
-		std::string_view key, std::string_view value) {
-		additionHeaders_.emplace_back(key, value);
+		SharedString&& key, SharedString&& value) {
+		additionHeaders_.emplace_back(std::move(key), std::move(value));
 	}
 	
 	/** Get headers that may occurs multiple times */

@@ -1,5 +1,4 @@
 #include <array>
-#include <fstream>
 #include <seastar/core/reactor.hh>
 #include <seastar/core/fstream.hh>
 #include <seastar/core/future-util.hh>
@@ -20,96 +19,78 @@ namespace cpv {
 	public:
 		/** File content and modified time */
 		struct FileCacheEntry {
-			seastar::temporary_buffer<char> content;
-			seastar::temporary_buffer<char> lastModified;
+			SharedString content;
+			SharedString lastModified;
 
 			/** Constructor */
 			FileCacheEntry(
-				seastar::temporary_buffer<char>&& contentVal,
-				seastar::temporary_buffer<char>&& lastModifiedVal) :
+				SharedString&& contentVal,
+				SharedString&& lastModifiedVal) :
 				content(std::move(contentVal)),
 				lastModified(std::move(lastModifiedVal)) { }
 
 			/** Reply to http response with 304 or 200 */
 			seastar::future<> reply(
 				HttpResponse& response,
-				std::string_view mimeType,
-				std::string_view cacheControl,
-				std::string_view ifModifiedSinceHeader) {
+				SharedString&& mimeType,
+				SharedString&& ifModifiedSinceHeader,
+				const SharedString& cacheControl) {
 				// set Cache-Control if present
 				auto& headers = response.getHeaders();
 				if (!cacheControl.empty()) {
-					headers.setCacheControl(cacheControl);
+					headers.setCacheControl(cacheControl.share());
 				}
 				// check if we can return 304 not modified
-				if (ifModifiedSinceHeader ==
-					std::string_view(lastModified.get(), lastModified.size())) {
+				if (ifModifiedSinceHeader == lastModified) {
 					response.setStatusCode(constants::_304);
 					response.setStatusMessage(constants::NotModified);
-					headers.setContentType(mimeType);
-					headers.setLastModified(ifModifiedSinceHeader);
+					headers.setContentType(std::move(mimeType));
+					headers.setLastModified(std::move(ifModifiedSinceHeader));
 					return seastar::make_ready_future<>();
 				}
 				// return cached file content
-				headers.setLastModified(response.addUnderlyingBuffer(lastModified.share()));
-				return extensions::reply(response, content.share(), mimeType);
+				headers.setLastModified(lastModified.share());
+				return extensions::reply(response, content.share(), std::move(mimeType));
 			}
 		};
 
-		std::string urlBase;
-		std::string pathBase;
-		std::string cacheControl;
+		SharedString urlBase;
+		SharedString pathBase;
+		SharedString cacheControl;
 		std::size_t maxCacheFileSize;
-		LRUCache<std::string, FileCacheEntry> fileCache;
+		LRUCache<SharedString, FileCacheEntry> fileCache;
 
 		/** Constructor */
 		HttpServerRequestStaticFileHandlerData(
-			std::string_view urlBaseVal,
-			std::string_view pathBaseVal,
-			std::string_view cacheControlVal,
+			SharedString&& urlBaseVal,
+			SharedString&& pathBaseVal,
+			SharedString&& cacheControlVal,
 			std::size_t maxCacheFileEntitiesVal,
 			std::size_t maxCacheFileSizeVal) :
-			urlBase(trimString<false, true>(urlBaseVal, '/')),
-			pathBase(trimString<false, true>(pathBaseVal, '/')),
-			cacheControl(cacheControlVal),
+			urlBase(std::move(urlBaseVal)),
+			pathBase(std::move(pathBaseVal)),
+			cacheControl(std::move(cacheControlVal)),
 			maxCacheFileSize(maxCacheFileSizeVal),
-			fileCache(maxCacheFileEntitiesVal) { }
+			fileCache(maxCacheFileEntitiesVal) {
+			urlBase.trim(trimString<false, true>(urlBase, "/\\"));
+			pathBase.trim(trimString<false, true>(urlBase, "/\\"));
+		}
 	};
 
 	namespace {
 		/** Suffix of gzip compressed file */
-		static const constexpr std::string_view CompressedFileSuffix = ".gz";
+		static const constexpr char CompressedFileSuffix[] = ".gz";
 		/** Encoding string of gzip compressed content */
-		static const constexpr std::string_view CompressEncoding = "gzip";
+		static const constexpr char CompressEncoding[] = "gzip";
 		/** Prefix for Range header, only bytes is supported */
-		static const constexpr std::string_view RangePrefix = "bytes=";
+		static const constexpr char RangePrefix[] = "bytes=";
 
 		/** Class for reply content of static file, allocate in once */
 		class StaticFileReplier {
 		public:
-			/** Initialize after memory location is fixed */
-			void init() {
-				compressedPath_ = filePathStorage_;
-				filePath_ = std::string_view(
-					filePathStorage_.data(),
-					filePathStorage_.size() - CompressedFileSuffix.size());
-				if (startsWith(rangeHeader_, RangePrefix)) {
-					// parse range header, multiple range is not supported for now
-					std::string_view rangeStr = rangeHeader_.substr(RangePrefix.size());
-					std::size_t pos = rangeStr.find_first_of('-');
-					if (pos != rangeStr.npos) {
-						loadIntFromDec(rangeStr.data(), pos, range_.first);
-						std::string_view lastStr = rangeStr.substr(pos + 1);
-						if (!lastStr.empty()) {
-							loadIntFromDec(lastStr.data(), lastStr.size(), range_.second);
-						}
-					}
-				}
-			}
-
 			/** Execute reply operation */
 			seastar::future<> execute() {
-				std::string_view path = supportCompress_ ? compressedPath_ : filePath_;
+				auto& path = getPath();
 				return seastar::engine().file_type(seastar::sstring(path.data(), path.size()))
 				.then([this] (auto type) {
 					if (!type || *type == seastar::directory_entry_type::directory) {
@@ -121,7 +102,7 @@ namespace cpv {
 							return (*next_)->handle(context_, next_ + 1);
 						}
 					}
-					std::string_view path = supportCompress_ ? compressedPath_ : filePath_;
+					auto& path = getPath();
 					return seastar::open_file_dma(
 						seastar::sstring(path.data(), path.size()), seastar::open_flags::ro)
 					.then([this] (seastar::file f) {
@@ -132,20 +113,19 @@ namespace cpv {
 						auto& response = context_.getResponse();
 						auto& headers = response.getHeaders();
 						if (!data_.cacheControl.empty()) {
-							headers.setCacheControl(data_.cacheControl);
+							headers.setCacheControl(data_.cacheControl.share());
 						}
 						// check if we can return 304 not modified
 						std::string_view lastModifiedStr = formatTimeForHttpHeader(st.st_mtime);
 						if (ifModifiedSinceHeader_ == lastModifiedStr) {
 							response.setStatusCode(constants::_304);
 							response.setStatusMessage(constants::NotModified);
-							headers.setContentType(mimeType_);
-							headers.setLastModified(ifModifiedSinceHeader_);
+							headers.setContentType(std::move(mimeType_));
+							headers.setLastModified(std::move(ifModifiedSinceHeader_));
 							return seastar::make_ready_future<>();
 						}
-						// allocate temporary buffer for Last-Modified header
-						seastar::temporary_buffer<char> lastModified(
-							lastModifiedStr.data(), lastModifiedStr.size());
+						// allocate string for Last-Modified header
+						SharedString lastModified(lastModifiedStr);
 						// set Content-Encoding if compressed file is used
 						if (supportCompress_) {
 							headers.setContentEncoding(CompressEncoding);
@@ -159,15 +139,14 @@ namespace cpv {
 								[this, lastModified=std::move(lastModified)] (auto buf) mutable {
 								// store file content to cache
 								data_.fileCache.set(
-									supportCompress_ ? compressedPath_ : filePath_,
-									HttpServerRequestStaticFileHandlerData::FileCacheEntry(
-										buf.share(), lastModified.share()));
+									getPath().share(), getPath().share(),
+									{ buf.share(), lastModified.share() });
 								// set Last-Modified header
 								auto& response = context_.getResponse();
 								auto& headers = response.getHeaders();
-								headers.setLastModified(
-									response.addUnderlyingBuffer(std::move(lastModified)));
-								return extensions::reply(response, std::move(buf), mimeType_);
+								headers.setLastModified(std::move(lastModified));
+								return extensions::reply(response,
+									std::move(buf), std::move(mimeType_));
 							});
 						}
 						// TODO
@@ -178,22 +157,22 @@ namespace cpv {
 
 			/** Constructor */
 			StaticFileReplier(
-				const std::string& filePathStorage,
+				SharedString&& filePath,
+				SharedString&& compressedPath,
 				bool supportCompress,
-				std::string_view rangeHeader,
-				std::string_view mimeType,
-				std::string_view ifModifiedSinceHeader,
+				SharedString&& rangeHeader,
+				SharedString&& mimeType,
+				SharedString&& ifModifiedSinceHeader,
 				HttpServerRequestStaticFileHandlerData& data,
 				HttpContext& context,
 				HttpServerRequestHandlerIterator next) :
-				filePathStorage_(filePathStorage),
-				filePath_(), // assign after allocated to avoid sso invalidate
-				compressedPath_(), // same as above
+				filePath_(std::move(filePath)),
+				compressedPath_(std::move(compressedPath)),
 				supportCompress_(supportCompress),
-				rangeHeader_(rangeHeader),
-				range_(0, std::numeric_limits<std::size_t>::max()),
-				mimeType_(mimeType),
-				ifModifiedSinceHeader_(ifModifiedSinceHeader),
+				rangeHeader_(std::move(rangeHeader)),
+				range_(parseRangeHeader()),
+				mimeType_(std::move(mimeType)),
+				ifModifiedSinceHeader_(std::move(ifModifiedSinceHeader)),
 				data_(data),
 				context_(context),
 				next_(next),
@@ -201,14 +180,48 @@ namespace cpv {
 				fileStream_() { }
 
 		private:
-			std::string filePathStorage_;
-			std::string_view filePath_;
-			std::string_view compressedPath_;
+			/** Get file path for execute */
+			const SharedString& getPath() const {
+				return supportCompress_ ? compressedPath_ : filePath_;
+			}
+
+			/** Parse "Range: bytes=from-to" or "Range: bytes=from-" */
+			std::pair<std::size_t, std::size_t> parseRangeHeader() const {
+				if (!startsWith(rangeHeader_, RangePrefix)) {
+					return { 0, std::numeric_limits<std::size_t>::max() };
+				}
+				std::string_view rangeStr = rangeHeader_.view().substr(sizeof(RangePrefix) - 1);
+				if (rangeStr.find_first_of(',') != rangeStr.npos) {
+					// multiple range is unsupported for now
+					return { 0, std::numeric_limits<std::size_t>::max() };
+				}
+				std::size_t pos = rangeStr.find_first_of('-');
+				if (pos == rangeStr.npos) {
+					return { 0, std::numeric_limits<std::size_t>::max() };
+				}
+				std::size_t from = 0;
+				std::size_t to = 0;
+				if (!loadIntFromDec(rangeStr.data(), pos, from)) {
+					return { 0, std::numeric_limits<std::size_t>::max() };
+				}
+				std::string_view lastStr = rangeStr.substr(pos + 1);
+				if (lastStr.empty()) {
+					return { from, std::numeric_limits<std::size_t>::max() };
+				}
+				if (!loadIntFromDec(lastStr.data(), lastStr.size(), to) || from > to) {
+					return { 0, std::numeric_limits<std::size_t>::max() };
+				}
+				return { from, to };
+			}
+
+		private:
+			SharedString filePath_;
+			SharedString compressedPath_;
 			bool supportCompress_;
-			std::string_view rangeHeader_;
+			SharedString rangeHeader_;
 			std::pair<std::size_t, std::size_t> range_;
-			std::string_view mimeType_;
-			std::string_view ifModifiedSinceHeader_;
+			SharedString mimeType_;
+			SharedString ifModifiedSinceHeader_;
 			HttpServerRequestStaticFileHandlerData& data_;
 			HttpContext& context_;
 			HttpServerRequestHandlerIterator next_;
@@ -220,9 +233,9 @@ namespace cpv {
 	/** Return content of request file */
 	seastar::future<> HttpServerRequestStaticFileHandler::handle(
 		HttpContext& context,
-		const HttpServerRequestHandlerIterator& next) const {
+		HttpServerRequestHandlerIterator next) const {
 		auto& request = context.getRequest();
-		std::string_view path = request.getUri().getPath();
+		auto& path = request.getUri().getPath();
 		// check url base
 		// this check is not necessary when register static file handler with
 		// routing handler, but it's cheap so keep it for safety
@@ -230,7 +243,7 @@ namespace cpv {
 			return (*next)->handle(context, next + 1);
 		}
 		// validate relative path is starts with /
-		std::string_view relPath = path.substr(data_->urlBase.size());
+		std::string_view relPath = path.view().substr(data_->urlBase.size());
 		if (CPV_UNLIKELY(relPath.empty() || relPath.front() != '/')) {
 			return (*next)->handle(context, next + 1);
 		}
@@ -239,40 +252,44 @@ namespace cpv {
 			return (*next)->handle(context, next + 1);
 		}
 		// generate file path (and detect is compression supported)
-		thread_local static std::string tmpStorage;
-		tmpStorage.clear();
-		tmpStorage.append(data_->pathBase).append(relPath).append(CompressedFileSuffix);
+		thread_local static SharedStringBuilder pathBuilder;
+		pathBuilder.clear();
+		pathBuilder.append(data_->pathBase).append(relPath).append(CompressedFileSuffix);
 		auto& headers = request.getHeaders();
 		bool supportCompress = (
-			headers.getAcceptEncoding().find(CompressEncoding) != std::string_view::npos);
-		std::string_view rangeHeader = headers.getHeader(constants::Range);
-		std::string_view ifModifiedSinceHeader = (
-			headers.getHeader(constants::IfModifiedSince));
+			headers.getAcceptEncoding().view().find(CompressEncoding) !=
+			std::string_view::npos);
+		SharedString rangeHeader = headers.getHeader(constants::Range);
+		SharedString ifModifiedSinceHeader = headers.getHeader(constants::IfModifiedSince);
 		// get file content from cache if appropriate
 		auto& response = context.getResponse();
-		std::string_view mimeType = getMimeType(relPath);
+		SharedString mimeType = getMimeType(relPath);
 		if (data_->fileCache.maxSize() > 0 && rangeHeader.empty()) {
 			HttpServerRequestStaticFileHandlerData::FileCacheEntry* entry = nullptr;
 			if (supportCompress) {
-				entry = data_->fileCache.get(tmpStorage);
+				entry = data_->fileCache.get(SharedString::fromStatic(pathBuilder.view()));
 				if (entry != nullptr) {
-					return entry->reply(response, mimeType,
-						data_->cacheControl, ifModifiedSinceHeader);
+					return entry->reply(response, std::move(mimeType),
+						std::move(ifModifiedSinceHeader), data_->cacheControl);
 				}
 			}
-			entry = data_->fileCache.get(std::string_view(
-				tmpStorage.data(), tmpStorage.size() - CompressedFileSuffix.size()));
+			entry = data_->fileCache.get(SharedString::fromStatic(
+				pathBuilder.view().substr(0,
+					pathBuilder.size() - sizeof(CompressedFileSuffix) - 1)));
 			if (entry != nullptr) {
-				return entry->reply(response, mimeType,
-					data_->cacheControl, ifModifiedSinceHeader);
+				return entry->reply(response, std::move(mimeType),
+					std::move(ifModifiedSinceHeader), data_->cacheControl);
 			}
 		}
 		// get file content from disk
+		SharedString compressedPath(pathBuilder.view());
+		SharedString filePath = compressedPath.share(
+			0, compressedPath.size() - sizeof(CompressedFileSuffix) - 1);
 		return seastar::do_with(StaticFileReplier(
-			tmpStorage, supportCompress, rangeHeader, mimeType,
-			ifModifiedSinceHeader, *data_, context, next),
+			std::move(filePath), std::move(compressedPath), supportCompress,
+			std::move(rangeHeader), std::move(mimeType), std::move(ifModifiedSinceHeader),
+			*data_, context, next),
 			[] (StaticFileReplier& reply) {
-			reply.init();
 			return reply.execute();
 		});
 	}
@@ -284,13 +301,17 @@ namespace cpv {
 
 	/** Constructor */
 	HttpServerRequestStaticFileHandler::HttpServerRequestStaticFileHandler(
-		std::string_view urlBase,
-		std::string_view pathBase,
-		std::string_view cacheControl,
+		SharedString&& urlBase,
+		SharedString&& pathBase,
+		SharedString&& cacheControl,
 		std::size_t maxCacheFileEntities,
 		std::size_t maxCacheFileSize) :
 		data_(std::make_unique<HttpServerRequestStaticFileHandlerData>(
-			urlBase, pathBase, cacheControl, maxCacheFileEntities, maxCacheFileSize)) { }
+			std::move(urlBase),
+			std::move(pathBase),
+			std::move(cacheControl),
+			maxCacheFileEntities,
+			maxCacheFileSize)) { }
 
 	/** Move constructor (for incomplete member type) */
 	HttpServerRequestStaticFileHandler::HttpServerRequestStaticFileHandler(

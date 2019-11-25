@@ -15,7 +15,7 @@ namespace cpv {
 		/** Return 500 internal server error */
 		seastar::future<> handle(
 			HttpContext& context,
-			const HttpServerRequestHandlerIterator& next) const override;
+			HttpServerRequestHandlerIterator next) const override;
 
 		/** Constructor */
 		explicit HttpServerRequest500Handler(seastar::shared_ptr<Logger> logger);

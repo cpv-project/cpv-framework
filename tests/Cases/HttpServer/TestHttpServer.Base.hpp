@@ -17,7 +17,7 @@ namespace cpv::gtest {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator&) const override;
+			cpv::HttpServerRequestHandlerIterator) const override;
 	};
 	
 	/** Handler that echo request body in response body */
@@ -25,7 +25,7 @@ namespace cpv::gtest {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator&) const override;
+			cpv::HttpServerRequestHandlerIterator) const override;
 	};
 	
 	/** Handler that reply response with body but without content length header */
@@ -33,7 +33,7 @@ namespace cpv::gtest {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator&) const override;
+			cpv::HttpServerRequestHandlerIterator) const override;
 	};
 	
 	/** Handler that reply response with body but size not matched to content length header */
@@ -41,7 +41,7 @@ namespace cpv::gtest {
 	public:
 		seastar::future<> handle(
 			cpv::HttpContext& context,
-			const cpv::HttpServerRequestHandlerIterator&) const override;
+			cpv::HttpServerRequestHandlerIterator) const override;
 	};
 }
 

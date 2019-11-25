@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <utility>
-#include <string>
 #include <chrono>
+#include "./SharedString.hpp"
 
 namespace cpv {
 	using UUIDDataType = std::pair<std::uint64_t, std::uint64_t>;
@@ -11,10 +11,10 @@ namespace cpv {
 	static const std::uint8_t RandomUUIDVersion = 4;
 
 	/** Set the uuid by it's string representation */
-	UUIDDataType strToUUID(const std::string& str);
+	UUIDDataType strToUUID(std::string_view str);
 
 	/** Get the string representation of uuid */
-	std::string uuidToStr(const UUIDDataType& uuid);
+	SharedString uuidToStr(const UUIDDataType& uuid);
 
 	/** Make a empty uuid */
 	UUIDDataType makeEmptyUUID();

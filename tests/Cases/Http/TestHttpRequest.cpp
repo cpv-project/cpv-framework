@@ -10,11 +10,7 @@ TEST_FUTURE(TestHttpRequest, basic) {
 	request.setMethod("GET");
 	request.setUrl("/test");
 	request.setVersion("HTTP/1.1");
-	seastar::temporary_buffer buf("abc asd", 7);
-	std::string_view key(buf.get(), 3);
-	std::string_view value(buf.get() + 4, 3);
-	request.setHeader("all", request.addUnderlyingBuffer(std::move(buf)));
-	request.setHeader(key, value);
+	request.setHeader(cpv::SharedString(std::string_view("abc")), "asd");
 	request.setBodyStream(
 		cpv::makeReusable<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>());
 	return seastar::do_with(std::move(request), [] (auto& request) {
@@ -23,25 +19,9 @@ TEST_FUTURE(TestHttpRequest, basic) {
 			ASSERT_EQ(request.getUrl(), "/test");
 			ASSERT_EQ(request.getVersion(), "HTTP/1.1");
 			ASSERT_EQ(request.getHeaders().getHeader("abc"), "asd");
-			ASSERT_EQ(request.getHeaders().getHeader("all"), "abc asd");
-			ASSERT_EQ(request.getUnderlyingBuffers().size(), 1U);
-			ASSERT_EQ(std::string(
-				request.getUnderlyingBuffers().at(0).get(),
-				request.getUnderlyingBuffers().at(0).size()), "abc asd");
 			ASSERT_EQ(str, "test body");
 		});
 	});
-}
-
-TEST(TestHttpRequest, setHeaderWithInteger) {
-	cpv::HttpRequest request;
-	request.setHeader("Test-First", 123);
-	request.setHeader("Test-Second", 987654321);
-	request.setHeader("Test-Third", -321);
-	ASSERT_EQ(request.getHeaders().getHeader("Test-First"), "123");
-	ASSERT_EQ(request.getHeaders().getHeader("Test-Second"), "987654321");
-	ASSERT_EQ(request.getHeaders().getHeader("Test-Third"), "-321");
-	ASSERT_FALSE(request.getUnderlyingBuffers().empty());
 }
 
 TEST(TestHttpRequest, headersBasic) {
@@ -181,7 +161,6 @@ TEST(TestHttpRequest, headersClear) {
 	ASSERT_TRUE(headers.getXRequestedWith().empty());
 	ASSERT_TRUE(headers.getHeader("Addition").empty());
 }
-
 
 TEST(TestHttpRequest, getUri) {
 	cpv::HttpRequest request;

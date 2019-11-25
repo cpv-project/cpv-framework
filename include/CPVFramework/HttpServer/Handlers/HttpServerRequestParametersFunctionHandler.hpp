@@ -1,6 +1,6 @@
 #pragma once
 #include <tuple>
-#include "../../Http/HttpRequestExtensions.hpp"
+#include "../HttpContextExtensions.hpp"
 #include "./HttpServerRequestHandlerBase.hpp"
 
 namespace cpv {
@@ -9,18 +9,30 @@ namespace cpv {
 	constexpr bool HttpServerRequestParametersFunctionHandlerTypeChecker(std::index_sequence<I...>) {
 		return std::is_invocable_r_v<seastar::future<>, Func, HttpContext&, decltype(
 			extensions::getParameter(
-				std::declval<HttpRequest>(),
+				std::declval<HttpContext>(),
 				std::get<I>(std::declval<Params>())))...>;
 	}
 
 	/**
 	 * Request handler that use custom function object and invoke it with given parameters.
-	 * Params should be a tuple contains types that supports cpv::extensions::getParameter
-	 * for HttpRequest, like integer represents the index of path fragment, and string
-	 * represents the key of query parameter.
+	 *
+	 * Params should be a tuple contains types which supports
+	 * cpv::extensions::getParameter(const HttpContext&, const T&),
+	 * there are some built-in types under namespace cpv::extensions::http_context_parameters,
+	 * you can see them inside HttpContextExtensions.hpp.
+	 *
 	 * For example:
-	 * when params = std::make_tuple(1, "abc"), this handler will invoke func with
-	 * func(context, request.getUri().getPathFragment(1), request.getUri().getQueryParameter("abc"));
+	 * ```
+	 * using namespace cpv::extensions::http_context_parameters;
+	 * HttpServerRequestParametersFunctionHandler handler(
+	 *     std::make_tuple(PathFragment(1), Query("abc")),
+	 *     [] (HttpContext& context, SharedString id, SharedString name) {
+	 *         ...
+	 *     });
+	 * // will invoke func with:
+	 * // func(context, request.getUri().getPathFragment(1), request.getUri().getQueryParameter("abc"));
+	 * handler.handle(context, ...);
+	 * ```
 	 */
 	template <class Params, class Func,
 		std::enable_if_t<
@@ -31,7 +43,7 @@ namespace cpv {
 		/** Invoke custom function object with given parameters */
 		seastar::future<> handle(
 			HttpContext& context,
-			const HttpServerRequestHandlerIterator&) const override {
+			HttpServerRequestHandlerIterator) const override {
 			return handleImpl(context,
 				std::make_index_sequence<std::tuple_size_v<Params>>());
 		}
@@ -45,9 +57,8 @@ namespace cpv {
 		template <std::size_t... I>
 		seastar::future<> handleImpl(
 			HttpContext& context, std::index_sequence<I...>) const {
-			auto& request = context.getRequest();
 			return func_(context,
-				extensions::getParameter(request, std::get<I>(params_))...);
+				extensions::getParameter(context, std::get<I>(params_))...);
 		}
 
 	private:
