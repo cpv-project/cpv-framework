@@ -41,18 +41,18 @@ namespace cpv {
 		/** Associate value with key, remove finally not used value if size is over */
 		template <class TKey, class TValue>
 		void set(const TKey& key, TValue&& value) {
-			set(key, key, std::forward<TValue>(value));
+			set(TKey(key), TKey(key), std::forward<TValue>(value));
 		}
 
 		/** Associate value with key, remove finally not used value if size is over */
 		void set(Key&& keyForMap, Key&& keyForList, Value&& value) {
 			assert(keyForMap == keyForList);
-			set(std::move(keyForMap), std::move(keyForList), std::move(value));
+			set<Key, Value>(std::move(keyForMap), std::move(keyForList), std::move(value));
 		}
 
 		/** Associate value with key, remove finally not used value if size is over */
 		void set(const Key& key, Value&& value) {
-			set(key, key, std::move(value));
+			set<Key, Value>(Key(key), Key(key), std::move(value));
 		}
 
 		/** Get pointer of value associated with key or return nullptr */

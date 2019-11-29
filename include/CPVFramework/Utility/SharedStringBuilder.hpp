@@ -22,7 +22,7 @@ namespace cpv {
 				return;
 			}
 			// allocate new buffer and copy original content
-			if (buffer_.empty()) {
+			if (view_.empty()) {
 				// newSize may be pre calculated (like append integer)
 				buffer_ = BasicSharedString<CharType>(newSize);
 			} else {

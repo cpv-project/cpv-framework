@@ -17,6 +17,7 @@ namespace cpv::constants {
 	static const constexpr char QuestionMark[] = "?";
 	static const constexpr char EqualsSign[] = "=";
 	static const constexpr char Ampersand[] = "&";
+	static const constexpr char Hyphen[] = "-";
 	static const constexpr char SingleQuote[] = "'";
 	static const constexpr char DoubleQuote[] = "\"";
 	static const constexpr char RoundBacketStart[] = "(";
