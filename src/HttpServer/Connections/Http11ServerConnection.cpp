@@ -1,6 +1,5 @@
 #include <seastar/core/sleep.hh>
 #include <CPVFramework/Exceptions/LogicException.hpp>
-#include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/ConstantStrings.hpp>
 #include <CPVFramework/Utility/DateUtils.hpp>
 #include <CPVFramework/Utility/EnumUtils.hpp>

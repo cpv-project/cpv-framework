@@ -1,7 +1,6 @@
 #include <seastar/core/temporary_buffer.hh>
 #include <CPVFramework/Http/HttpResponseExtensions.hpp>
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
-#include <CPVFramework/Utility/BufferUtils.hpp>
 #include <CPVFramework/Utility/DateUtils.hpp>
 
 namespace cpv::extensions {
