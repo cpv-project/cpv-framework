@@ -30,6 +30,7 @@ TODO:
 ## 0.4
 
 - add template engine
+- add multipart form serializer and deserializer
 - add cql driver module (header only)
 	- add crud example
 

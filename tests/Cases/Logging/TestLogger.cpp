@@ -1,7 +1,7 @@
 #include <CPVFramework/Logging/Logger.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestLogger, logLevel) {
+TEST(Logger, logLevel) {
 	auto logger = cpv::Logger::createConsole(cpv::LogLevel::Warning);
 	ASSERT_EQ(logger->getLogLevel(), cpv::LogLevel::Warning);
 	ASSERT_TRUE(logger->isEnabled(cpv::LogLevel::Error));
@@ -15,7 +15,7 @@ TEST(TestLogger, logLevel) {
 	ASSERT_FALSE(logger->isEnabled(cpv::LogLevel::Debug));
 }
 
-TEST(TestLogger, create) {
+TEST(Logger, create) {
 	{
 		auto logger = cpv::Logger::createConsole(cpv::LogLevel::Warning);
 		ASSERT_TRUE(logger != nullptr);

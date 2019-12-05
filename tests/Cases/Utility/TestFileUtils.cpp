@@ -7,26 +7,26 @@ namespace {
 	static const std::string path("/tmp/cpv-framework-test-file-utils.txt");
 }
 
-TEST(TestFileUtils, readFile) {
+TEST(FileUtils, readFile) {
 	cpv::writeFile(path, "test contents");
 	ASSERT_EQ(cpv::readFile(path), "test contents");
 	::unlink(path.c_str());
 }
 
-TEST(TestFileUtils, readFileError) {
+TEST(FileUtils, readFileError) {
 	::unlink(path.c_str());
 	ASSERT_THROWS(
 		cpv::FileSystemException,
 		cpv::readFile(path));
 }
 
-TEST(TestFileUtils, writeFile) {
+TEST(FileUtils, writeFile) {
 	cpv::writeFile(path, "test contents");
 	ASSERT_EQ(cpv::readFile(path), "test contents");
 	::unlink(path.c_str());
 }
 
-TEST(TestFileUtils, isSafePath) {
+TEST(FileUtils, isSafePath) {
 	ASSERT_TRUE(cpv::isSafePath("./dir/test.txt"));
 	ASSERT_TRUE(cpv::isSafePath("./dir/.test.txt"));
 	ASSERT_FALSE(cpv::isSafePath("./dir/test..txt"));

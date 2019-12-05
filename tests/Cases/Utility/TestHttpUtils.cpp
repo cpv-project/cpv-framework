@@ -1,7 +1,7 @@
 #include <CPVFramework/Utility/HttpUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestHttpUtils, urlEncode) {
+TEST(HttpUtils, urlEncode) {
 	{
 		auto result = cpv::urlEncode("一abc二def三 ~-_\r\n");
 		ASSERT_EQ(result, "%E4%B8%80abc%E4%BA%8Cdef%E4%B8%89%20~-_%0D%0A");
@@ -12,7 +12,7 @@ TEST(TestHttpUtils, urlEncode) {
 	}
 }
 
-TEST(TestHttpUtils, urlDecode) {
+TEST(HttpUtils, urlDecode) {
 	{
 		auto result = cpv::urlDecode("%E4%B8%80abc%E4%BA%8Cdef%E4%B8%89%20~-_%0D%0A");
 		ASSERT_EQ(result, "一abc二def三 ~-_\r\n");
@@ -43,7 +43,7 @@ TEST(TestHttpUtils, urlDecode) {
 	}
 }
 
-TEST(TestHttpUtils, htmlEncode) {
+TEST(HttpUtils, htmlEncode) {
 	{
 		auto result = cpv::htmlEncode("&一<abc>二'def'三\"& ~-_\"\r\n&");
 		ASSERT_EQ(result, "&amp;一&lt;abc&gt;二&#x27;def&#x27;三&quot;&amp; ~-_&quot;\r\n&amp;");
@@ -55,7 +55,7 @@ TEST(TestHttpUtils, htmlEncode) {
 }
 
 // Notice: cases with incorrect format are for ASAN checking, their results are not guaranteed
-TEST(TestHttpUtils, htmlDecode) {
+TEST(HttpUtils, htmlDecode) {
 	{
 		auto result = cpv::htmlDecode("&amp;一&lt;abc&gt;二&#x27;def&#x27;三&quot;&amp; ~-_&quot;\r\n&amp;");
 		ASSERT_EQ(result, "&一<abc>二'def'三\"& ~-_\"\r\n&");
@@ -118,7 +118,7 @@ TEST(TestHttpUtils, htmlDecode) {
 	}
 }
 
-TEST(TestHttpUtils, getMimeType) {
+TEST(HttpUtils, getMimeType) {
 	ASSERT_EQ(cpv::getMimeType("zip"), "application/zip");
 	ASSERT_EQ(cpv::getMimeType("./path/some.test.json"), "application/json");
 	ASSERT_EQ(cpv::getMimeType("filename.unknown"), "application/octet-stream");

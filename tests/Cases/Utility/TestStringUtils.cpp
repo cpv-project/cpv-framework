@@ -1,7 +1,7 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestStringUtils, startsWith) {
+TEST(StringUtils, startsWith) {
 	ASSERT_TRUE(cpv::startsWith("test", "tes"));
 	ASSERT_TRUE(cpv::startsWith("test", "test"));
 	ASSERT_TRUE(cpv::startsWith("test", ""));
@@ -10,7 +10,7 @@ TEST(TestStringUtils, startsWith) {
 	ASSERT_FALSE(cpv::startsWith("est", "test"));
 }
 
-TEST(TestStringUtils, endsWith) {
+TEST(StringUtils, endsWith) {
 	ASSERT_FALSE(cpv::endsWith("test", "tes"));
 	ASSERT_TRUE(cpv::endsWith("test", "test"));
 	ASSERT_TRUE(cpv::endsWith("test", ""));
@@ -19,7 +19,7 @@ TEST(TestStringUtils, endsWith) {
 	ASSERT_FALSE(cpv::endsWith("est", "test"));
 }
 
-TEST(TestStringUtils, splitString) {
+TEST(StringUtils, splitString) {
 	{
 		// split by chars
 		std::vector<std::string> results;
@@ -69,7 +69,7 @@ TEST(TestStringUtils, splitString) {
 	}
 }
 
-TEST(TestStringUtils, joinString) {
+TEST(StringUtils, joinString) {
 	std::string a = cpv::joinString(" ", "a", 123, "asd");
 	ASSERT_EQ(a, "a 123 asd");
 	std::string b = cpv::joinString("-", "b");
@@ -78,7 +78,7 @@ TEST(TestStringUtils, joinString) {
 	ASSERT_EQ(c, "12888");
 }
 
-TEST(TestStringUtils, trimString) {
+TEST(StringUtils, trimString) {
 	ASSERT_EQ(cpv::trimString("abc"), "abc");
 	ASSERT_EQ(cpv::trimString(" \t\n\rab c\r\n \t"), "ab c");
 	ASSERT_EQ((cpv::trimString<true, false>(" \t\n\rab c\r\n \t")), "ab c\r\n \t");
@@ -97,7 +97,7 @@ TEST(TestStringUtils, trimString) {
 	ASSERT_EQ(cpv::trimString("", ' '), "");
 }
 
-TEST(TestStringUtils, dumpIntToHex) {
+TEST(StringUtils, dumpIntToHex) {
 	{
 		std::string str;
 		cpv::dumpIntToHex<std::uint8_t>(0x7f, str);
@@ -115,7 +115,7 @@ TEST(TestStringUtils, dumpIntToHex) {
 	}
 }
 
-TEST(TestStringUtils, dumpIntToDec) {
+TEST(StringUtils, dumpIntToDec) {
 	{
 		std::string str;
 		cpv::dumpIntToDec<std::uint8_t>(123, str);
@@ -133,7 +133,7 @@ TEST(TestStringUtils, dumpIntToDec) {
 	}
 }
 
-TEST(TestStringUtils, dumpBytesToHex) {
+TEST(StringUtils, dumpBytesToHex) {
 	{
 		std::string str;
 		cpv::dumpBytesToHex("abc", 3, str);
@@ -146,7 +146,7 @@ TEST(TestStringUtils, dumpBytesToHex) {
 	}
 }
 
-TEST(TestStringUtils, loadIntFromHex) {
+TEST(StringUtils, loadIntFromHex) {
 	{
 		std::uint8_t value = 0;
 		ASSERT_TRUE(cpv::loadIntFromHex("7F", value));
@@ -182,7 +182,7 @@ TEST(TestStringUtils, loadIntFromHex) {
 	}
 }
 
-TEST(TestStringUtils, loadIntFromDec) {
+TEST(StringUtils, loadIntFromDec) {
 	{
 		std::int32_t value = 0;
 		ASSERT_TRUE(cpv::loadIntFromDec("123456789", 9, value));
@@ -222,7 +222,7 @@ TEST(TestStringUtils, loadIntFromDec) {
 	}
 }
 
-TEST(TestStringUtils, loadBytesFromHex) {
+TEST(StringUtils, loadBytesFromHex) {
 	{
 		std::string str;
 		ASSERT_TRUE(cpv::loadBytesFromHex("616263", 6, str));
@@ -243,20 +243,20 @@ TEST(TestStringUtils, loadBytesFromHex) {
 	}
 }
 
-TEST(TestStringUtils, caseInsensitiveEquals) {
+TEST(StringUtils, caseInsensitiveEquals) {
 	ASSERT_TRUE(cpv::caseInsensitiveEquals(std::string("abc"), std::string("Abc")));
 	ASSERT_TRUE(cpv::caseInsensitiveEquals(std::string("ABC012"), std::string("abc012")));
 	ASSERT_FALSE(cpv::caseInsensitiveEquals(std::string("ABC"), std::string("ab0")));
 	ASSERT_FALSE(cpv::caseInsensitiveEquals(std::string("ABC"), std::string("abd")));
 }
 
-TEST(TestStringUtils, sizeofString) {
+TEST(StringUtils, sizeofString) {
 	ASSERT_EQ(cpv::sizeofString(""), 0U);
 	ASSERT_EQ(cpv::sizeofString("abc"), 3U);
 	ASSERT_EQ(cpv::sizeofString(std::string("abcde", 5)), 5U);
 }
 
-TEST(TestStringUtils, makeBinaryString) {
+TEST(StringUtils, makeBinaryString) {
 	ASSERT_EQ(cpv::makeBinaryString("abc\x00""def").size(), 7U);
 	ASSERT_EQ(cpv::makeBinaryString("abc\x00""def"), std::string("abc\x00""def", 7));
 }

@@ -10,7 +10,7 @@ namespace {
 		cpv::DebugAllocator<std::pair<const Key, T>, cpv::DebugAllocatorMode::NoLogging>>;
 }
 
-TEST(TestDebugAllocator, vector) {
+TEST(DebugAllocator, vector) {
 	DebugVector<std::string> vec({ "a", "b", "c" });
 	DebugVector<std::string> vecCopy(vec);
 	DebugVector<std::string> vecMove(std::move(vec));
@@ -50,7 +50,7 @@ TEST(TestDebugAllocator, vector) {
 	ASSERT_EQ(vecAppend.at(4), "e");
 }
 
-TEST(TestDebugAllocator, unorderedMap) {
+TEST(DebugAllocator, unorderedMap) {
 	DebugUnorderedMap<int, std::string> map({
 		{ 100, "a" },
 		{ 101, "b" },

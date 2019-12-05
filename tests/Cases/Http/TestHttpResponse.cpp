@@ -24,7 +24,7 @@ TEST_FUTURE(TestHttpResponse, all) {
 	});
 }
 
-TEST(TestHttpResponse, headersBasic) {
+TEST(HttpResponse, headersBasic) {
 	cpv::HttpResponse response;
 	response.setHeader(cpv::constants::Date, "TestDate");
 	response.setHeader(cpv::constants::ContentType, "TestContentType");
@@ -75,7 +75,7 @@ TEST(TestHttpResponse, headersBasic) {
 	ASSERT_TRUE(headers.getHeader("Addition").empty());
 }
 
-TEST(TestHttpResponse, headersForeach) {
+TEST(HttpResponse, headersForeach) {
 	cpv::HttpResponse response;
 	auto& headers = response.getHeaders();
 	headers.setDate("TestDate");
@@ -115,7 +115,7 @@ TEST(TestHttpResponse, headersForeach) {
 		"AdditionC: TestAdditionC\r\n");
 }
 
-TEST(TestHttpResponse, additionHeaders) {
+TEST(HttpResponse, additionHeaders) {
 	cpv::HttpResponse response;
 	auto& headers = response.getHeaders();
 	headers.addAdditionHeader("Key", "ValueA");
@@ -134,7 +134,7 @@ TEST(TestHttpResponse, additionHeaders) {
 		"Key: ValueB\r\n");
 }
 
-TEST(TestHttpResponse, headersNotConstructible) {
+TEST(HttpResponse, headersNotConstructible) {
 	ASSERT_FALSE(std::is_constructible_v<cpv::HttpResponseHeaders>);
 	ASSERT_FALSE(std::is_copy_constructible_v<cpv::HttpResponseHeaders>);
 	ASSERT_FALSE(std::is_move_constructible_v<cpv::HttpResponseHeaders>);
@@ -142,7 +142,7 @@ TEST(TestHttpResponse, headersNotConstructible) {
 	ASSERT_FALSE(std::is_move_assignable_v<cpv::HttpResponseHeaders>);
 }
 
-TEST(TestHttpResponse, headersClear) {
+TEST(HttpResponse, headersClear) {
 	cpv::HttpResponse response;
 	auto& headers = response.getHeaders();
 	headers.setDate("TestDate");

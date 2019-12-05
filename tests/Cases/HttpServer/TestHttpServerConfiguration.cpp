@@ -1,7 +1,7 @@
 #include <CPVFramework/HttpServer/HttpServerConfiguration.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestHttpServerConfiguration, all) {
+TEST(HttpServerConfiguration, all) {
 	cpv::HttpServerConfiguration configuration;
 	ASSERT_TRUE(configuration.getListenAddresses().empty());
 	ASSERT_EQ(configuration.getMaxInitialRequestBytes(), 524288U);

@@ -94,7 +94,7 @@ TEST_FUTURE(TestHttpResponseExtensions, redirectToPermanently) {
 	});
 }
 
-TEST(TestHttpResponseExtensions, setCookie) {
+TEST(HttpResponseExtensions, setCookie) {
 	cpv::HttpResponse response;
 	cpv::extensions::setCookie(response, "key", "value");
 	cpv::extensions::setCookie(response, "other", "variable", "");
@@ -121,7 +121,7 @@ TEST(TestHttpResponseExtensions, setCookie) {
 	ASSERT_EQ(additionHeaders.at(6).second, "httponly=cookie; HttpOnly; SameSite=Lax");
 }
 
-TEST(TestHttpResponseExtensions, removeCookie) {
+TEST(HttpResponseExtensions, removeCookie) {
 	cpv::HttpResponse response;
 	cpv::extensions::removeCookie(response, "key");
 	cpv::extensions::removeCookie(response, "otherKey", "/path");

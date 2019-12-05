@@ -36,7 +36,7 @@ thread_local cpv::ReusableStorageType<Derived> cpv::ReusableStorageInstance<Deri
 template <>
 thread_local cpv::ReusableStorageType<C> cpv::ReusableStorageInstance<C>;
 
-TEST(TestReusable, Simple) {
+TEST(Reusable, Simple) {
 	for (std::size_t i = 0; i < 3; ++i) {
 		auto foo = cpv::makeReusable<Foo>();
 		ASSERT_TRUE(foo.get());
@@ -47,7 +47,7 @@ TEST(TestReusable, Simple) {
 	}
 }
 
-TEST(TestReusable, Reset) {
+TEST(Reusable, Reset) {
 	auto foo = cpv::makeReusable<Foo>();
 	ASSERT_FALSE(foo == nullptr);
 	foo.reset();
@@ -56,7 +56,7 @@ TEST(TestReusable, Reset) {
 	ASSERT_TRUE(foo == nullptr);
 }
 
-TEST(TestReusable, UpCasting) {
+TEST(Reusable, UpCasting) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
@@ -67,7 +67,7 @@ TEST(TestReusable, UpCasting) {
 	}
 }
 
-TEST(TestReusable, DownCasting) {
+TEST(Reusable, DownCasting) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);
@@ -79,7 +79,7 @@ TEST(TestReusable, DownCasting) {
 	}
 }
 
-TEST(TestReusable, InvalidCasting) {
+TEST(Reusable, InvalidCasting) {
 	cpv::makeReusable<C>().cast<A>();
 	ASSERT_THROWS_CONTAINS(
 		cpv::LogicException,
@@ -87,7 +87,7 @@ TEST(TestReusable, InvalidCasting) {
 		"cast cause pointer address changed");
 }
 
-TEST(TestReusable, moveAssignment) {
+TEST(Reusable, moveAssignment) {
 	auto record = seastar::make_shared<int>(0);
 	for (int i = 0; i < 3; ++i) {
 		ASSERT_EQ(*record, i);

@@ -24,7 +24,7 @@ namespace cpv {
 	};
 }
 
-TEST(TestEnumUtils, operators) {
+TEST(EnumUtils, operators) {
 	{
 		auto value = cpv::MyTestEnum::A | cpv::MyTestEnum::B;
 		ASSERT_EQ(static_cast<std::size_t>(value), 3U);
@@ -62,22 +62,22 @@ TEST(TestEnumUtils, operators) {
 	}
 }
 
-TEST(TestEnumUtils, enumTrue) {
+TEST(EnumUtils, enumTrue) {
 	ASSERT_TRUE(enumTrue(cpv::MyTestEnum::A));
 	ASSERT_FALSE(enumTrue(cpv::MyTestEnum::None));
 }
 
-TEST(TestEnumUtils, enumFalse) {
+TEST(EnumUtils, enumFalse) {
 	ASSERT_TRUE(enumFalse(cpv::MyTestEnum::None));
 	ASSERT_FALSE(enumFalse(cpv::MyTestEnum::A));
 }
 
-TEST(TestEnumUtils, enumToString) {
+TEST(EnumUtils, enumToString) {
 	ASSERT_EQ(cpv::joinString("", cpv::MyTestEnum::None), "None");
 	ASSERT_EQ(cpv::joinString("", cpv::MyTestEnum::A | cpv::MyTestEnum::B), "A|B");
 }
 
-TEST(TestEnumUtils, enumFromString) {
+TEST(EnumUtils, enumFromString) {
 	ASSERT_EQ(cpv::enumFromString<cpv::MyTestEnum>("A"), cpv::MyTestEnum::A);
 	ASSERT_EQ(cpv::enumFromString<cpv::MyTestEnum>("B"), cpv::MyTestEnum::B);
 	ASSERT_EQ(cpv::enumFromString<cpv::MyTestEnum>("C"), cpv::MyTestEnum::C);

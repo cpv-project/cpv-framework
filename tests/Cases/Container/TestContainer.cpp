@@ -54,14 +54,14 @@ template <>
 thread_local cpv::ReusableStorageType<TestImplReusable>
 	cpv::ReusableStorageInstance<TestImplReusable>;
 
-TEST(TestContainer, addTransientServiceWithImplType) {
+TEST(Container, addTransientServiceWithImplType) {
 	cpv::Container container;
 	container.add<TestImplSimple, TestImplSimple>();
 	auto instance = container.get<TestImplSimple>();
 	ASSERT_EQ(instance.name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPersistentServiceWithImplType) {
+TEST(Container, addPersistentServiceWithImplType) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	container.add<
@@ -77,7 +77,7 @@ TEST(TestContainer, addPersistentServiceWithImplType) {
 	ASSERT_EQ(instanceFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addStoragePersistentServiceWithImplType) {
+TEST(Container, addStoragePersistentServiceWithImplType) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
@@ -105,7 +105,7 @@ TEST(TestContainer, addStoragePersistentServiceWithImplType) {
 	ASSERT_EQ(instanceQFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addTransientUniquePtrServiceWithImplType) {
+TEST(Container, addTransientUniquePtrServiceWithImplType) {
 	cpv::Container container;
 	container.add<std::unique_ptr<TestService>, std::unique_ptr<TestImplSimple>>();
 	auto instanceFirst = container.get<std::unique_ptr<TestService>>();
@@ -115,7 +115,7 @@ TEST(TestContainer, addTransientUniquePtrServiceWithImplType) {
 	ASSERT_EQ(instanceSecond->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPersistentSharedPtrServiceWithImplType) {
+TEST(Container, addPersistentSharedPtrServiceWithImplType) {
 	cpv::Container container;
 	container.add<
 		seastar::shared_ptr<TestService>,
@@ -128,7 +128,7 @@ TEST(TestContainer, addPersistentSharedPtrServiceWithImplType) {
 	ASSERT_EQ(instanceFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addTransientReusableServiceWithImplType) {
+TEST(Container, addTransientReusableServiceWithImplType) {
 	cpv::Container container;
 	container.add<
 		cpv::Reusable<TestService>,
@@ -140,7 +140,7 @@ TEST(TestContainer, addTransientReusableServiceWithImplType) {
 	ASSERT_EQ(instanceSecond->name(), "ImplReusable");
 }
 
-TEST(TestContainer, addPersistentServiceWithInstance) {
+TEST(Container, addPersistentServiceWithInstance) {
 	cpv::Container container;
 	container.add<seastar::shared_ptr<TestService>>(
 		seastar::make_shared<TestImplCustomName>(
@@ -152,7 +152,7 @@ TEST(TestContainer, addPersistentServiceWithInstance) {
 	ASSERT_EQ(instanceFirst->name(), "TestAddPersistentServiceWithInstance");
 }
 
-TEST(TestContainer, addTransientServiceWithFunc2Args) {
+TEST(Container, addTransientServiceWithFunc2Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	container.add<
@@ -176,7 +176,7 @@ TEST(TestContainer, addTransientServiceWithFunc2Args) {
 	ASSERT_EQ(instancePFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addPersistentServiceWithFunc1Args) {
+TEST(Container, addPersistentServiceWithFunc1Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	container.add<
@@ -196,7 +196,7 @@ TEST(TestContainer, addPersistentServiceWithFunc1Args) {
 	ASSERT_EQ(instanceThird->name(), "ImplSimple");
 }
 
-TEST(TestContainer, addStoragePersistentServiceWithFunc0Args) {
+TEST(Container, addStoragePersistentServiceWithFunc0Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
@@ -224,7 +224,7 @@ TEST(TestContainer, addStoragePersistentServiceWithFunc0Args) {
 	ASSERT_EQ(instanceQFirst->name(), "ImplSimple");
 }
 
-TEST(TestContainer, getServiceInstanceWithInjectedDependencies) {
+TEST(Container, getServiceInstanceWithInjectedDependencies) {
 	cpv::Container container;
 	// add service first to ensure descriptors are updated to date
 	container.add<std::unique_ptr<TestService>, std::unique_ptr<TestImplInject>>();
@@ -242,7 +242,7 @@ TEST(TestContainer, getServiceInstanceWithInjectedDependencies) {
 	ASSERT_EQ(instanceSecond->name(), "123 abc 100 nullptr 101 ");
 }
 
-TEST(TestContainer, getManyServiceIntoVector) {
+TEST(Container, getManyServiceIntoVector) {
 	cpv::Container container;
 	container.add<
 		seastar::shared_ptr<TestService>,
@@ -268,7 +268,7 @@ TEST(TestContainer, getManyServiceIntoVector) {
 	ASSERT_EQ(instancesSecond.at(0)->name(), "ImplSimple");
 }
 
-TEST(TestContainer, getManyServiceIntoStackAllocatedVectorWithStorage) {
+TEST(Container, getManyServiceIntoStackAllocatedVectorWithStorage) {
 	using VectorType = cpv::StackAllocatedVector<seastar::shared_ptr<TestService>, 16>;
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
@@ -317,7 +317,7 @@ TEST(TestContainer, getManyServiceIntoStackAllocatedVectorWithStorage) {
 	ASSERT_EQ(instancesQFirst.at(1)->name(), "TestGetManyServiceIntoVector");
 }
 
-TEST(TestContainer, getManyServiceIntoVectorMultipleTimes) {
+TEST(Container, getManyServiceIntoVectorMultipleTimes) {
 	cpv::Container container;
 	container.add<int>(1);
 	container.add<int>(2);
@@ -334,7 +334,7 @@ TEST(TestContainer, getManyServiceIntoVectorMultipleTimes) {
 	ASSERT_EQ(instances.at(5), 3);
 }
 
-TEST(TestContainer, getVectorAsSingleService) {
+TEST(Container, getVectorAsSingleService) {
 	cpv::Container container;
 	container.add(std::vector<int>({ 1, 2, 3 }));
 	auto instance = container.get<std::vector<int>>();
@@ -344,7 +344,7 @@ TEST(TestContainer, getVectorAsSingleService) {
 	ASSERT_EQ(instance.at(2), 3);
 }
 
-TEST(TestContainer, getManyServiceIntoOptional) {
+TEST(Container, getManyServiceIntoOptional) {
 	cpv::Container container;
 	container.add<int>(1);
 	container.add<int>(2);
@@ -358,7 +358,7 @@ TEST(TestContainer, getManyServiceIntoOptional) {
 	ASSERT_FALSE(stringInstance.has_value());
 }
 
-TEST(TestContainer, errorWhenGetServiceNotRegistered) {
+TEST(Container, errorWhenGetServiceNotRegistered) {
 	cpv::Container container;
 	ASSERT_THROWS_CONTAINS(
 		cpv::ContainerException,
@@ -366,7 +366,7 @@ TEST(TestContainer, errorWhenGetServiceNotRegistered) {
 		"failed: not registered");
 }
 
-TEST(TestContainer, errorWhenGetServiceMultipleRegistered) {
+TEST(Container, errorWhenGetServiceMultipleRegistered) {
 	cpv::Container container;
 	container.add<int>(1);
 	container.add<int>(2);
@@ -376,7 +376,7 @@ TEST(TestContainer, errorWhenGetServiceMultipleRegistered) {
 		"failed: registered multiple times");
 }
 
-TEST(TestContainer, errorWhenGetPersistentServiceNotCopyConstructible) {
+TEST(Container, errorWhenGetPersistentServiceNotCopyConstructible) {
 	cpv::Container container;
 	container.add<
 		std::unique_ptr<TestService>,
@@ -388,7 +388,7 @@ TEST(TestContainer, errorWhenGetPersistentServiceNotCopyConstructible) {
 		"error: lifetime is persistent but not copy constructible");
 }
 
-TEST(TestContainer, errorWhenGetStoragePersistentServiceNotCopyConstructible) {
+TEST(Container, errorWhenGetStoragePersistentServiceNotCopyConstructible) {
 	cpv::Container container;
 	container.add<
 		std::unique_ptr<TestService>,
@@ -400,7 +400,7 @@ TEST(TestContainer, errorWhenGetStoragePersistentServiceNotCopyConstructible) {
 		"error: lifetime is storage persistent but not copy constructible");
 }
 
-TEST(TestContainer, patchTransientServiceWithFunc0Args) {
+TEST(Container, patchTransientServiceWithFunc0Args) {
 	cpv::Container container;
 	container.add<std::unique_ptr<int>>([] {
 		return std::make_unique<int>(1);
@@ -417,7 +417,7 @@ TEST(TestContainer, patchTransientServiceWithFunc0Args) {
 	ASSERT_EQ(*count, 2U);
 }
 
-TEST(TestContainer, patchPersistentServiceWithFunc1Args) {
+TEST(Container, patchPersistentServiceWithFunc1Args) {
 	cpv::Container container;
 	container.add<int>(100);
 	container.add<seastar::shared_ptr<int>>([] {
@@ -435,7 +435,7 @@ TEST(TestContainer, patchPersistentServiceWithFunc1Args) {
 	ASSERT_EQ(*count, 1U);
 }
 
-TEST(TestContainer, patchStoragePersistentServiceWithFunc2Args) {
+TEST(Container, patchStoragePersistentServiceWithFunc2Args) {
 	cpv::Container container;
 	cpv::ServiceStorage storageP;
 	cpv::ServiceStorage storageQ;
@@ -462,7 +462,7 @@ TEST(TestContainer, patchStoragePersistentServiceWithFunc2Args) {
 	ASSERT_EQ(*count, 3U);
 }
 
-TEST(TestContainer, patchNotRegisteredService) {
+TEST(Container, patchNotRegisteredService) {
 	cpv::Container container;
 	cpv::ServicePatcher<int>::patch(container, [] (int) { return 0; });
 	ASSERT_THROWS_CONTAINS(
@@ -471,7 +471,7 @@ TEST(TestContainer, patchNotRegisteredService) {
 		"failed: not registered");
 }
 
-TEST(TestContainer, patchDoesNotBreakDIFactory) {
+TEST(Container, patchDoesNotBreakDIFactory) {
 	cpv::Container container;
 	container.add<std::unique_ptr<TestService>, std::unique_ptr<TestImplInject>>();
 	container.add<int>(123);

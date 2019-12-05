@@ -60,11 +60,11 @@ namespace {
 	}
 }
 
-TEST(TestStackAllocator, vector) {
+TEST(StackAllocator, vector) {
 	testVector<cpv::StackAllocatedVector>();
 }
 
-TEST(TestStackAllocator, vectorReset) {
+TEST(StackAllocator, vectorReset) {
 	testVectorReset<cpv::StackAllocatedVector>();
 }
 

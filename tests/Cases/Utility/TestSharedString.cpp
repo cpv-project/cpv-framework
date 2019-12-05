@@ -3,7 +3,7 @@
 #include <CPVFramework/Utility/SharedString.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestSharedString, construct) {
+TEST(SharedString, construct) {
 	ASSERT_EQ(cpv::SharedString(), "");
 	ASSERT_EQ(cpv::SharedString("test static"), "test static");
 	ASSERT_EQ(cpv::SharedString(std::string("test copy")), "test copy");
@@ -22,21 +22,21 @@ TEST(TestSharedString, construct) {
 	}
 }
 
-TEST(TestSharedString, data) {
+TEST(SharedString, data) {
 	cpv::SharedString str("abc");
 	ASSERT_EQ(std::string_view(str.data(), str.size()), "abc");
 	ASSERT_EQ(std::string_view(
 		static_cast<const cpv::SharedString&>(str).data(), str.size()), "abc");
 }
 
-TEST(TestSharedString, view) {
+TEST(SharedString, view) {
 	cpv::SharedString str("abc");
 	ASSERT_EQ(str.view(), "abc");
 	std::string_view view = str;
 	ASSERT_EQ(view, "abc");
 }
 
-TEST(TestSharedString, buffer) {
+TEST(SharedString, buffer) {
 	cpv::SharedString str(std::string("abc"));
 	seastar::temporary_buffer<char> bufShared = str.buffer();
 	ASSERT_EQ(str, "abc");
@@ -46,7 +46,7 @@ TEST(TestSharedString, buffer) {
 	ASSERT_EQ(std::string_view(bufMoved.get(), bufMoved.size()), "abc");
 }
 
-TEST(TestSharedString, share) {
+TEST(SharedString, share) {
 	cpv::SharedString str("abc def");
 	cpv::SharedString strShared = str.share();
 	cpv::SharedString strAbc = str.share(0, 3);
@@ -59,7 +59,7 @@ TEST(TestSharedString, share) {
 	ASSERT_EQ(strCde, "c de");
 }
 
-TEST(TestSharedString, compare) {
+TEST(SharedString, compare) {
 	{
 		ASSERT_TRUE(cpv::SharedString("abc") == cpv::SharedString("abc"));
 		ASSERT_FALSE(cpv::SharedString("abc") == cpv::SharedString("def"));
@@ -122,7 +122,7 @@ TEST(TestSharedString, compare) {
 	}
 }
 
-TEST(TestSharedString, mapKey) {
+TEST(SharedString, mapKey) {
 	auto test = [](auto& map) {
 		map.emplace("a", 1);
 		map.emplace("b", 2);

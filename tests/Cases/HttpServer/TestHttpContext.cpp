@@ -2,7 +2,7 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestHttpContext, all) {
+TEST(HttpContext, all) {
 	{
 		cpv::HttpContext context;
 		ASSERT_TRUE(context.getRequest().getMethod().empty());

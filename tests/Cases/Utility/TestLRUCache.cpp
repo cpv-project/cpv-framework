@@ -2,7 +2,7 @@
 #include <CPVFramework/Utility/LRUCache.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestLRUCache, all) {
+TEST(LRUCache, all) {
 	cpv::LRUCache<int, std::string> cache(3);
 	{
 		cache.set(1, "a");

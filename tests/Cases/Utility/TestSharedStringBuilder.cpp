@@ -1,7 +1,7 @@
 #include <CPVFramework/Utility/SharedStringBuilder.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestSharedStringBuilder, grow) {
+TEST(SharedStringBuilder, grow) {
 	cpv::SharedStringBuilder builder;
 	ASSERT_TRUE(builder.grow(12) == builder.data());
 	ASSERT_EQ(builder.capacity(), 12U);
@@ -14,7 +14,7 @@ TEST(TestSharedStringBuilder, grow) {
 	ASSERT_EQ(builder.size(), 26U);
 }
 
-TEST(TestSharedStringBuilder, growOverflow) {
+TEST(SharedStringBuilder, growOverflow) {
 	cpv::SharedStringBuilder builder("ab");
 	ASSERT_THROWS_CONTAINS(
 		cpv::OverflowException,
@@ -22,7 +22,7 @@ TEST(TestSharedStringBuilder, growOverflow) {
 		"size overflowed");
 }
 
-TEST(TestSharedStringBuilder, append) {
+TEST(SharedStringBuilder, append) {
 	cpv::SharedStringBuilder builder;
 	builder.append("test|")
 		.append(3, 'a') .append(1, '|')
@@ -39,7 +39,7 @@ TEST(TestSharedStringBuilder, append) {
 	ASSERT_EQ(str, "test|aaa|abc|123|12345678|-123|1|10.2|100");
 }
 
-TEST(TestSharedStringBuilder, resize) {
+TEST(SharedStringBuilder, resize) {
 	cpv::SharedStringBuilder builder;
 	builder.append("test|").append("abc|").append("def|");
 	builder.resize(11);
@@ -47,7 +47,7 @@ TEST(TestSharedStringBuilder, resize) {
 	ASSERT_EQ(str, "test|abc|de");
 }
 
-TEST(TestSharedStringBuilder, misc) {
+TEST(SharedStringBuilder, misc) {
 	cpv::SharedStringBuilder builder;
 	builder.append("test|").append("abc");
 	ASSERT_EQ(std::string_view(builder.data(), builder.size()), "test|abc");

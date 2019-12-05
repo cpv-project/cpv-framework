@@ -1,7 +1,7 @@
 #include <CPVFramework/Exceptions/Exception.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestException, construct) {
+TEST(Exception, construct) {
 	cpv::Exception exception(CPV_CODEINFO, "some error");
 	std::string error = exception.what();
 	// std::cout << error << std::endl;

@@ -24,7 +24,7 @@ TEST_FUTURE(TestHttpRequest, basic) {
 	});
 }
 
-TEST(TestHttpRequest, headersBasic) {
+TEST(HttpRequest, headersBasic) {
 	cpv::HttpRequest request;
 	request.setHeader(cpv::constants::Host, "TestHost");
 	request.setHeader(cpv::constants::ContentType, "TestContentType");
@@ -78,7 +78,7 @@ TEST(TestHttpRequest, headersBasic) {
 	ASSERT_TRUE(headers.getHeader("Addition").empty());
 }
 
-TEST(TestHttpRequest, headersForeach) {
+TEST(HttpRequest, headersForeach) {
 	cpv::HttpRequest request;
 	auto& headers = request.getHeaders();
 	headers.setHost("TestHost");
@@ -120,7 +120,7 @@ TEST(TestHttpRequest, headersForeach) {
 		"AdditionC: TestAdditionC\r\n");
 }
 
-TEST(TestHttpRequest, headersNotConstructible) {
+TEST(HttpRequest, headersNotConstructible) {
 	ASSERT_FALSE(std::is_constructible_v<cpv::HttpRequestHeaders>);
 	ASSERT_FALSE(std::is_copy_constructible_v<cpv::HttpRequestHeaders>);
 	ASSERT_FALSE(std::is_move_constructible_v<cpv::HttpRequestHeaders>);
@@ -128,7 +128,7 @@ TEST(TestHttpRequest, headersNotConstructible) {
 	ASSERT_FALSE(std::is_move_assignable_v<cpv::HttpRequestHeaders>);
 }
 
-TEST(TestHttpRequest, headersClear) {
+TEST(HttpRequest, headersClear) {
 	cpv::HttpRequest request;
 	auto& headers = request.getHeaders();
 	headers.setHost("TestHost");
@@ -162,7 +162,7 @@ TEST(TestHttpRequest, headersClear) {
 	ASSERT_TRUE(headers.getHeader("Addition").empty());
 }
 
-TEST(TestHttpRequest, getUri) {
+TEST(HttpRequest, getUri) {
 	cpv::HttpRequest request;
 	request.setUrl("/first/second?a=123&b=456");
 	ASSERT_EQ(request.getUri().getPath(), "/first/second");
@@ -178,7 +178,7 @@ TEST(TestHttpRequest, getUri) {
 	ASSERT_TRUE(request.getUri().getQueryParameters().empty());
 }
 
-TEST(TestHttpRequest, getCookies) {
+TEST(HttpRequest, getCookies) {
 	{
 		cpv::HttpRequest request;
 		ASSERT_TRUE(request.getCookies().getAll().empty());
@@ -259,7 +259,7 @@ TEST(TestHttpRequest, getCookies) {
 	}
 }
 
-TEST(TestHttpRequest, cookiesNotConstructible) {
+TEST(HttpRequest, cookiesNotConstructible) {
 	ASSERT_FALSE(std::is_constructible_v<cpv::HttpRequestCookies>);
 	ASSERT_FALSE(std::is_copy_constructible_v<cpv::HttpRequestCookies>);
 	ASSERT_FALSE(std::is_move_constructible_v<cpv::HttpRequestCookies>);

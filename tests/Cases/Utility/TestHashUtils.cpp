@@ -3,7 +3,7 @@
 #include <CPVFramework/Utility/HashUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestHashUtils, hash) {
+TEST(HashUtils, hash) {
 	{
 		std::unordered_map<std::tuple<>, int, cpv::hash<std::tuple<>>> map;
 		map.emplace(std::tuple<>(), 123);

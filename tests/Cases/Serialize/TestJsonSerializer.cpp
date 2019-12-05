@@ -94,7 +94,7 @@ template <>
 thread_local cpv::ReusableStorageType<MyPtrModel::ChildModel>
 	cpv::ReusableStorageInstance<MyPtrModel::ChildModel>;
 
-TEST(TestJsonSerializer, model) {
+TEST(JsonSerializer, model) {
 	MyModel model;
 	model.intValue = 101;
 	model.sizeValue = 102;
@@ -123,7 +123,7 @@ TEST(TestJsonSerializer, model) {
 	ASSERT_FALSE(error.has_value());
 }
 
-TEST(TestJsonSerializer, vectorModel) {
+TEST(JsonSerializer, vectorModel) {
 	std::vector<MyModel> models;
 	models.resize(3);
 	for (std::size_t i = 0; i < models.size(); ++i) {
@@ -149,7 +149,7 @@ TEST(TestJsonSerializer, vectorModel) {
 	ASSERT_FALSE(error.has_value());
 }
 
-TEST(TestJsonSerializer, stackAllocatedVectorModel) {
+TEST(JsonSerializer, stackAllocatedVectorModel) {
 	cpv::StackAllocatedVector<MyModel, 2> models;
 	models.resize(2);
 	for (std::size_t i = 0; i < models.size(); ++i) {
@@ -172,7 +172,7 @@ TEST(TestJsonSerializer, stackAllocatedVectorModel) {
 	ASSERT_FALSE(error.has_value());
 }
 
-TEST(TestJsonSerializer, ptrModel) {
+TEST(JsonSerializer, ptrModel) {
 	{
 		MyPtrModel model;
 		cpv::Packet packet = cpv::serializeJson(model);

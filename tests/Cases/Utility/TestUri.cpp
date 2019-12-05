@@ -2,7 +2,7 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestUri, getsetclear) {
+TEST(Uri, getsetclear) {
 	cpv::Uri uri;
 	ASSERT_EQ(uri.getProtocol(), "");
 	ASSERT_EQ(uri.getHostname(), "");
@@ -45,7 +45,7 @@ TEST(TestUri, getsetclear) {
 	ASSERT_TRUE(uri.getQueryParameters().empty());
 }
 
-TEST(TestUri, parse) {
+TEST(Uri, parse) {
 	{
 		cpv::Uri uri("http://www.example.com/index");
 		ASSERT_EQ(uri.getProtocol(), "http");
@@ -392,7 +392,7 @@ TEST(TestUri, parse) {
 	}
 }
 
-TEST(TestUri, build) {
+TEST(Uri, build) {
 	{
 		cpv::Uri uri;
 		uri.setProtocol("http");

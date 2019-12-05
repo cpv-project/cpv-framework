@@ -5,7 +5,7 @@
 #include <CPVFramework/Exceptions/LengthException.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestDateUtils, formatTimeForHttpHeader) {
+TEST(DateUtils, formatTimeForHttpHeader) {
 	// time_t always in utc
 	{
 		std::array<char, 30> buf;
@@ -20,14 +20,14 @@ TEST(TestDateUtils, formatTimeForHttpHeader) {
 	}
 }
 
-TEST(TestDateUtils, formatTimeForHttpHeader_threadLocal) {
+TEST(DateUtils, formatTimeForHttpHeader_threadLocal) {
 	for (std::size_t i = 0; i < 3; ++i) {
 		ASSERT_EQ(cpv::formatTimeForHttpHeader(0), "Thu, 01 Jan 1970 00:00:00 GMT");
 		ASSERT_EQ(cpv::formatTimeForHttpHeader(102400), "Fri, 02 Jan 1970 04:26:40 GMT");
 	}
 }
 
-TEST(TestDateUtils, formatNowForHttpHeader) {
+TEST(DateUtils, formatNowForHttpHeader) {
 	for (std::size_t i = 0; i < 3; ++i) {
 		ASSERT_EQ(cpv::formatNowForHttpHeader().size(), 29U);
 	}

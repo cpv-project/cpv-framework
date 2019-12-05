@@ -1,7 +1,7 @@
 #include <CPVFramework/HttpServer/HttpContextExtensions.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestHttpContextExtensions, getParameter_PathFragment) {
+TEST(HttpContextExtensions, getParameter_PathFragment) {
 	using namespace cpv::extensions::http_context_parameters;
 	cpv::HttpContext context;
 	context.getRequest().setUrl("/test/abc/123");
@@ -11,7 +11,7 @@ TEST(TestHttpContextExtensions, getParameter_PathFragment) {
 	ASSERT_EQ(cpv::extensions::getParameter(context, PathFragment(3)), "");
 }
 
-TEST(TestHttpContextExtensions, getParameter_Query) {
+TEST(HttpContextExtensions, getParameter_Query) {
 	using namespace cpv::extensions::http_context_parameters;
 	cpv::HttpContext context;
 	context.getRequest().setUrl("/test?key=123&value=321");

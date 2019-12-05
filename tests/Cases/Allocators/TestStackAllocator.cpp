@@ -2,7 +2,7 @@
 #include <CPVFramework/Allocators/StackAllocator.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestStackAllocator, allocate) {
+TEST(StackAllocator, allocate) {
 	static constexpr const std::size_t Size = sizeof(int)*4;
 	cpv::StackAllocatorStorage<Size> storage;
 	cpv::StackAllocator<int, Size> allocator(storage);

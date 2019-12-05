@@ -1,7 +1,7 @@
 #include <CPVFramework/Utility/CodeInfo.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestCodeInfo, construct) {
+TEST(CodeInfo, construct) {
 	auto codeInfo = CPV_CODEINFO;
 	auto codeInfoStr = codeInfo.str();
 	ASSERT_TRUE(codeInfoStr.find("TestCodeInfo.cpp") != std::string::npos);

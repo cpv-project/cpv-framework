@@ -76,15 +76,15 @@ namespace {
 	}
 }
 
-TEST(TestStackAllocator, unorderedMap) {
+TEST(StackAllocator, unorderedMap) {
 	testMap<cpv::StackAllocatedUnorderedMap>();
 }
 
-TEST(TestStackAllocator, unorderedMapReset) {
+TEST(StackAllocator, unorderedMapReset) {
 	testMapReset<cpv::StackAllocatedUnorderedMap>();
 }
 
-TEST(TestStackAllocator, unorderedMapWithInitialSize) {
+TEST(StackAllocator, unorderedMapWithInitialSize) {
 	testMapWithInitialSize<cpv::StackAllocatedUnorderedMap, 1>();
 	testMapWithInitialSize<cpv::StackAllocatedUnorderedMap, 2>();
 	testMapWithInitialSize<cpv::StackAllocatedUnorderedMap, 3>();
@@ -103,15 +103,15 @@ TEST(TestStackAllocator, unorderedMapWithInitialSize) {
 	testMapWithInitialSize<cpv::StackAllocatedUnorderedMap, 16>();
 }
 
-TEST(TestStackAllocator, map) {
+TEST(StackAllocator, map) {
 	testMap<cpv::StackAllocatedMap>();
 }
 
-TEST(TestStackAllocator, mapReset) {
+TEST(StackAllocator, mapReset) {
 	testMapReset<cpv::StackAllocatedMap>();
 }
 
-TEST(TestStackAllocator, mapWithInitialSize) {
+TEST(StackAllocator, mapWithInitialSize) {
 	testMapWithInitialSize<cpv::StackAllocatedMap, 1>();
 	testMapWithInitialSize<cpv::StackAllocatedMap, 2>();
 	testMapWithInitialSize<cpv::StackAllocatedMap, 3>();

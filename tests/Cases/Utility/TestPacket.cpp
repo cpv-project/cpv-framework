@@ -2,7 +2,7 @@
 #include <CPVFramework/Utility/StringUtils.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST(TestPacket, construct) {
+TEST(Packet, construct) {
 	{
 		cpv::Packet p("abc\x00""def");
 		ASSERT_EQ(cpv::joinString("", p), std::string_view("abc\x00""def", 7));
@@ -20,7 +20,7 @@ TEST(TestPacket, construct) {
 	}
 }
 
-TEST(TestPacket, append) {
+TEST(Packet, append) {
 	{
 		cpv::Packet p;
 		p.append("abc").append("123").append("def"); // single => multiple => multiple
@@ -45,7 +45,7 @@ TEST(TestPacket, append) {
 	}
 }
 
-TEST(TestPacket, appendPacket) {
+TEST(Packet, appendPacket) {
 	{
 		// append multiple to multiple
 		cpv::Packet p;
@@ -103,7 +103,7 @@ TEST(TestPacket, appendPacket) {
 	}
 }
 
-TEST(TestPacket, size) {
+TEST(Packet, size) {
 	cpv::Packet p("abc");
 	cpv::Packet p_(std::move(p));
 	cpv::Packet q("def");
@@ -113,7 +113,7 @@ TEST(TestPacket, size) {
 	ASSERT_EQ(q.size(), 7U);
 }
 
-TEST(TestPacket, empty) {
+TEST(Packet, empty) {
 	cpv::Packet p;
 	cpv::Packet p_(std::move(p));
 	cpv::Packet q("abc");
@@ -124,7 +124,7 @@ TEST(TestPacket, empty) {
 	ASSERT_TRUE(w.empty());
 }
 
-TEST(TestPacket, toString) {
+TEST(Packet, toString) {
 	cpv::Packet p;
 	p.append("abc")
 		.append(cpv::SharedString::fromInt(123))
@@ -133,7 +133,7 @@ TEST(TestPacket, toString) {
 	ASSERT_EQ(str, "abc123def");
 }
 
-TEST(TestPacket, writeToStream) {
+TEST(Packet, writeToStream) {
 	cpv::Packet p;
 	p.append("abc")
 		.append(cpv::SharedString::fromInt(123))
@@ -141,7 +141,7 @@ TEST(TestPacket, writeToStream) {
 	ASSERT_EQ(cpv::joinString("", p), "abc123def");
 }
 
-TEST(TestPacket, writeToStringBuilder) {
+TEST(Packet, writeToStringBuilder) {
 	cpv::Packet p;
 	p.append("abc")
 		.append(cpv::SharedString::fromInt(123))
@@ -151,7 +151,7 @@ TEST(TestPacket, writeToStringBuilder) {
 	ASSERT_EQ(builder.build(), "packet:abc123def");
 }
 
-TEST(TestPacket, release) {
+TEST(Packet, release) {
 	{
 		// release single
 		cpv::Packet p(seastar::temporary_buffer<char>("abc", 3));
@@ -177,7 +177,7 @@ TEST(TestPacket, release) {
 	}
 }
 
-TEST(TestPacket, getOrConvertToMultiple) {
+TEST(Packet, getOrConvertToMultiple) {
 	cpv::Packet p;
 	auto& f = p.getOrConvertToMultiple();
 	f.append(cpv::SharedString(std::string_view("abc")));

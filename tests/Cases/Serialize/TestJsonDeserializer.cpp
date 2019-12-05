@@ -94,7 +94,7 @@ template <>
 thread_local cpv::ReusableStorageType<MyPtrModel::ChildModel>
 	cpv::ReusableStorageInstance<MyPtrModel::ChildModel>;
 
-TEST(TestJsonDeserializer, model) {
+TEST(JsonDeserializer, model) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 			"requiredValue": 100,
@@ -139,7 +139,7 @@ TEST(TestJsonDeserializer, model) {
 	ASSERT_EQ(model.intValuesOnStack.at(2), -3);
 }
 
-TEST(TestJsonDeserializer, vectorModel) {
+TEST(JsonDeserializer, vectorModel) {
 	cpv::SharedString json(std::string_view(R"(
 		[
 			{ "requiredValue": 100 },
@@ -156,7 +156,7 @@ TEST(TestJsonDeserializer, vectorModel) {
 	ASSERT_EQ(models.at(2).requiredValue, 102);
 }
 
-TEST(TestJsonDeserializer, stackAllocatedVectorModel) {
+TEST(JsonDeserializer, stackAllocatedVectorModel) {
 	cpv::SharedString json(std::string_view(R"(
 		[
 			{ "requiredValue": 100 },
@@ -173,7 +173,7 @@ TEST(TestJsonDeserializer, stackAllocatedVectorModel) {
 	ASSERT_EQ(models.at(2).requiredValue, 102);
 }
 
-TEST(TestJsonDeserializer, ptrModel) {
+TEST(JsonDeserializer, ptrModel) {
 	MyPtrModel model;
 	{
 		cpv::SharedString json(std::string_view(R"(
@@ -235,7 +235,7 @@ TEST(TestJsonDeserializer, ptrModel) {
 	}
 }
 
-TEST(TestJsonDeserializer, modelWithEmptyJson) {
+TEST(JsonDeserializer, modelWithEmptyJson) {
 	cpv::SharedString json;
 	MyModel model;
 	auto error = cpv::deserializeJson(model, json);
@@ -243,7 +243,7 @@ TEST(TestJsonDeserializer, modelWithEmptyJson) {
 	ASSERT_CONTAINS(std::string_view(error->what()), "missing root element");
 }
 
-TEST(TestJsonDeserializer, modelWithNotContainsRequiredValueJson) {
+TEST(JsonDeserializer, modelWithNotContainsRequiredValueJson) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 		}
@@ -254,7 +254,7 @@ TEST(TestJsonDeserializer, modelWithNotContainsRequiredValueJson) {
 	ASSERT_CONTAINS(std::string_view(error->what()), "convert failed");
 }
 
-TEST(TestJsonDeserializer, modelWithCorruptedJson) {
+TEST(JsonDeserializer, modelWithCorruptedJson) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 	)"));
@@ -264,7 +264,7 @@ TEST(TestJsonDeserializer, modelWithCorruptedJson) {
 	ASSERT_CONTAINS(std::string_view(error->what()), "unexpected end of input");
 }
 
-TEST(TestJsonDeserializer, modelWithTypeUnmatchedJson) {
+TEST(JsonDeserializer, modelWithTypeUnmatchedJson) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 			"requiredValue": "1"
@@ -276,7 +276,7 @@ TEST(TestJsonDeserializer, modelWithTypeUnmatchedJson) {
 	ASSERT_CONTAINS(std::string_view(error->what()), "convert failed");
 }
 
-TEST(TestJsonDeserializer, jsonDocument) {
+TEST(JsonDeserializer, jsonDocument) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 			"test-key": "test-value"
@@ -295,7 +295,7 @@ TEST(TestJsonDeserializer, jsonDocument) {
 	ASSERT_EQ(value, "test-value");
 }
 
-TEST(TestJsonDeserializer, jsonDocumentWithCorruptedJson) {
+TEST(JsonDeserializer, jsonDocumentWithCorruptedJson) {
 	cpv::SharedString json(std::string_view(R"(
 		{
 	)"));
