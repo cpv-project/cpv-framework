@@ -1,6 +1,7 @@
 #pragma once
 #include "../../HttpServer/Handlers/HttpServerRequestRoutingHandler.hpp"
 #include "../../HttpServer/Handlers/HttpServerRequestFunctionHandler.hpp"
+#include "../../HttpServer/Handlers/HttpServerRequestStaticFileHandler.hpp"
 #include "../ModuleBase.hpp"
 
 namespace cpv {
@@ -45,6 +46,22 @@ namespace cpv {
 		template <class... Args>
 		void route(Args&&... args) {
 			routingHandler_->route(std::forward<Args>(args)...);
+		}
+
+		/**
+		 * Associate static file handler with given path
+		 * For parameters please see the constructor of HttpServerRequestStaticFileHandler
+		 */
+		template <class... Args>
+		void routeStaticFile(SharedString&& urlBase, Args&&... args) {
+			SharedString path(SharedStringBuilder()
+				.append(trimString<false, true>(urlBase, '/'))
+				.append("/**")
+				.build());
+			routingHandler_->route(
+				constants::GET, std::move(path),
+				seastar::make_shared<HttpServerRequestStaticFileHandler>(
+					std::move(urlBase), std::forward<Args>(args)...));
 		}
 
 		/** Do some work for given application state */

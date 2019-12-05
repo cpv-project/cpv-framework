@@ -100,8 +100,12 @@ namespace cpv {
 			cacheControl(std::move(cacheControlVal)),
 			maxCacheFileSize(maxCacheFileSizeVal),
 			fileCache(maxCacheFileEntitiesVal) {
-			urlBase.trim(trimString<false, true>(urlBase, "/\\"));
-			pathBase.trim(trimString<false, true>(pathBase, "/\\"));
+			if (!endsWith(urlBase, "/")) {
+				urlBase = SharedStringBuilder().append(urlBase).append("/").build();
+			}
+			if (!endsWith(pathBase, "/")) {
+				pathBase = SharedStringBuilder().append(pathBase).append("/").build();
+			}
 		}
 	};
 
@@ -311,9 +315,9 @@ namespace cpv {
 		if (CPV_UNLIKELY(!startsWith(path, data_->urlBase))) {
 			return (*next)->handle(context, next + 1);
 		}
-		// validate relative path is starts with /
+		// validate relative path is empty
 		std::string_view relPath = path.view().substr(data_->urlBase.size());
-		if (CPV_UNLIKELY(relPath.empty() || relPath.front() != '/')) {
+		if (CPV_UNLIKELY(relPath.empty())) {
 			return (*next)->handle(context, next + 1);
 		}
 		// sanitize path
