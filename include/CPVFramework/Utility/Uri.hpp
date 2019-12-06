@@ -63,7 +63,7 @@ namespace cpv {
 		
 		/** Remove query parameter associated with given key */
 		void removeQueryParameter(const SharedString& key) {
-			queryParameters_.erase(std::move(key));
+			queryParameters_.erase(key);
 		}
 		
 		/** Parse given uri */
