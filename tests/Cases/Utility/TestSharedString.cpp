@@ -122,6 +122,43 @@ TEST(SharedString, compare) {
 	}
 }
 
+TEST(SharedString, toInt) {
+	ASSERT_EQ(cpv::SharedString("0").toInt().value_or(-1), 0);
+	ASSERT_EQ(cpv::SharedString("1").toInt<std::size_t>().value_or(0), 1U);
+	ASSERT_EQ(cpv::SharedString("-123").toInt().value_or(-1), -123);
+	ASSERT_EQ(cpv::SharedString("100120").toInt<unsigned int>().value_or(0), 100120U);
+	ASSERT_EQ(cpv::SharedString("99999999").toInt<int>().value_or(0), 99999999);
+	ASSERT_FALSE(cpv::SharedString("abc").toInt().has_value());
+	ASSERT_FALSE(cpv::SharedString("1a").toInt().has_value());
+	ASSERT_FALSE(cpv::SharedString("-1").toInt<std::size_t>().has_value());
+}
+
+TEST(SharedString, toDouble) {
+	ASSERT_EQ(cpv::SharedString("0.1").toDouble().value_or(0), 0.1);
+	ASSERT_EQ(cpv::SharedString("100.0").toDouble<long double>().value_or(0), 100.0L);
+	ASSERT_EQ(cpv::SharedString("-1.1").toDouble().value_or(0), -1.1);
+	ASSERT_EQ(cpv::SharedString("-123.1").toDouble<long double>().value_or(0), -123.1L);
+	ASSERT_EQ(cpv::SharedString("123").toDouble().value_or(0), 123.0);
+	ASSERT_FALSE(cpv::SharedString("abc").toDouble().has_value());
+	ASSERT_FALSE(cpv::SharedString("1a").toDouble().has_value());
+}
+
+TEST(SharedString, fromInt) {
+	ASSERT_EQ(cpv::SharedString::fromInt(0), "0");
+	ASSERT_EQ(cpv::SharedString::fromInt(1U), "1");
+	ASSERT_EQ(cpv::SharedString::fromInt(-123), "-123");
+	ASSERT_EQ(cpv::SharedString::fromInt(100120U), "100120");
+	ASSERT_EQ(cpv::SharedString::fromInt(99999999), "99999999");
+}
+
+TEST(SharedString, fromDouble) {
+	ASSERT_EQ(cpv::SharedString::fromDouble(0.1), "0.1");
+	ASSERT_EQ(cpv::SharedString::fromDouble(100.0L), "100");
+	ASSERT_EQ(cpv::SharedString::fromDouble(-1.1), "-1.1");
+	ASSERT_EQ(cpv::SharedString::fromDouble(-123.1L), "-123.1");
+	ASSERT_EQ(cpv::SharedString::fromDouble(-123.0), "-123");
+}
+
 TEST(SharedString, mapKey) {
 	auto test = [](auto& map) {
 		map.emplace("a", 1);

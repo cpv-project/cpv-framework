@@ -1,6 +1,7 @@
 #pragma once
 #include <cassert>
 #include <string_view>
+#include <optional>
 #include <seastar/core/temporary_buffer.hh>
 #include "./ConstantStrings.hpp"
 
@@ -83,6 +84,30 @@ namespace cpv {
 			trim(view.size());
 		}
 
+		/** Convert string to interger value, overflow is not checked */
+		template <class T = int, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
+		std::optional<T> toInt() const {
+			if constexpr (std::numeric_limits<T>::is_signed) {
+				auto value = toIntImpl();
+				return value ? static_cast<T>(*value) : std::optional<T>();
+			} else {
+				auto value = toUintImpl();
+				return value ? static_cast<T>(*value) : std::optional<T>();
+			}
+		}
+
+		/** Convert string to floating point value */
+		template <class T = double, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
+		std::optional<T> toDouble() const {
+			if constexpr (sizeof(T) <= sizeof(double)) {
+				auto value = toDoubleImpl();
+				return value ? static_cast<T>(*value) : std::optional<T>();
+			} else {
+				auto value = toLongDoubleImpl();
+				return value ? static_cast<T>(*value) : std::optional<T>();
+			}
+		}
+
 		/** Construct with data copied from given string view */
 		explicit BasicSharedString(View view) :
 			BasicSharedString(view.data(), view.size()) { }
@@ -131,6 +156,10 @@ namespace cpv {
 		bool operator >=(const CharType(&str)[Size]) const { return *this >= BasicSharedString(str); }
 
 	private:
+		std::optional<std::intmax_t> toIntImpl() const;
+		std::optional<std::uintmax_t> toUintImpl() const;
+		std::optional<double> toDoubleImpl() const;
+		std::optional<long double> toLongDoubleImpl() const;
 		static BasicSharedString fromIntImpl(std::intmax_t value);
 		static BasicSharedString fromIntImpl(std::uintmax_t value);
 		static BasicSharedString fromDoubleImpl(double value);
