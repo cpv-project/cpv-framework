@@ -316,13 +316,7 @@ namespace cpv {
 
 	/**
 	 * The class used to serialize model to json packet.
-	 * 
 	 * The model should be writable to JsonBuilder from JsonBuilderWriter.
-	 *
-	 * Notice:
-	 * The json packet may hold a string_view to the content of model,
-	 * please ensure the model is alive until the packet is sent.
-	 *
 	 * If you want to build a json without model, you can use JsonBuilder directly.
 	 */
 	template <class T, class = void /* for enable_if */>

@@ -5,7 +5,7 @@
 #include <CPVFramework/Utility/Reusable.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestInputStreamExtensions, readAll) {
+TEST_FUTURE(InputStreamExtensions, readAll) {
 	return seastar::do_with(
 		cpv::StringInputStream(),
 		std::string(),
@@ -20,7 +20,7 @@ TEST_FUTURE(TestInputStreamExtensions, readAll) {
 	});
 }
 
-TEST_FUTURE(TestInputStreamExtensions, readAll_ptr) {
+TEST_FUTURE(InputStreamExtensions, readAll_ptr) {
 	return seastar::do_with(
 		cpv::makeReusable<cpv::StringInputStream>("test body").cast<cpv::InputStreamBase>(),
 		cpv::Reusable<cpv::InputStreamBase>(),
@@ -35,7 +35,7 @@ TEST_FUTURE(TestInputStreamExtensions, readAll_ptr) {
 	});
 }
 
-TEST_FUTURE(TestInputStreamExtensions, readAll_multipleSegments) {
+TEST_FUTURE(InputStreamExtensions, readAll_multipleSegments) {
 	return seastar::do_with(
 		cpv::PacketInputStream(),
 		[] (auto& stream) {

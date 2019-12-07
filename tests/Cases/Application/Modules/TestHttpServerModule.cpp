@@ -23,7 +23,7 @@ namespace {
 	};
 }
 
-TEST_FUTURE(TestHttpServerModule, startStop) {
+TEST_FUTURE(HttpServerModule, startStop) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -41,7 +41,7 @@ TEST_FUTURE(TestHttpServerModule, startStop) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerModule, default404Handler) {
+TEST_FUTURE(HttpServerModule, default404Handler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -68,7 +68,7 @@ TEST_FUTURE(TestHttpServerModule, default404Handler) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerModule, default500Handler) {
+TEST_FUTURE(HttpServerModule, default500Handler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -98,7 +98,7 @@ TEST_FUTURE(TestHttpServerModule, default500Handler) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerModule, set404Handler) {
+TEST_FUTURE(HttpServerModule, set404Handler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -131,7 +131,7 @@ TEST_FUTURE(TestHttpServerModule, set404Handler) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerModule, set500Handler) {
+TEST_FUTURE(HttpServerModule, set500Handler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -162,7 +162,7 @@ TEST_FUTURE(TestHttpServerModule, set500Handler) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerModule, addCustomHandler) {
+TEST_FUTURE(HttpServerModule, addCustomHandler) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());

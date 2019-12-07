@@ -85,7 +85,7 @@ namespace cpv {
 		/** Constructor */
 		Uri();
 		
-		/** Constructor */
+		/** Construct with uri string */
 		explicit Uri(const SharedString& uri) : Uri() { parse(uri); }
 		
 	private:

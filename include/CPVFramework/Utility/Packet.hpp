@@ -81,6 +81,11 @@ namespace cpv {
 			/** For Reusable */
 			static void reset() { }
 
+			/** Reserve addition capacity of fragments */
+			void reserve_addition(std::size_t additionSize) {
+				fragments.reserve(fragments.size() + additionSize);
+			}
+
 			/** Append string to fragments */
 			void append(SharedString&& str) {
 				fragments.emplace_back(seastar::net::fragment({ str.data(), str.size() }));

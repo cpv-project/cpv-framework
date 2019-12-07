@@ -5,12 +5,12 @@
 TEST(Packet, construct) {
 	{
 		cpv::Packet p("abc\x00""def");
-		ASSERT_EQ(cpv::joinString("", p), std::string_view("abc\x00""def", 7));
+		ASSERT_EQ(p.toString(), std::string_view("abc\x00""def", 7));
 	}
 	{
 		seastar::temporary_buffer buf("123\x00""3210", 8);
 		cpv::Packet p(std::move(buf));
-		ASSERT_EQ(cpv::joinString("", p), std::string_view("123\x00""3210", 8));
+		ASSERT_EQ(p.toString(), std::string_view("123\x00""3210", 8));
 	}
 	{
 		cpv::Packet p(100);
@@ -24,7 +24,7 @@ TEST(Packet, append) {
 	{
 		cpv::Packet p;
 		p.append("abc").append("123").append("def"); // single => multiple => multiple
-		ASSERT_EQ(cpv::joinString("", p), "abc123def");
+		ASSERT_EQ(p.toString(), "abc123def");
 	}
 	{
 		cpv::Packet p;
@@ -34,14 +34,14 @@ TEST(Packet, append) {
 		p.append(cpv::SharedString(std::move(bufA)))
 			.append(std::move(bufB))
 			.append(std::move(bufC)); // single => multiple => multiple
-		ASSERT_EQ(cpv::joinString("", p), "defqwertasdfg");
+		ASSERT_EQ(p.toString(), "defqwertasdfg");
 	}
 	{
 		cpv::Packet p;
 		p.append(cpv::SharedString::fromInt(123))
 			.append(cpv::SharedString::fromInt(99999))
 			.append(cpv::SharedString::fromInt(-12345));
-		ASSERT_EQ(cpv::joinString("", p), "12399999-12345");
+		ASSERT_EQ(p.toString(), "12399999-12345");
 	}
 }
 
@@ -53,8 +53,8 @@ TEST(Packet, appendPacket) {
 		p.append("abc").append(seastar::temporary_buffer("123", 3));
 		q.append("def").append(seastar::temporary_buffer("321", 3));
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "abc123def321");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "abc123def321");
+		ASSERT_EQ(q.toString(), "");
 	}
 	{
 		// append single to multiple
@@ -62,8 +62,8 @@ TEST(Packet, appendPacket) {
 		cpv::Packet q("def");
 		p.append("abc").append(seastar::temporary_buffer("123", 3));
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "abc123def");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "abc123def");
+		ASSERT_EQ(q.toString(), "");
 	}
 	{
 		// append multiple to empty single
@@ -71,8 +71,8 @@ TEST(Packet, appendPacket) {
 		cpv::Packet q;
 		q.append("def").append(seastar::temporary_buffer("321", 3));
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "def321");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "def321");
+		ASSERT_EQ(q.toString(), "");
 	}
 	{
 		// append multiple to single
@@ -80,16 +80,16 @@ TEST(Packet, appendPacket) {
 		cpv::Packet q;
 		q.append("def").append(seastar::temporary_buffer("321", 3));
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "abcdef321");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "abcdef321");
+		ASSERT_EQ(q.toString(), "");
 	}
 	{
 		// append single to single
 		cpv::Packet p("abc");
 		cpv::Packet q("def");
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "abcdef");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "abcdef");
+		ASSERT_EQ(q.toString(), "");
 	}
 	{
 		// replace valueless
@@ -97,9 +97,9 @@ TEST(Packet, appendPacket) {
 		cpv::Packet p_(std::move(p));
 		cpv::Packet q(seastar::temporary_buffer("def", 3));
 		p.append(std::move(q));
-		ASSERT_EQ(cpv::joinString("", p), "def");
-		ASSERT_EQ(cpv::joinString("", p_), "abc");
-		ASSERT_EQ(cpv::joinString("", q), "");
+		ASSERT_EQ(p.toString(), "def");
+		ASSERT_EQ(p_.toString(), "abc");
+		ASSERT_EQ(q.toString(), "");
 	}
 }
 
@@ -193,6 +193,10 @@ TEST(Packet, getOrConvertToMultiple) {
 	f.append(cpv::SharedString::fromDouble(1.0));
 	f.append("|");
 	f.append(cpv::SharedString::fromDouble(-0.1));
-	ASSERT_EQ(cpv::joinString("", p), "abcqwert123|1234567|1|-0.1");
+	ASSERT_EQ(p.toString(), "abcqwert123|1234567|1|-0.1");
+	{
+		f.reserve_addition(100);
+		ASSERT_GE(f.fragments.capacity(), f.fragments.size() + 100U);
+	}
 }
 

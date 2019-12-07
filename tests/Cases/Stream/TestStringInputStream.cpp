@@ -4,7 +4,7 @@
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestStringInputStream, all) {
+TEST_FUTURE(StringInputStream, all) {
 	return seastar::do_with(
 		cpv::StringInputStream(),
 		[] (auto& stream) {

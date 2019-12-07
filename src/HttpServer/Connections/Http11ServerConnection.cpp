@@ -503,8 +503,7 @@ namespace cpv {
 		// append response headers to packet
 		// manipulate fragments vector directly to avoid variant and boundary checks
 		auto& fragments = packet.getOrConvertToMultiple();
-		fragments.fragments.reserve(
-			fragments.fragments.size() + getResponseHeadersFragmentsCount());
+		fragments.reserve_addition(getResponseHeadersFragmentsCount());
 		fragments.append(response.getVersion().share());
 		fragments.append(constants::Space);
 		fragments.append(response.getStatusCode().share());

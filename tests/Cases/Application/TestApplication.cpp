@@ -138,14 +138,14 @@ namespace {
 	};
 }
 
-TEST_FUTURE(TestApplication, empty) {
+TEST_FUTURE(Application, empty) {
 	cpv::Application application;
 	return application.start().then([application] () mutable {
 		return application.stop();
 	});
 }
 
-TEST_FUTURE(TestApplication, handleStates) {
+TEST_FUTURE(Application, handleStates) {
 	return seastar::do_with(
 		cpv::Application(),
 		std::make_shared<std::atomic_uint>(),
@@ -176,7 +176,7 @@ TEST_FUTURE(TestApplication, handleStates) {
 	});
 }
 
-TEST_FUTURE(TestApplication, handleOrder) {
+TEST_FUTURE(Application, handleOrder) {
 	cpv::Application application;
 	application.add<TestHandleOrderModule<0, 5>>();
 	application.add<TestHandleOrderModule<1, 5>>();

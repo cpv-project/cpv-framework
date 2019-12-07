@@ -2,7 +2,7 @@
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestHttpRequestExtensions, readBodyStream) {
+TEST_FUTURE(HttpRequestExtensions, readBodyStream) {
 	return seastar::do_with(
 		cpv::HttpRequest(),
 		std::string(),
@@ -23,9 +23,9 @@ TEST_FUTURE(TestHttpRequestExtensions, readBodyStream) {
 	});
 }
 
-// TEST_FUTURE(TestHttpRequestExtensions, readBodyStreamAsJson) {
+// TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsJson) {
 // }
 
-// TEST_FUTURE(TestHttpRequestExtensions, readBodyStreamAsForm) {
+// TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsForm) {
 // }
 

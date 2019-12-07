@@ -5,7 +5,7 @@
 #include <CPVFramework/Utility/SocketHolder.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestSocketHolder, all) {
+TEST_FUTURE(SocketHolder, all) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());

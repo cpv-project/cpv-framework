@@ -2,7 +2,7 @@
 #include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestHttpResponseExtensions, reply) {
+TEST_FUTURE(HttpResponseExtensions, reply) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
@@ -20,7 +20,7 @@ TEST_FUTURE(TestHttpResponseExtensions, reply) {
 	});
 }
 
-TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
+TEST_FUTURE(HttpResponseExtensions, replyWithMime) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
@@ -39,7 +39,7 @@ TEST_FUTURE(TestHttpResponseExtensions, replyWithMime) {
 	});
 }
 
-TEST_FUTURE(TestHttpResponseExtensions, replyWithMimeAndStatusCode) {
+TEST_FUTURE(HttpResponseExtensions, replyWithMimeAndStatusCode) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
@@ -60,7 +60,7 @@ TEST_FUTURE(TestHttpResponseExtensions, replyWithMimeAndStatusCode) {
 	});
 }
 
-TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
+TEST_FUTURE(HttpResponseExtensions, redirectTo) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
@@ -77,7 +77,7 @@ TEST_FUTURE(TestHttpResponseExtensions, redirectTo) {
 	});
 }
 
-TEST_FUTURE(TestHttpResponseExtensions, redirectToPermanently) {
+TEST_FUTURE(HttpResponseExtensions, redirectToPermanently) {
 	return seastar::do_with(
 		cpv::HttpResponse(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),

@@ -26,7 +26,7 @@ namespace {
 	};
 }
 
-TEST_FUTURE(TestHttpServerRoutingModule, route) {
+TEST_FUTURE(HttpServerRoutingModule, route) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createNoop());
@@ -72,7 +72,7 @@ TEST_FUTURE(TestHttpServerRoutingModule, route) {
 	});
 }
 
-TEST_FUTURE(TestHttpServerRoutingModule, routeStaticFile) {
+TEST_FUTURE(HttpServerRoutingModule, routeStaticFile) {
 	static const auto testFunc = [](std::string_view basePath, std::string_view filename) {
 		cpv::Application application;
 		application.add<cpv::LoggingModule>([] (auto& module) {

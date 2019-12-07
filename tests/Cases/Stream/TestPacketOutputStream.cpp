@@ -3,7 +3,7 @@
 #include <CPVFramework/Stream/PacketOutputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestPacketOutputStream, all) {
+TEST_FUTURE(PacketOutputStream, all) {
 	return seastar::do_with(
 		cpv::PacketOutputStream(),
 		seastar::make_lw_shared<cpv::Packet>("test "),

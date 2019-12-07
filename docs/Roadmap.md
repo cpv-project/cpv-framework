@@ -9,6 +9,7 @@ Done:
 - (api change) change paramter type from `const HttpServerRequestHandlerIterator&` to `HttpServerRequestHandlerIterator` in http request handler
 - (api change) require types under `cpv::extensions::http_context_parameters` when registering http request handler with parameters
 - add json serializer and deserializer
+- add form serializer and deserializer
 - add static file handler
 	- support pre-compressed gzip (detect original-filename.gz)
 	- support bytes range
@@ -16,8 +17,7 @@ Done:
 
 TODO:
 
-- add form serializer and deserializer
-- add prometheus module
+cleanup, add benchmark tools
 
 ## 0.3
 
@@ -37,5 +37,6 @@ TODO:
 ## Backlog
 
 - upgrade to c++20 for coroutine support
+- add prometheus module (big job because seastar's impl only works for seastar httpd)
 - add base class of model that provides id and underlying buffer member for convenient
 

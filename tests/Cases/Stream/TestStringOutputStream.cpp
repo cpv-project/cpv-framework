@@ -3,7 +3,7 @@
 #include <CPVFramework/Stream/StringOutputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestStringOutputStream, all) {
+TEST_FUTURE(StringOutputStream, all) {
 	return seastar::do_with(
 		cpv::StringOutputStream(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>("test "),

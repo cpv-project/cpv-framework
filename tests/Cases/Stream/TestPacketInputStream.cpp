@@ -4,7 +4,7 @@
 #include <CPVFramework/Stream/PacketInputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestPacketInputStream, all) {
+TEST_FUTURE(PacketInputStream, all) {
 	return seastar::do_with (
 		cpv::PacketInputStream(),
 		[] (auto& stream) {
@@ -35,7 +35,7 @@ TEST_FUTURE(TestPacketInputStream, all) {
 	});
 }
 
-TEST_FUTURE(TestPacketInputStream, empty) {
+TEST_FUTURE(PacketInputStream, empty) {
 	return seastar::do_with (
 		cpv::PacketInputStream(),
 		[] (auto& stream) {

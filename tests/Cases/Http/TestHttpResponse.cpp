@@ -4,7 +4,7 @@
 #include <CPVFramework/Stream/OutputStreamExtensions.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestHttpResponse, all) {
+TEST_FUTURE(HttpResponse, all) {
 	cpv::HttpResponse response;
 	response.setVersion("HTTP/1.1");
 	response.setStatusCode("404");

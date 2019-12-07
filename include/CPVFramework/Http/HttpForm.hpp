@@ -73,6 +73,14 @@ namespace cpv {
 		/** Apend url encoded form body to packet */
 		void buildUrlEncoded(Packet& packet);
 
+		/** Constructor */
+		HttpForm();
+
+		/** Construct with url encoded form body */
+		explicit HttpForm(const SharedString& body) : HttpForm() {
+			parseUrlEncoded(body);
+		}
+
 	private:
 		static const ValuesType Empty;
 

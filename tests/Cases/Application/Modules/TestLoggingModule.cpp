@@ -19,7 +19,7 @@ namespace {
 	};
 }
 
-TEST_FUTURE(TestLoggingModule, getDefaultLogger) {
+TEST_FUTURE(LoggingModule, getDefaultLogger) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>();
 	application.add<TestLoggerModule<cpv::LogLevel::Notice>>();
@@ -28,7 +28,7 @@ TEST_FUTURE(TestLoggingModule, getDefaultLogger) {
 	});
 }
 
-TEST_FUTURE(TestLoggingModule, setCustomLogger) {
+TEST_FUTURE(LoggingModule, setCustomLogger) {
 	cpv::Application application;
 	application.add<cpv::LoggingModule>([] (auto& module) {
 		module.setLogger(cpv::Logger::createConsole(cpv::LogLevel::Info));

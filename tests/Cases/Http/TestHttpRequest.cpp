@@ -5,7 +5,7 @@
 #include <CPVFramework/Stream/InputStreamExtensions.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestHttpRequest, basic) {
+TEST_FUTURE(HttpRequest, basic) {
 	cpv::HttpRequest request;
 	request.setMethod("GET");
 	request.setUrl("/test");

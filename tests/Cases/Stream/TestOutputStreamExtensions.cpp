@@ -4,7 +4,7 @@
 #include <CPVFramework/Utility/Reusable.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
-TEST_FUTURE(TestOutputStreamExtensions, writeAll) {
+TEST_FUTURE(OutputStreamExtensions, writeAll) {
 	return seastar::do_with(
 		cpv::StringOutputStream(),
 		seastar::make_lw_shared<cpv::SharedStringBuilder>(),
@@ -16,7 +16,7 @@ TEST_FUTURE(TestOutputStreamExtensions, writeAll) {
 	});
 }
 
-TEST_FUTURE(TestOutputStreamExtensions, writeAll_ptr) {
+TEST_FUTURE(OutputStreamExtensions, writeAll_ptr) {
 	auto target = seastar::make_lw_shared<cpv::SharedStringBuilder>("str:");
 	return seastar::do_with(
 		cpv::makeReusable<cpv::StringOutputStream>(target).cast<cpv::OutputStreamBase>(),

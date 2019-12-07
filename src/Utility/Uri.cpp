@@ -169,6 +169,8 @@ namespace cpv {
 	/** Append uri string to packet */
 	void Uri::build(Packet& packet) const {
 		auto& fragments = packet.getOrConvertToMultiple();
+		fragments.reserve_addition(
+			pathFragments_.size() * 2 + queryParameters_.size() * 4 + 7);
 		if (!protocol_.empty()) {
 			fragments.append(urlEncode(protocol_.share()));
 			fragments.append(constants::ColonSlashSlash);
