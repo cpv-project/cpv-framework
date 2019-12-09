@@ -40,40 +40,34 @@ TEST_FUTURE(HttpRequestExtensions, readBodyStream) {
 }
 
 TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsJson) {
-	return seastar::do_with(
-		cpv::HttpRequest(),
-		MyModel(),
-		[] (auto& request, auto& model) {
+	return seastar::do_with(cpv::HttpRequest(), [] (auto& request) {
 		cpv::SharedString json("{ intValue: 123 }");
 		request.setBodyStream(
 			cpv::makeReusable<cpv::StringInputStream>(std::move(json))
 			.cast<cpv::InputStreamBase>());
-		return cpv::extensions::readBodyStreamAsJson(request, model).then([&model] {
+		return cpv::extensions::readBodyStreamAsJson<MyModel>(request).then([] (auto model) {
 			ASSERT_EQ(model.intValue, 123);
-		}).then([&request, &model] {
+		}).then([&request] {
 			request.setBodyStream(cpv::Reusable<cpv::InputStreamBase>());
-			return cpv::extensions::readBodyStreamAsJson(request, model);
-		}).then_wrapped([] (seastar::future<> f) {
+			return cpv::extensions::readBodyStreamAsJson<MyModel>(request);
+		}).then_wrapped([] (seastar::future<MyModel> f) {
 			ASSERT_THROWS(cpv::DeserializeException, f.get());
 		});
 	});
 }
 
 TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsForm) {
-	return seastar::do_with(
-		cpv::HttpRequest(),
-		MyModel(),
-		[] (auto& request, auto& model) {
+	return seastar::do_with(cpv::HttpRequest(), [] (auto& request) {
 		cpv::SharedString formStr("intValue=123");
 		request.setBodyStream(
 			cpv::makeReusable<cpv::StringInputStream>(std::move(formStr))
 			.cast<cpv::InputStreamBase>());
-		return cpv::extensions::readBodyStreamAsForm(request, model).then([&model] {
+		return cpv::extensions::readBodyStreamAsForm<MyModel>(request).then([] (auto model) {
 			ASSERT_EQ(model.intValue, 123);
-		}).then([&request, &model] {
+		}).then([&request] {
 			request.setBodyStream(cpv::Reusable<cpv::InputStreamBase>());
-			return cpv::extensions::readBodyStreamAsForm(request, model);
-		}).then([&model] {
+			return cpv::extensions::readBodyStreamAsForm<MyModel>(request);
+		}).then([] (auto model) {
 			ASSERT_EQ(model.intValue, 0);
 		});
 	});

@@ -1,5 +1,6 @@
 #pragma once
 #include "../Http/HttpForm.hpp"
+#include "../Utility/ObjectTrait.hpp"
 
 namespace cpv {
 	/**
@@ -12,8 +13,19 @@ namespace cpv {
 	public:
 		/** Deserialize form to model */
 		static void deserialize(T& model, const SharedString& formBody) {
+			using Trait = ObjectTrait<T>;
+			if constexpr (Trait::IsPointerLike) {
+				// if model is pointer type, ensure it's not nullptr
+				if (Trait::get(model) == nullptr) {
+					model = Trait::create();
+				}
+			}
 			HttpForm form(formBody);
-			model.loadForm(form);
+			if constexpr (Trait::IsPointerLike) {
+				Trait::get(model)->loadForm(form);
+			} else {
+				Trait::get(model).loadForm(form);
+			}
 		}
 	};
 

@@ -2,6 +2,7 @@
 #include <vector>
 #include <optional>
 #include "../Allocators/StackAllocator.hpp"
+#include "../Utility/ObjectTrait.hpp"
 
 namespace cpv {
 	/** Determine attributes of a service type, like is collection or not */
@@ -12,27 +13,15 @@ namespace cpv {
 		using ActualType = T;
 	};
 	
-	/** Specialize for std::vector<T, Allocator> */
-	template <class T, class Allocator>
-	struct ServiceTypeTrait<std::vector<T, Allocator>> {
+	/** Specialize for collection like types */
+	template <class T>
+	struct ServiceTypeTrait<T, std::enable_if_t<ObjectTrait<T>::IsCollectionLike>> {
 		static const constexpr bool IsCollection = true;
-		using Type = std::vector<T, Allocator>;
-		using ActualType = T;
+		using Type = T;
+		using ActualType = typename ObjectTrait<T>::UnderlyingType;
 		
 		static void add(Type& collection, ActualType&& element) {
-			collection.emplace_back(std::move(element));
-		}
-	};
-	
-	/** For StackAllocatedVector */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator>
-	struct ServiceTypeTrait<StackAllocatedVector<T, InitialSize, UpstreamAllocator>> {
-		static const constexpr bool IsCollection = true;
-		using Type = StackAllocatedVector<T, InitialSize, UpstreamAllocator>;
-		using ActualType = T;
-		
-		static void add(Type& collection, ActualType&& element) {
-			collection.emplace_back(std::move(element));
+			ObjectTrait<T>::add(collection, std::move(element));
 		}
 	};
 	

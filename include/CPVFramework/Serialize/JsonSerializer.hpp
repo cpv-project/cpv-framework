@@ -5,8 +5,8 @@
 #include <seastar/core/shared_ptr.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Utility/ConstantStrings.hpp"
+#include "../Utility/ObjectTrait.hpp"
 #include "../Utility/Packet.hpp"
-#include "../Utility/Reusable.hpp"
 #include "../Utility/SharedString.hpp"
 
 // construct JsonMemberKey, please ensure key is already encoded
@@ -199,76 +199,29 @@ namespace cpv {
 		}
 	};
 
-	/** Specialize for std::vector */
-	template <class T, class Allocator>
-	struct JsonBuilderWriter<std::vector<T, Allocator>> {
-		/** Write std::vector to json builder */
-		static void write(
-			const std::vector<T, Allocator>& values, JsonBuilder& builder) {
+	/** Specialize for collection like types */
+	template <class T>
+	struct JsonBuilderWriter<T, std::enable_if_t<
+		ObjectTrait<T>::IsCollectionLike && !ObjectTrait<T>::IsPointerLike>> {
+		/** Write collection like oject to json builder */
+		static void write(const T& values, JsonBuilder& builder) {
 			builder.startArray();
-			for (const auto& value : values) {
+			ObjectTrait<T>::apply(values, [&builder] (const auto& value) {
 				builder.addItem(value);
-			}
+			});
 			builder.endArray();
 		}
 	};
 
-	/** Specialize for StackAllocatedVector */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator>
-	struct JsonBuilderWriter<StackAllocatedVector<T, InitialSize, UpstreamAllocator>> :
-		public JsonBuilderWriter<std::vector<T, typename
-			StackAllocatedVector<T, InitialSize, UpstreamAllocator>::allocator_type>> { };
-
-	/** Specialize for std::optional */
+	/** Specialize for pointer like types */
 	template <class T>
-	struct JsonBuilderWriter<std::optional<T>> {
-		/** Write std::optional to json builder */
-		static void write(
-			const std::optional<T>& value, JsonBuilder& builder) {
-			if (value.has_value()) {
-				JsonBuilderWriter<T>::write(*value, builder);
-			} else {
-				builder.writeRaw(constants::Null);
-			}
-		}
-	};
-
-	/** Specialize for std::unique_ptr */
-	template <class T>
-	struct JsonBuilderWriter<std::unique_ptr<T>> {
-		/** Write std::unique_ptr to json builder */
-		static void write(
-			const std::unique_ptr<T>& value, JsonBuilder& builder) {
-			if (value != nullptr) {
-				JsonBuilderWriter<T>::write(*value, builder);
-			} else {
-				builder.writeRaw(constants::Null);
-			}
-		}
-	};
-
-	/** Specialize for seastar::shared_ptr */
-	template <class T>
-	struct JsonBuilderWriter<seastar::shared_ptr<T>> {
-		/** Write seastar::shared_ptr to json builder */
-		static void write(
-			const seastar::shared_ptr<T>& value, JsonBuilder& builder) {
-			if (value.get() != nullptr) {
-				JsonBuilderWriter<T>::write(*value, builder);
-			} else {
-				builder.writeRaw(constants::Null);
-			}
-		}
-	};
-
-	/** Specialize for Reusable */
-	template <class T>
-	struct JsonBuilderWriter<Reusable<T>> {
-		/** Write Reusable to json builder */
-		static void write(
-			const Reusable<T>& value, JsonBuilder& builder) {
-			if (value != nullptr) {
-				JsonBuilderWriter<T>::write(*value, builder);
+	struct JsonBuilderWriter<T, std::enable_if_t<ObjectTrait<T>::IsPointerLike>> {
+		/** Write pointer like object to json builder */
+		static void write(const T& value, JsonBuilder& builder) {
+			using UnderlyingType = typename ObjectTrait<T>::UnderlyingType;
+			const UnderlyingType* ptr = ObjectTrait<T>::get(value);
+			if (ptr != nullptr) {
+				JsonBuilderWriter<UnderlyingType>::write(*ptr, builder);
 			} else {
 				builder.writeRaw(constants::Null);
 			}

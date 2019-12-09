@@ -48,3 +48,26 @@ TEST(FormSerializer, model) {
 		"sizeValue=102&stringValue=abc");
 }
 
+TEST(FormSerializer, ptrWrappedModel) {
+	{
+		auto model = std::make_unique<MyModel>();
+		model->intValue = 101;
+		model->sizeValue = 102;
+		model->doubleValue = 0.1;
+		model->stringValue = "abc";
+		model->sharedStringValue = "一二三";
+		model->intValues = { 1, 2, 100 };
+		auto packet = cpv::serializeForm(model);
+		ASSERT_EQ(packet.toString(),
+			"doubleValue=0.1&intValue=101&"
+			"intValues=1&intValues=2&intValues=100&"
+			"sharedStringValue=%E4%B8%80%E4%BA%8C%E4%B8%89&"
+			"sizeValue=102&stringValue=abc");
+	}
+	{
+		std::unique_ptr<MyModel> model;
+		auto packet = cpv::serializeForm(model);
+		ASSERT_EQ(packet.toString(), "");
+	}
+}
+

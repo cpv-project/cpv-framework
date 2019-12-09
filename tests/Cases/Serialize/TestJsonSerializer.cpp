@@ -202,3 +202,22 @@ TEST(JsonSerializer, ptrModel) {
 	}
 }
 
+TEST(JsonSerializer, ptrWrappedModel) {
+	{
+		auto model = std::make_unique<MyModel>();
+		model->intValue = 101;
+		cpv::Packet packet = cpv::serializeJson(model);
+		cpv::SharedString json = packet.toString();
+		ASSERT_EQ(json,
+			"{\"intValue\":101,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
+			"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+			"\"intValues\":[],\"intValuesOnStack\":[]}");
+	}
+	{
+		std::unique_ptr<MyModel> model;
+		cpv::Packet packet = cpv::serializeJson(model);
+		cpv::SharedString json = packet.toString();
+		ASSERT_EQ(json, "null");
+	}
+}
+

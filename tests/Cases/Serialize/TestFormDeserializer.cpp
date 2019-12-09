@@ -53,3 +53,11 @@ TEST(FormDeserializer, model) {
 	ASSERT_EQ(model.intValues.at(2), 100);
 }
 
+TEST(FormDeserializer, ptrWrappedModel) {
+	std::unique_ptr<MyModel> model;
+	cpv::SharedString formBody("intValue=101");
+	cpv::deserializeForm(model, formBody);
+	ASSERT_TRUE(model != nullptr);
+	ASSERT_EQ(model->intValue, 101);
+}
+

@@ -3,6 +3,7 @@
 #include "../Serialize/FormDeserializer.hpp"
 #include "../Serialize/JsonDeserializer.hpp"
 #include "../Stream/InputStreamExtensions.hpp"
+#include "../Utility/ObjectTrait.hpp"
 
 namespace cpv::extensions {
 	/** Read all data from request body stream and return as string */
@@ -11,23 +12,27 @@ namespace cpv::extensions {
 		return readAll(request.getBodyStream());
 	}
 
-	/** Read all data from request body stream and parse as json then save to model */
+	/** Read json from request body stream and convert to model */
 	template <class T>
-	seastar::future<> readBodyStreamAsJson(const HttpRequest& request, T& model) {
-		return readBodyStream(request).then([&model] (SharedString str) {
+	seastar::future<T> readBodyStreamAsJson(const HttpRequest& request) {
+		return readBodyStream(request).then([] (SharedString str) {
+			T model;
 			auto error = deserializeJson(model, str);
 			if (CPV_UNLIKELY(error.has_value())) {
-				return seastar::make_exception_future<>(*error);
+				return seastar::make_exception_future<T>(*error);
 			}
-			return seastar::make_ready_future<>();
+			return seastar::make_ready_future<T>(std::move(model));
 		});
 	}
 
-	/** Read all data from request body stream and parse as json then save to model */
+	/** Read form body from request body stream and convert to model */
 	template <class T>
-	seastar::future<> readBodyStreamAsForm(const HttpRequest& request, T& model) {
-		return readBodyStream(request).then([&model] (SharedString str) {
+	seastar::future<T> readBodyStreamAsForm(const HttpRequest& request) {
+		return readBodyStream(request).then([] (SharedString str) {
+			// TODO: support multiple part form
+			T model;
 			deserializeForm(model, str);
+			return model;
 		});
 	}
 }

@@ -4,7 +4,7 @@
 #include <seastar/core/shared_ptr.hh>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Exceptions/DeserializeException.hpp"
-#include "../Utility/Reusable.hpp"
+#include "../Utility/ObjectTrait.hpp"
 #include "../Utility/SharedString.hpp"
 #include "./JsonDeserializer.sajson.hpp"
 
@@ -134,18 +134,21 @@ namespace cpv {
 		}
 	};
 
-	/** Specialize for std::vector */
-	template <class T, class Allocator>
-	struct JsonValueConverter<std::vector<T, Allocator>> {
-		/** Convert json value to std::vector if type matched */
-		static bool convert(std::vector<T, Allocator>& models, const JsonValue& value) {
+	/** Specialize for collection like types */
+	template <class T>
+	struct JsonValueConverter<T, std::enable_if_t<
+		ObjectTrait<T>::IsCollectionLike && !ObjectTrait<T>::IsPointerLike>> {
+		/** Convert json value to collection like object if type matched */
+		static bool convert(T& models, const JsonValue& value) {
+			using Trait = ObjectTrait<T>;
+			using UnderlyingType = typename Trait::UnderlyingType;
 			if (CPV_LIKELY(value.get_type() == JsonType::TYPE_ARRAY)) {
 				std::size_t length = value.get_length();
-				models.reserve(models.size() + length);
+				Trait::reserve(models, Trait::size(models) + length);
 				bool result = true;
 				for (std::size_t i = 0; i < length; ++i) {
-					result = JsonValueConverter<T>::convert(
-						models.emplace_back(), value[i]) && result;
+					result = JsonValueConverter<UnderlyingType>::convert(
+						Trait::add(models), value[i]) && result;
 				}
 				return result;
 			}
@@ -153,76 +156,22 @@ namespace cpv {
 		}
 	};
 
-	/** Specialize for StackAllocatedVector */
-	template <class T, std::size_t InitialSize, class UpstreamAllocator>
-	struct JsonValueConverter<StackAllocatedVector<T, InitialSize, UpstreamAllocator>> :
-		public JsonValueConverter<std::vector<T, typename
-			StackAllocatedVector<T, InitialSize, UpstreamAllocator>::allocator_type>> { };
-
-	/** Specialize for std::optional */
+	/** Specialize for pointer like types */
 	template <class T>
-	struct JsonValueConverter<std::optional<T>> {
-		/** Convert json value to std::optional if type matched */
-		static bool convert(std::optional<T>& target, const JsonValue& value) {
+	struct JsonValueConverter<T, std::enable_if_t<ObjectTrait<T>::IsPointerLike>> {
+		/** Convert json value to pointer like object if type matched */
+		static bool convert(T& target, const JsonValue& value) {
+			using Trait = ObjectTrait<T>;
+			using UnderlyingType = typename Trait::UnderlyingType;
 			if (value.get_type() == JsonType::TYPE_NULL) {
-				target.reset();
+				Trait::reset(target);
 				return true;
 			} else {
-				if (!target.has_value()) {
-					target.emplace();
+				if (Trait::get(target) == nullptr) {
+					target = Trait::create();
 				}
-				return JsonValueConverter<T>::convert(*target, value);
-			}
-		}
-	};
-
-	/** Specialize for std::unique_ptr */
-	template <class T>
-	struct JsonValueConverter<std::unique_ptr<T>> {
-		/** Convert json value to std::unique_ptr if type matched */
-		static bool convert(std::unique_ptr<T>& target, const JsonValue& value) {
-			if (value.get_type() == JsonType::TYPE_NULL) {
-				target.reset();
-				return true;
-			} else {
-				if (target == nullptr) {
-					target = std::make_unique<T>();
-				}
-				return JsonValueConverter<T>::convert(*target, value);
-			}
-		}
-	};
-
-	/** Specialize for seastar::shared_ptr */
-	template <class T>
-	struct JsonValueConverter<seastar::shared_ptr<T>> {
-		/** Convert json value to seastar::shared_ptr if type matched */
-		static bool convert(seastar::shared_ptr<T>& target, const JsonValue& value) {
-			if (value.get_type() == JsonType::TYPE_NULL) {
-				target = nullptr;
-				return true;
-			} else {
-				if (target.get() == nullptr) {
-					target = seastar::make_shared<T>();
-				}
-				return JsonValueConverter<T>::convert(*target, value);
-			}
-		}
-	};
-
-	/** Specialize for Reusable */
-	template <class T>
-	struct JsonValueConverter<Reusable<T>> {
-		/** Convert json value to Reusable if type matched */
-		static bool convert(Reusable<T>& target, const JsonValue& value) {
-			if (value.get_type() == JsonType::TYPE_NULL) {
-				target.reset();
-				return true;
-			} else {
-				if (target == nullptr) {
-					target = makeReusable<T>();
-				}
-				return JsonValueConverter<T>::convert(*target, value);
+				return JsonValueConverter<UnderlyingType>::convert(
+					*Trait::get(target), value);
 			}
 		}
 	};
@@ -255,6 +204,7 @@ namespace cpv {
 				return DeserializeException(CPV_CODEINFO,
 					document.get_error_message_as_cstring());
 			}
+			// sajson will ensure root type is either object or array, no need to check it
 			JsonValue root(document.get_root(), str);
 			if (CPV_UNLIKELY(!JsonValueConverter<T>::convert(model, root))) {
 				return DeserializeException(CPV_CODEINFO, "convert failed");

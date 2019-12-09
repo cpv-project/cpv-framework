@@ -235,12 +235,33 @@ TEST(JsonDeserializer, ptrModel) {
 	}
 }
 
+TEST(JsonDeserializer, ptrWrappedModel) {
+	cpv::SharedString json(std::string_view(R"(
+		{
+			"requiredValue": 100
+		}
+	)"));
+	std::unique_ptr<MyModel> model;
+	auto error = cpv::deserializeJson(model, json);
+	ASSERT_FALSE(error.has_value());
+	ASSERT_TRUE(model != nullptr);
+	ASSERT_EQ(model->requiredValue, 100);
+}
+
 TEST(JsonDeserializer, modelWithEmptyJson) {
 	cpv::SharedString json;
 	MyModel model;
 	auto error = cpv::deserializeJson(model, json);
 	ASSERT_TRUE(error.has_value());
 	ASSERT_CONTAINS(std::string_view(error->what()), "missing root element");
+}
+
+TEST(JsonDeserializer, modelWithNullJson) {
+	cpv::SharedString json("null");
+	std::unique_ptr<MyModel> model;
+	auto error = cpv::deserializeJson(model, json);
+	ASSERT_TRUE(error.has_value());
+	ASSERT_CONTAINS(std::string_view(error->what()), "document root must be object or array");
 }
 
 TEST(JsonDeserializer, modelWithNotContainsRequiredValueJson) {

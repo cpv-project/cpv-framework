@@ -1,5 +1,6 @@
 #pragma once
 #include "../Http/HttpForm.hpp"
+#include "../Utility/ObjectTrait.hpp"
 
 namespace cpv {
 	/**
@@ -12,9 +13,19 @@ namespace cpv {
 	public:
 		/** Serialize model to form packet */
 		static Packet serialize(const T& model) {
-			HttpForm form;
-			model.dumpForm(form);
+			using Trait = ObjectTrait<T>;
 			Packet p;
+			if constexpr (Trait::IsPointerLike) {
+				if (Trait::get(model) == nullptr) {
+					return p;
+				}
+			}
+			HttpForm form;
+			if constexpr (Trait::IsPointerLike) {
+				Trait::get(model)->dumpForm(form);
+			} else {
+				Trait::get(model).dumpForm(form);
+			}
 			form.buildUrlEncoded(p);
 			return p;
 		}
