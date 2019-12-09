@@ -33,14 +33,15 @@ namespace {
 }
 
 TEST(FormDeserializer, model) {
-	cpv::SharedString formStr(std::string_view(
-		"intValue=101&sizeValue=102&doubleValue=0.1&stringValue=abc&"
-		"sharedStringValue=%E4%B8%80%E4%BA%8C%E4%B8%89&"
-		"intValues=1&intValues=2&intValues=100"
-	));
-	cpv::HttpForm form(formStr);
 	MyModel model;
-	cpv::deserializeForm(model, form);
+	{
+		cpv::SharedString formBody(std::string_view(
+			"intValue=101&sizeValue=102&doubleValue=0.1&stringValue=abc&"
+			"sharedStringValue=%E4%B8%80%E4%BA%8C%E4%B8%89&"
+			"intValues=1&intValues=2&intValues=100"
+		));
+		cpv::deserializeForm(model, formBody);
+	}
 	ASSERT_EQ(model.intValue, 101);
 	ASSERT_EQ(model.sizeValue, 102U);
 	ASSERT_EQ(model.doubleValue, 0.1);

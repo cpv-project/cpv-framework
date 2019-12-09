@@ -23,7 +23,7 @@
 		catch (const exception& ex) { \
 			std::string message(ex.what()); \
 			if (message.find(contains) == std::string::npos) { \
-				FAIL() << "exception message didn't contains expected  words: " << message; \
+				FAIL() << "exception message didn't contains expected words: " << message; \
 			} \
 			break; \
 		} \

@@ -11,15 +11,16 @@ namespace cpv {
 	class FormDeserializer {
 	public:
 		/** Deserialize form to model */
-		static void deserialize(T& model, const HttpForm& form) {
+		static void deserialize(T& model, const SharedString& formBody) {
+			HttpForm form(formBody);
 			model.loadForm(form);
 		}
 	};
 
 	/** Convenient static function for FormDeserializer */
 	template <class T>
-	static inline void deserializeForm(T& model, const HttpForm& form) {
-		return FormDeserializer<T>::deserialize(model, form);
+	static inline void deserializeForm(T& model, const SharedString& formBody) {
+		return FormDeserializer<T>::deserialize(model, formBody);
 	}
 }
 

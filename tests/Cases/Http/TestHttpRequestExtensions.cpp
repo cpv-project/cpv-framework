@@ -2,6 +2,22 @@
 #include <CPVFramework/Stream/StringInputStream.hpp>
 #include <CPVFramework/Testing/GTestUtils.hpp>
 
+namespace {
+	class MyModel {
+	public:
+		int intValue;
+
+		bool loadJson(const cpv::JsonValue& value) {
+			intValue << value["intValue"];
+			return true;
+		}
+
+		void loadForm(const cpv::HttpForm& form) {
+			intValue = form.get("intValue").toInt().value_or(0);
+		}
+	};
+}
+
 TEST_FUTURE(HttpRequestExtensions, readBodyStream) {
 	return seastar::do_with(
 		cpv::HttpRequest(),
@@ -23,9 +39,43 @@ TEST_FUTURE(HttpRequestExtensions, readBodyStream) {
 	});
 }
 
-// TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsJson) {
-// }
+TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsJson) {
+	return seastar::do_with(
+		cpv::HttpRequest(),
+		MyModel(),
+		[] (auto& request, auto& model) {
+		cpv::SharedString json("{ intValue: 123 }");
+		request.setBodyStream(
+			cpv::makeReusable<cpv::StringInputStream>(std::move(json))
+			.cast<cpv::InputStreamBase>());
+		return cpv::extensions::readBodyStreamAsJson(request, model).then([&model] {
+			ASSERT_EQ(model.intValue, 123);
+		}).then([&request, &model] {
+			request.setBodyStream(cpv::Reusable<cpv::InputStreamBase>());
+			return cpv::extensions::readBodyStreamAsJson(request, model);
+		}).then_wrapped([] (seastar::future<> f) {
+			ASSERT_THROWS(cpv::DeserializeException, f.get());
+		});
+	});
+}
 
-// TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsForm) {
-// }
+TEST_FUTURE(HttpRequestExtensions, readBodyStreamAsForm) {
+	return seastar::do_with(
+		cpv::HttpRequest(),
+		MyModel(),
+		[] (auto& request, auto& model) {
+		cpv::SharedString formStr("intValue=123");
+		request.setBodyStream(
+			cpv::makeReusable<cpv::StringInputStream>(std::move(formStr))
+			.cast<cpv::InputStreamBase>());
+		return cpv::extensions::readBodyStreamAsForm(request, model).then([&model] {
+			ASSERT_EQ(model.intValue, 123);
+		}).then([&request, &model] {
+			request.setBodyStream(cpv::Reusable<cpv::InputStreamBase>());
+			return cpv::extensions::readBodyStreamAsForm(request, model);
+		}).then([&model] {
+			ASSERT_EQ(model.intValue, 0);
+		});
+	});
+}
 
