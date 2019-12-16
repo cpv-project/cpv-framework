@@ -88,6 +88,29 @@ namespace cpv {
 		data_->requestBodyQueueSize = requestBodyQueueSize;
 	}
 	
+	/** Parse from json */
+	bool HttpServerConfiguration::loadJson(const cpv::JsonValue& value) {
+		data_->listenAddresses << value["listenAddresses"];
+		data_->maxInitialRequestBytes << value["maxInitialRequestBytes"];
+		data_->maxInitialRequestPackets << value["maxInitialRequestPackets"];
+		data_->requestTimeout << value["requestTimeout"];
+		data_->requestQueueSize << value["requestQueueSize"];
+		data_->requestBodyQueueSize << value["requestBodyQueueSize"];
+		return true;
+	}
+	
+	/** Dump to json */
+	void HttpServerConfiguration::dumpJson(cpv::JsonBuilder& builder) const {
+		builder.startObject()
+			.addMember(CPV_JSONKEY("listenAddresses"), data_->listenAddresses)
+			.addMember(CPV_JSONKEY("maxInitialRequestBytes"), data_->maxInitialRequestBytes)
+			.addMember(CPV_JSONKEY("maxInitialRequestPackets"), data_->maxInitialRequestPackets)
+			.addMember(CPV_JSONKEY("requestTimeout"), data_->requestTimeout)
+			.addMember(CPV_JSONKEY("requestQueueSize"), data_->requestQueueSize)
+			.addMember(CPV_JSONKEY("requestBodyQueueSize"), data_->requestBodyQueueSize)
+			.endObject();
+	}
+	
 	/** Constructor */
 	HttpServerConfiguration::HttpServerConfiguration() :
 		data_(std::make_unique<HttpServerConfigurationData>()) { }

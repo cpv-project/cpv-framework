@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -225,6 +226,16 @@ namespace cpv {
 			} else {
 				builder.writeRaw(constants::Null);
 			}
+		}
+	};
+
+	/** Specialize for chrono durations */
+	template <class Rep, class Period>
+	struct JsonBuilderWriter<std::chrono::duration<Rep, Period>> {
+		/** Write chrono durations to json builder */
+		static void write(
+			const std::chrono::duration<Rep, Period>& value, JsonBuilder& builder) {
+			builder.writeRaw(SharedString::fromInt(value.count()));
 		}
 	};
 

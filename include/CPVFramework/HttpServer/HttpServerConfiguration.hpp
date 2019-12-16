@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "../Serialize/JsonSerializer.hpp"
+#include "../Serialize/JsonDeserializer.hpp"
 
 namespace cpv {
 	/** Members of HttpServerConfiguration */
@@ -58,6 +60,12 @@ namespace cpv {
 		/** Set the queue size of pending body buffers of single connection */
 		void setRequestBodyQueueSize(std::size_t requestBodyQueueSize);
 		
+		/** Parse from json */
+		bool loadJson(const cpv::JsonValue& value);
+		
+		/** Dump to json */
+		void dumpJson(cpv::JsonBuilder& builder) const;
+		
 		/** Constructor */
 		HttpServerConfiguration();
 		
@@ -73,7 +81,5 @@ namespace cpv {
 	private:
 		std::unique_ptr<HttpServerConfigurationData> data_;
 	};
-	
-	/** TODO: support json serialize and deserialize */
 }
 

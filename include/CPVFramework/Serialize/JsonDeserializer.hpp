@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <seastar/core/shared_ptr.hh>
@@ -173,6 +174,21 @@ namespace cpv {
 				return JsonValueConverter<UnderlyingType>::convert(
 					*Trait::get(target), value);
 			}
+		}
+	};
+
+	/** Specialize for chrono durations */
+	template <class Rep, class Period>
+	struct JsonValueConverter<std::chrono::duration<Rep, Period>> {
+		/** Convert json value to chrono duration if type matched */
+		static bool convert(
+			std::chrono::duration<Rep, Period>& target, const JsonValue& value) {
+			if (CPV_LIKELY(value.get_type() == JsonType::TYPE_INTEGER)) {
+				target = std::chrono::duration<Rep, Period>(
+					static_cast<Rep>(value.get_integer_value()));
+				return true;
+			}
+			return false;
 		}
 	};
 

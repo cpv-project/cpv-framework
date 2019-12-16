@@ -18,6 +18,7 @@ namespace {
 		int intValue;
 		std::size_t sizeValue;
 		double doubleValue;
+		std::chrono::seconds durationValue;
 		std::string stringValue;
 		cpv::SharedString sharedStringValue;
 		ChildModel childValue;
@@ -32,6 +33,7 @@ namespace {
 			intValue << value["intValue"];
 			sizeValue << value["sizeValue"];
 			doubleValue << value["doubleValue"];
+			durationValue << value["durationValue"];
 			stringValue << value["stringValue"];
 			sharedStringValue << value["sharedStringValue"];
 			childValue << value["childValue"];
@@ -46,6 +48,7 @@ namespace {
 			intValue(-1),
 			sizeValue(-1),
 			doubleValue(-1),
+			durationValue(-1),
 			stringValue("default"),
 			sharedStringValue("default"),
 			childValue(),
@@ -101,6 +104,7 @@ TEST(JsonDeserializer, model) {
 			"intValue": 101,
 			"sizeValue": 102,
 			"doubleValue": 103,
+			"durationValue": 321,
 			"stringValue": "test 一二三",
 			"sharedStringValue": "\u4e00\u4e8c\u4e09",
 			"childValue": { "count": -1 },
@@ -120,6 +124,7 @@ TEST(JsonDeserializer, model) {
 	ASSERT_EQ(model.intValue, 101);
 	ASSERT_EQ(model.sizeValue, 102U);
 	ASSERT_EQ((int)model.doubleValue, 103);
+	ASSERT_EQ(model.durationValue.count(), 321U);
 	ASSERT_EQ(model.stringValue, "test 一二三");
 	ASSERT_EQ(model.sharedStringValue, "一二三");
 	ASSERT_EQ(model.childValue.count, -1);

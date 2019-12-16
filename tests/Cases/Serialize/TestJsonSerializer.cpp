@@ -19,6 +19,7 @@ namespace {
 		int intValue;
 		std::size_t sizeValue;
 		double doubleValue;
+		std::chrono::seconds durationValue;
 		std::string stringValue;
 		cpv::SharedString sharedStringValue;
 		ChildModel childValue;
@@ -31,6 +32,7 @@ namespace {
 				.addMember(CPV_JSONKEY("intValue"), intValue)
 				.addMember(CPV_JSONKEY("sizeValue"), sizeValue)
 				.addMember(CPV_JSONKEY("doubleValue"), doubleValue)
+				.addMember(CPV_JSONKEY("durationValue"), durationValue)
 				.addMember(CPV_JSONKEY("stringValue"), stringValue)
 				.addMember(CPV_JSONKEY("sharedStringValue"), sharedStringValue)
 				.addMember(CPV_JSONKEY("childValue"), childValue)
@@ -44,6 +46,7 @@ namespace {
 			intValue(),
 			sizeValue(),
 			doubleValue(),
+			durationValue(),
 			stringValue(),
 			sharedStringValue(),
 			childValue(),
@@ -99,6 +102,7 @@ TEST(JsonSerializer, model) {
 	model.intValue = 101;
 	model.sizeValue = 102;
 	model.doubleValue = 103.1;
+	model.durationValue = std::chrono::seconds(321);
 	model.stringValue = "test\n一二三";
 	model.sharedStringValue = "一二三\"";
 	model.childValue.count = -1;
@@ -112,6 +116,7 @@ TEST(JsonSerializer, model) {
 	cpv::SharedString json = packet.toString();
 	ASSERT_EQ(json,
 		"{\"intValue\":101,\"sizeValue\":102,\"doubleValue\":103.1,"
+		"\"durationValue\":321,"
 		"\"stringValue\":\"test\\n\xE4\xB8\x80\xE4\xBA\x8C\xE4\xB8\x89\","
 		"\"sharedStringValue\":\"\xE4\xB8\x80\xE4\xBA\x8C\xE4\xB8\x89\\\"\","
 		"\"childValue\":{\"count\":-1},"
@@ -134,14 +139,17 @@ TEST(JsonSerializer, vectorModel) {
 	cpv::SharedString json = packet.toString();
 	ASSERT_EQ(json,
 		"["
-		"{\"intValue\":100,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-		"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+		"{\"intValue\":100,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+		"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+		"\"childValue\":{\"count\":0},\"childValues\":[],"
 		"\"intValues\":[],\"intValuesOnStack\":[]},"
-		"{\"intValue\":101,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-		"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+		"{\"intValue\":101,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+		"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+		"\"childValue\":{\"count\":0},\"childValues\":[],"
 		"\"intValues\":[],\"intValuesOnStack\":[]},"
-		"{\"intValue\":102,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-		"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+		"{\"intValue\":102,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+		"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+		"\"childValue\":{\"count\":0},\"childValues\":[],"
 		"\"intValues\":[],\"intValuesOnStack\":[]}"
 		"]");
 	std::optional<cpv::JsonDocument> document;
@@ -160,11 +168,13 @@ TEST(JsonSerializer, stackAllocatedVectorModel) {
 	cpv::SharedString json = packet.toString();
 	ASSERT_EQ(json,
 		"["
-		"{\"intValue\":-100,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-		"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+		"{\"intValue\":-100,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+		"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+		"\"childValue\":{\"count\":0},\"childValues\":[],"
 		"\"intValues\":[],\"intValuesOnStack\":[]},"
-		"{\"intValue\":-101,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-		"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+		"{\"intValue\":-101,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+		"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+		"\"childValue\":{\"count\":0},\"childValues\":[],"
 		"\"intValues\":[],\"intValuesOnStack\":[]}"
 		"]");
 	std::optional<cpv::JsonDocument> document;
@@ -209,8 +219,9 @@ TEST(JsonSerializer, ptrWrappedModel) {
 		cpv::Packet packet = cpv::serializeJson(model);
 		cpv::SharedString json = packet.toString();
 		ASSERT_EQ(json,
-			"{\"intValue\":101,\"sizeValue\":0,\"doubleValue\":0,\"stringValue\":\"\","
-			"\"sharedStringValue\":\"\",\"childValue\":{\"count\":0},\"childValues\":[],"
+			"{\"intValue\":101,\"sizeValue\":0,\"doubleValue\":0,\"durationValue\":0,"
+			"\"stringValue\":\"\",\"sharedStringValue\":\"\","
+			"\"childValue\":{\"count\":0},\"childValues\":[],"
 			"\"intValues\":[],\"intValuesOnStack\":[]}");
 	}
 	{
