@@ -1,0 +1,15 @@
+[package]
+name = "actix-web-benchmark"
+version = "1.0.0"
+authors = ["303248153 <303248153@qq.com>"]
+edition = "2018"
+
+[dependencies]
+actix-rt = "1.0.0"
+actix-web = "2.0.0"
+actix-files = "0.2.1"
+actix-session = "0.3.0"
+actix-utils = "1.0.3"
+futures = "0.3.1"
+env_logger = "0.5"
+bytes = "0.5"
