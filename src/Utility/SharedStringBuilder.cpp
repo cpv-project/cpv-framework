@@ -116,13 +116,6 @@ namespace cpv {
 	}
 
 	// Template instatiations
-	template BasicSharedStringBuilder<char>&
-		BasicSharedStringBuilder<char>::append(std::intmax_t);
-	template BasicSharedStringBuilder<char>&
-		BasicSharedStringBuilder<char>::append(std::uintmax_t);
-	template BasicSharedStringBuilder<char>&
-		BasicSharedStringBuilder<char>::append(double);
-	template BasicSharedStringBuilder<char>&
-		BasicSharedStringBuilder<char>::append(long double);
+	template class BasicSharedStringBuilder<char>;
 }
 

@@ -625,11 +625,11 @@ namespace sajson {
 			, text(text_)
 		{}
 
-		void assert_type(type expected) const {
+		void assert_type([[maybe_unused]] type expected) const {
 			assert(expected == get_type());
 		}
 
-		void assert_type_2(type e1, type e2) const {
+		void assert_type_2([[maybe_unused]] type e1, [[maybe_unused]] type e2) const {
 			assert(e1 == get_type() || e2 == get_type());
 		}
 

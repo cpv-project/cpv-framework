@@ -83,13 +83,6 @@ namespace cpv {
 	}
 
 	// Template instatiations
-	template std::optional<std::intmax_t> BasicSharedString<char>::toIntImpl() const;
-	template std::optional<std::uintmax_t> BasicSharedString<char>::toUintImpl() const;
-	template std::optional<double> BasicSharedString<char>::toDoubleImpl() const;
-	template std::optional<long double> BasicSharedString<char>::toLongDoubleImpl() const;
-	template BasicSharedString<char> BasicSharedString<char>::fromIntImpl(std::intmax_t);
-	template BasicSharedString<char> BasicSharedString<char>::fromIntImpl(std::uintmax_t);
-	template BasicSharedString<char> BasicSharedString<char>::fromDoubleImpl(double);
-	template BasicSharedString<char> BasicSharedString<char>::fromDoubleImpl(long double);
+	template class BasicSharedString<char>;
 }
 
