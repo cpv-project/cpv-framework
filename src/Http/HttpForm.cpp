@@ -36,7 +36,7 @@ namespace cpv {
 	/** Apend url encoded form body to packet */
 	void HttpForm::buildUrlEncoded(Packet& packet) {
 		auto& fragments = packet.getOrConvertToMultiple();
-		fragments.reserve_addition(formParameters_.size() * 4);
+		fragments.reserveAddition(formParameters_.size() * 4);
 		bool isFirst = true;
 		for (const auto& parameter : formParameters_) {
 			for (const auto& value : parameter.second) {

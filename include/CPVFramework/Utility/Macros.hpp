@@ -9,3 +9,12 @@
 #define CPV_CODEINFO cpv::CodeInfo(cpv::joinString("", \
 	"[", __FILE__, ":", __LINE__, ":", std::string_view(__PRETTY_FUNCTION__), "]"))
 
+// Attributes
+#if defined(NDEBUG)
+	#define CPV_INLINE [[gnu::always_inline, gnu::hot]]
+	#define CPV_HOT [[gnu::hot]]
+#else
+	#define CPV_INLINE
+	#define CPV_HOT
+#endif
+

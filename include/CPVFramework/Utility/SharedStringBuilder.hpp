@@ -22,27 +22,27 @@ namespace cpv {
 				return;
 			}
 			// allocate new buffer and copy original content
-			if (view_.empty()) {
+			if (size_ == 0) {
 				// newSize may be pre calculated (like append integer)
 				buffer_ = BasicSharedString<CharType>(newSize);
 			} else {
 				// use std::max to handle size * 2 overflow
 				BasicSharedString<CharType> newBuffer(std::max(
 					std::max(newSize, buffer_.size() * 2), +MinCapacityForGrow));
-				std::memcpy(newBuffer.data(), view_.data(), view_.size() * sizeof(CharType));
+				std::memcpy(newBuffer.data(), buffer_.data(), size_ * sizeof(CharType));
 				buffer_ = std::move(newBuffer);
 			}
 		}
 
 		/** Grow the buffer for newly append size if necessary and update the view */
 		CharType* grow(std::size_t appendSize) {
-			std::size_t oldSize = view_.size();
+			std::size_t oldSize = size_;
 			if (CPV_UNLIKELY(std::numeric_limits<std::size_t>::max() - oldSize < appendSize)) {
 				throw OverflowException(CPV_CODEINFO, "size overflowed");
 			}
 			std::size_t newSize = oldSize + appendSize;
 			reserve(newSize);
-			view_ = { buffer_.data(), newSize };
+			size_ = newSize;
 			return buffer_.data() + oldSize;
 		}
 
@@ -83,51 +83,51 @@ namespace cpv {
 		/** Resize the view of result string, the size must not greater than the capacity */
 		void resize(std::size_t size) {
 			assert(size <= buffer_.size());
-			view_ = { buffer_.data(), size };
+			size_ = size;
 		}
 
 		/** Reset the view of result string (capacity will remain) */
 		void clear() {
-			view_ = {};
+			size_ = 0;
 		}
 
 		/** Get the view of result string */
 		std::string_view view() const {
-			return view_;
+			return { buffer_.data(), size_ };
 		}
 
 		/** Get the result string, the builder will become empty after invoked */
 		BasicSharedString<CharType> build() {
-			buffer_.trim(view_.size());
-			view_ = {};
+			buffer_.trim(size_);
+			size_ = 0;
 			return std::move(buffer_);
 		}
 
 		// Convenient functions
-		std::size_t size() const { return view_.size(); }
+		std::size_t size() const { return size_; }
 		std::size_t capacity() const { return buffer_.size(); }
-		bool empty() const { return view_.empty(); }
+		bool empty() const { return size_ == 0; }
 		CharType* data() { return buffer_.data(); }
 		const CharType* data() const { return buffer_.data(); }
 		CharType* begin() { return buffer_.data(); }
 		const CharType* begin() const { return buffer_.data(); }
-		CharType* end() { return buffer_.data() + view_.size(); }
-		const CharType* end() const { return buffer_.data() + view_.size(); }
+		CharType* end() { return buffer_.data() + size_; }
+		const CharType* end() const { return buffer_.data() + size_; }
 
 		/** Constructor */
 		BasicSharedStringBuilder() :
 			buffer_(),
-			view_() { }
+			size_(0) { }
 
 		/** Construct with initial capacity */
 		explicit BasicSharedStringBuilder(std::size_t capacity) :
 			buffer_(capacity),
-			view_() { }
+			size_(0) { }
 
 		/** Construct with initial buffer */
 		explicit BasicSharedStringBuilder(BasicSharedString<CharType>&& str) :
 			buffer_(std::move(str)),
-			view_(buffer_.view()) { }
+			size_(buffer_.size()) { }
 
 	private:
 		/** Append string representation of signed integer to end */
@@ -144,7 +144,7 @@ namespace cpv {
 
 	private:
 		BasicSharedString<CharType> buffer_;
-		std::string_view view_;
+		std::size_t size_;
 	};
 
 	// Type aliases

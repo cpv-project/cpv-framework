@@ -87,18 +87,18 @@ namespace cpv {
 	void HttpResponseHeaders::clear() {
 		remainHeaders_.clear();
 		additionHeaders_.clear();
-		date_ = {};
-		contentType_ = {};
-		contentLength_ = {};
-		contentEncoding_ = {};
-		transferEncoding_ = {};
-		connection_ = {};
-		server_ = {};
-		vary_ = {};
-		etag_ = {};
-		cacheControl_ = {};
-		expires_ = {};
-		lastModified_ = {};
+		date_.clear();
+		contentType_.clear();
+		contentLength_.clear();
+		contentEncoding_.clear();
+		transferEncoding_.clear();
+		connection_.clear();
+		server_.clear();
+		vary_.clear();
+		etag_.clear();
+		cacheControl_.clear();
+		expires_.clear();
+		lastModified_.clear();
 	}
 	
 	/** Constructor */

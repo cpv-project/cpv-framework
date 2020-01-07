@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <variant>
 #include <vector>
 #include <iostream>
@@ -81,26 +82,54 @@ namespace cpv {
 			/** For Reusable */
 			static void reset() { }
 
-			/** Reserve addition capacity of fragments */
-			void reserve_addition(std::size_t additionSize) {
-				fragments.reserve(fragments.size() + additionSize);
-			}
-
 			/** Append string to fragments */
-			void append(SharedString&& str) {
+			CPV_INLINE void append(SharedString&& str) {
 				fragments.emplace_back(seastar::net::fragment({ str.data(), str.size() }));
 				deleter.append(str.release());
 			}
 
 			/** Append static string to fragments */
 			template <std::size_t Size>
-			void append(const char(&str)[Size]) {
+			CPV_INLINE void append(const char(&str)[Size]) {
 				fragments.emplace_back(toFragment({ str, Size - 1 }));
 				static_assert(Size >= 1, "static string should contains tailing zero");
 			}
 
+			/** Reserve addition capacity of fragments */
+			CPV_INLINE void reserveAddition(std::size_t additionSize) {
+				fragments.reserve(fragments.size() + additionSize);
+			}
+
+			/** Start batch append, please ensure additon size is enough */
+			CPV_INLINE std::size_t batchAppendBegin(std::size_t additionSize) {
+				std::size_t index = fragments.size();
+				fragments.resize(fragments.size() + additionSize);
+				return index;
+			}
+
+			/** Append string to fragments, won't check boundary in release mode */
+			CPV_INLINE void batchAppend(SharedString&& str, std::size_t& index) {
+				assert(index < fragments.size());
+				fragments[index++] = seastar::net::fragment({ str.data(), str.size() });
+				deleter.append(str.release());
+			}
+
+			/** Append static string to fragments, won't check boundary in release mode */
+			template <std::size_t Size>
+			CPV_INLINE void batchAppend(const char(&str)[Size], std::size_t& index) {
+				assert(index < fragments.size());
+				fragments[index++] = toFragment({ str, Size - 1 });
+				static_assert(Size >= 1, "static string should contains tailing zero");
+			}
+
+			/** End batch append */
+			CPV_INLINE void batchAppendEnd(std::size_t index) {
+				assert(index <= fragments.size());
+				fragments.resize(index);
+			}
+
 			/** Move content of fragments to packet */
-			seastar::net::packet release() {
+			CPV_INLINE seastar::net::packet release() {
 				// seastar::packet's ctor provides overload for std::vector but only takes moved one
 				// which will release the internal storage and we have to allocate it again for next
 				// we want to keep the internal storage, so iterator overload is used here

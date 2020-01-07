@@ -59,6 +59,18 @@ TEST(SharedString, share) {
 	ASSERT_EQ(strCde, "c de");
 }
 
+TEST(SharedString, trim) {
+	cpv::SharedString str("abc def");
+	str.trim(str.view().substr(2, 4));
+	ASSERT_EQ(str, "c de");
+}
+
+TEST(SharedString, clear) {
+	cpv::SharedString str("abc def");
+	str.clear();
+	ASSERT_EQ(str, "");
+}
+
 TEST(SharedString, compare) {
 	{
 		ASSERT_TRUE(cpv::SharedString("abc") == cpv::SharedString("abc"));

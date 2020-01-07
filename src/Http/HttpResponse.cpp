@@ -21,9 +21,9 @@ namespace cpv {
 			bodyStream() { }
 		
 		void freeResources() {
-			version = {};
-			statusCode = {};
-			statusMessage = {};
+			version.clear();
+			statusCode.clear();
+			statusMessage.clear();
 			headers.clear();
 			bodyStream = Reusable<OutputStreamBase>();
 		}

@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <CPVFramework/Utility/Macros.hpp>
 #include "./Http11Parser.hpp"
 
 namespace cpv::internal::http_parser {
@@ -642,7 +643,7 @@ parse_url_char(enum state s, const char ch)
 }
 
 template <class Settings>
-size_t http_parser_execute (http_parser *parser,
+CPV_HOT size_t http_parser_execute (http_parser *parser,
                             Settings *settings,
                             const char *data,
                             size_t len)

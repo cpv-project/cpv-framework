@@ -84,6 +84,11 @@ namespace cpv {
 			trim(view.size());
 		}
 
+		/** Clear content of this string, the buffer storage will remain */
+		void clear() {
+			trim(0);
+		}
+
 		/** Convert string to interger value, overflow is not checked */
 		template <class T = int, std::enable_if_t<std::numeric_limits<T>::is_integer, int> = 0>
 		std::optional<T> toInt() const {

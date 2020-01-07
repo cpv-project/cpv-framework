@@ -28,9 +28,9 @@ namespace cpv {
 			cookies() { }
 		
 		void freeResources() {
-			method = {};
-			url = {};
-			version = {};
+			method.clear();
+			url.clear();
+			version.clear();
 			headers.clear();
 			bodyStream = Reusable<InputStreamBase>();
 			sourceOfUri = {};

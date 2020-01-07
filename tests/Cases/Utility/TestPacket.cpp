@@ -195,8 +195,20 @@ TEST(Packet, getOrConvertToMultiple) {
 	f.append(cpv::SharedString::fromDouble(-0.1));
 	ASSERT_EQ(p.toString(), "abcqwert123|1234567|1|-0.1");
 	{
-		f.reserve_addition(100);
+		f.reserveAddition(100);
 		ASSERT_GE(f.fragments.capacity(), f.fragments.size() + 100U);
 	}
+}
+
+TEST(Packet, batchAppend) {
+	cpv::Packet p;
+	auto& f = p.getOrConvertToMultiple();
+	f.append("abc");
+	std::size_t index = f.batchAppendBegin(5);
+	f.batchAppend("def", index);
+	f.batchAppend(cpv::SharedString::fromInt(1234567), index);
+	f.batchAppendEnd(index);
+	ASSERT_EQ(p.toString(), "abcdef1234567");
+	ASSERT_EQ(f.fragments.size(), 3U);
 }
 

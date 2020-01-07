@@ -169,7 +169,7 @@ namespace cpv {
 	/** Append uri string to packet */
 	void Uri::build(Packet& packet) const {
 		auto& fragments = packet.getOrConvertToMultiple();
-		fragments.reserve_addition(
+		fragments.reserveAddition(
 			pathFragments_.size() * 2 + queryParameters_.size() * 4 + 7);
 		if (!protocol_.empty()) {
 			fragments.append(urlEncode(protocol_.share()));
@@ -207,11 +207,11 @@ namespace cpv {
 	}
 	
 	/** Reset the uri to empty state */
-	void Uri::clear() {
-		protocol_ = {};
-		hostname_ = {};
-		port_ = {};
-		path_ = {};
+	CPV_HOT void Uri::clear() {
+		protocol_.clear();
+		hostname_.clear();
+		port_.clear();
+		path_.clear();
 		pathFragments_.clear();
 		queryParameters_.clear();
 	}

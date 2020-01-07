@@ -27,7 +27,7 @@ BENCHMARK_CASES = [
 			},
 			{
 				"name": "10000 connections",
-				"command": "wrk -c 10000 -t 2 -d 60s --latency --timeout 100s %s"
+				"command": "wrk -c 10000 -t 2 -d 120s --latency --timeout 100s %s"
 			},
 			{
 				"name": "20000 connections",
@@ -43,19 +43,19 @@ BENCHMARK_CASES = [
 		"url": "http://127.0.0.1:8000",
 		"commands": [
 			{
-				"name": "100 connections with 10000 rps",
-				"command": "wrk2 -c 100 -t 2 -d 60s -R 10000 --latency --timeout 100s %s"
+				"name": "100 connections with 1000 rps",
+				"command": "wrk2 -c 100 -t 2 -d 60s -R 1000 --latency --timeout 100s %s"
+			},
+			{
+				"name": "10000 connections with 5000 rps",
+				"command": "wrk2 -c 10000 -t 2 -d 120s -R 5000 --latency --timeout 100s %s"
 			},
 			{
 				"name": "10000 connections with 10000 rps",
-				"command": "wrk2 -c 10000 -t 2 -d 60s -R 10000 --latency --timeout 100s %s"
-			},
-			{
-				"name": "20000 connections with 10000 rps",
-				"command": "wrk2 -c 20000 -t 2 -d 60s -R 10000 --latency --timeout 100s %s"
+				"command": "wrk2 -c 10000 -t 2 -d 120s -R 10000 --latency --timeout 100s %s"
 			}
 		],
-		"result_regex": r"99.000%\s*([\d\.]+)ms",
+		"result_regex": r"99.000%\s*([\d\.]+[mun]?s)",
 		"greater_is_better": False
 	}
 ]
@@ -98,11 +98,9 @@ class BenchmarkRunner(object):
 	
 	def build(self, target):
 		p = subprocess.Popen(
-			"sh build.sh", cwd=os.path.join(BENCHMARK_DIR, target), shell=True,
-			stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		outs, errs = p.communicate()
+			"sh build.sh", cwd=os.path.join(BENCHMARK_DIR, target), shell=True)
 		if p.wait() != 0:
-			raise RuntimeError("build %s error:\n%s\n%s"%(target, outs, errs))
+			raise RuntimeError("build %s error"%target)
 	
 	def wait_url_available(self, url, timeout=30):
 		begin = time.time()
@@ -118,6 +116,18 @@ class BenchmarkRunner(object):
 			if time.time() - begin > timeout:
 				raise RuntimeError("url %s return status %s"%(url, code))
 	
+	def parse_result(self, result_obj):
+		result_str = result_obj.group(1)
+		if result_str.endswith("ms"):
+			return float(result_str[:-2])
+		elif result_str.endswith("us"):
+			return float(result_str[:-2]) / 1000
+		elif result_str.endswith("ns"):
+			return float(result_str[:-2]) / 1000000
+		elif result_str.endswith("s"):
+			return float(result_str[:-1]) * 1000
+		return float(result_str)
+	
 	def benchmark(self, target, case, taskset, command):
 		self.write("##### %s / %s / %s\n"%(target, taskset["name"], command["name"]))
 		command_server = "taskset -c %s sh run.sh"%taskset["server"]
@@ -132,7 +142,6 @@ class BenchmarkRunner(object):
 				command_server, cwd=os.path.join(BENCHMARK_DIR, target), shell=True)
 			self.wait_url_available(case["url"])
 			for n in range(BEST_OF_N):
-				print("round %d"%(n+1))
 				proc_client = subprocess.Popen(
 					command_client, shell=True,
 					stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -141,10 +150,11 @@ class BenchmarkRunner(object):
 				result_obj = re.search(case["result_regex"], output)
 				if result_obj is None:
 					raise RuntimeError("search result from output failed: %s"%output)
-				result = float(result_obj.group(1))
+				result = self.parse_result(result_obj)
+				print("round %d result: %.5f"%(n+1, result))
 				if ((best_result is None) or
 					(case["greater_is_better"] and result > best_result) or
-					(result < best_result)):
+					(not case["greater_is_better"] and result < best_result)):
 					best_result = result
 					best_output = output
 		finally:

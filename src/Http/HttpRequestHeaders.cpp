@@ -67,19 +67,19 @@ namespace cpv {
 	/** Clear headers in this collection */
 	void HttpRequestHeaders::clear() {
 		remainHeaders_.clear();
-		host_ = {};
-		contentType_ = {};
-		contentLength_ = {};
-		connection_ = {};
-		pragma_ = {};
-		upgradeInsecureRequests_ = {};
-		dnt_ = {};
-		userAgent_ = {};
-		accept_ = {};
-		acceptEncoding_ = {};
-		acceptLanguage_ = {};
-		cookie_ = {};
-		xRequestedWith_ = {};
+		host_.clear();
+		contentType_.clear();
+		contentLength_.clear();
+		connection_.clear();
+		pragma_.clear();
+		upgradeInsecureRequests_.clear();
+		dnt_.clear();
+		userAgent_.clear();
+		accept_.clear();
+		acceptEncoding_.clear();
+		acceptLanguage_.clear();
+		cookie_.clear();
+		xRequestedWith_.clear();
 	}
 	
 	/** Constructor */

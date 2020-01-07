@@ -68,26 +68,6 @@ namespace cpv {
 				return false;
 			#endif
 		})();
-		
-		/** Get http version string from parser */
-		static inline SharedString getHttpVersionString(
-			const internal::http_parser::http_parser& parser) {
-			if (CPV_LIKELY(parser.http_major == 1)) {
-				if (CPV_LIKELY(parser.http_minor == 1)) {
-					return constants::Http11;
-				} else if (parser.http_minor == 0) {
-					return constants::Http10;
-				} else if (parser.http_minor == 2) {
-					return constants::Http12;
-				}
-			}
-			return SharedStringBuilder(9)
-				.append("HTTP/")
-				.append(parser.http_major)
-				.append(".")
-				.append(parser.http_minor)
-				.build();
-		}
 	}
 	
 	/** Enum descriptions of Http11ServerConnectionState */
@@ -221,7 +201,7 @@ namespace cpv {
 	}
 	
 	/** Keep receiving requests until state become closing, will push requests to a queue */
-	seastar::future<> Http11ServerConnection::receiveRequestLoop() {
+	CPV_HOT seastar::future<> Http11ServerConnection::receiveRequestLoop() {
 		// exit loop when closing connection
 		if (state_ == Http11ServerConnectionState::Closing) {
 			return seastar::make_ready_future<>();
@@ -374,7 +354,7 @@ namespace cpv {
 	}
 	
 	/** Keep reply responses until state become closing, will pop requests from the queue */
-	seastar::future<> Http11ServerConnection::replyResponseLoop() {
+	CPV_HOT seastar::future<> Http11ServerConnection::replyResponseLoop() {
 		// exit loop when closing connection
 		if (state_ == Http11ServerConnectionState::Closing) {
 			// send error response to client if there any
@@ -455,7 +435,7 @@ namespace cpv {
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
-	void Http11ServerConnection::appendResponseHeaders(Packet& packet) {
+	CPV_HOT void Http11ServerConnection::appendResponseHeaders(Packet& packet) {
 		// check flag
 		if (CPV_UNLIKELY(replyLoopData_.responseHeadersAppended)) {
 			return;
@@ -503,21 +483,22 @@ namespace cpv {
 		// append response headers to packet
 		// manipulate fragments vector directly to avoid variant and boundary checks
 		auto& fragments = packet.getOrConvertToMultiple();
-		fragments.reserve_addition(getResponseHeadersFragmentsCount());
-		fragments.append(response.getVersion().share());
-		fragments.append(constants::Space);
-		fragments.append(response.getStatusCode().share());
-		fragments.append(constants::Space);
-		fragments.append(response.getStatusMessage().share());
-		fragments.append(constants::CRLF);
-		responseHeaders.foreach(
-			[&fragments] (const SharedString& key, const SharedString& value) {
-			fragments.append(key.share());
-			fragments.append(constants::ColonSpace);
-			fragments.append(value.share());
-			fragments.append(constants::CRLF);
+		std::size_t index = fragments.batchAppendBegin(getResponseHeadersFragmentsCount());
+		fragments.batchAppend(response.getVersion().share(), index);
+		fragments.batchAppend(constants::Space, index);
+		fragments.batchAppend(response.getStatusCode().share(), index);
+		fragments.batchAppend(constants::Space, index);
+		fragments.batchAppend(response.getStatusMessage().share(), index);
+		fragments.batchAppend(constants::CRLF, index);
+		responseHeaders.foreach([&fragments, &index]
+			(const SharedString& key, const SharedString& value) {
+			fragments.batchAppend(key.share(), index);
+			fragments.batchAppend(constants::ColonSpace, index);
+			fragments.batchAppend(value.share(), index);
+			fragments.batchAppend(constants::CRLF, index);
 		});
-		fragments.append(constants::CRLF);
+		fragments.batchAppend(constants::CRLF, index);
+		fragments.batchAppendEnd(index);
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
@@ -579,135 +560,6 @@ namespace cpv {
 		// request content is completely consumed,
 		// and response content is written with fixed size or chunked encoding
 		return true;
-	}
-	
-	int Http11ServerConnection::on_message_begin() {
-		if (state_ == Http11ServerConnectionState::Started) {
-			// normal begin
-			state_ = Http11ServerConnectionState::ReceiveRequestMessageBegin;
-		} else {
-			// state error, maybe the next request from pipeline,
-			// the caller should check parser_.http_errno and remember rest of the buffer
-			return -1;
-		}
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_url(const char* data, std::size_t size) {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestMessageBegin) {
-			// the first time received the url
-			state_ = Http11ServerConnectionState::ReceiveRequestUrl;
-			receiveLoopData_.url = SharedStringBuilder(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// url splited in multiple packets, merge them
-			receiveLoopData_.url.append({ data, size });
-		} else {
-			// state error
-			return -1;
-		}
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_header_field(const char* data, std::size_t size) {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// the first time received a new header field, store last header field and value
-			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			newRequest_.setHeader(
-				receiveLoopData_.headerField.build(),
-				receiveLoopData_.headerValue.build());
-			receiveLoopData_.headerField = SharedStringBuilder(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// the first time received the first header field
-			state_ = Http11ServerConnectionState::ReceiveRequestHeaderField;
-			receiveLoopData_.headerField = SharedStringBuilder(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
-			// header field splited in multiple packets, merge them
-			receiveLoopData_.headerField.append({ data, size });
-		} else {
-			// state error
-			return -1;
-		}
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_header_value(const char* data, std::size_t size) {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderField) {
-			// the first time received a header value after header field
-			state_ = Http11ServerConnectionState::ReceiveRequestHeaderValue;
-			receiveLoopData_.headerValue = SharedStringBuilder(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// header value splited in multiple packets, merge them
-			receiveLoopData_.headerValue.append({ data, size });
-		} else {
-			// state error
-			return -1;
-		}
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_headers_complete() {
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeaderValue) {
-			// all headers received, store last header field and value
-			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-			newRequest_.setHeader(
-				receiveLoopData_.headerField.build(),
-				receiveLoopData_.headerValue.build());
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestUrl) {
-			// no headers but url
-			state_ = Http11ServerConnectionState::ReceiveRequestHeadersComplete;
-		} else {
-			// state error
-			return -1;
-		}
-		// store method, url and version
-		newRequest_.setMethod(SharedString::fromStatic(
-			internal::http_parser::http_method_str(
-				static_cast<enum internal::http_parser::http_method>(parser_.method))));
-		newRequest_.setUrl(receiveLoopData_.url.build());
-		newRequest_.setVersion(getHttpVersionString(parser_));
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_body(const char* data, std::size_t size) {
-		// warning:
-		// newRequest_ maybe empty (moved to queue but not all completed), don't touch it
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete) {
-			// received initial body, share lastBuffer to bodyBuffers
-			state_ = Http11ServerConnectionState::ReceiveRequestBody;
-			receiveLoopData_.bodyBuffers.emplace_back(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else if (state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// received following body, share lastBuffer to bodyBuffers
-			receiveLoopData_.bodyBuffers.emplace_back(
-				receiveLoopData_.lastBuffer.share({ data, size }));
-		} else {
-			// state error
-			return -1;
-		}
-		return 0;
-	}
-	
-	int Http11ServerConnection::on_message_complete() {
-		// warning:
-		// newRequest_ maybe empty (moved to queue but not all completed), don't touch it
-		if (state_ == Http11ServerConnectionState::ReceiveRequestHeadersComplete ||
-			state_ == Http11ServerConnectionState::ReceiveRequestBody) {
-			// no body or all body received
-			if (receiveLoopData_.requestEnqueued && receiveLoopData_.bodyBuffers.empty()) {
-				// request enqueued before completed, but no body received
-				// add empty tail body to make sure stream can finish
-				receiveLoopData_.bodyBuffers.emplace_back();
-			}
-			state_ = Http11ServerConnectionState::ReceiveRequestMessageComplete;
-		} else {
-			// state error
-			return -1;
-		}
-		return 0;
 	}
 }
 

@@ -62,7 +62,7 @@ namespace cpv {
 			*ptr++ = static_cast<CharType>(DecimalDigits[rem >= 0 ? rem : -rem]);
 		} while (value != 0);
 		std::reverse(ptrStart, ptr);
-		view_ = { buffer_.data(), static_cast<std::size_t>(ptr - buffer_.data()) };
+		size_ = static_cast<std::size_t>(ptr - buffer_.data());
 		return *this;
 	}
 
@@ -79,7 +79,7 @@ namespace cpv {
 			*ptr++ = static_cast<CharType>(DecimalDigits[rem]);
 		} while (value != 0);
 		std::reverse(ptrStart, ptr);
-		view_ = { buffer_.data(), static_cast<std::size_t>(ptr - buffer_.data()) };
+		size_ = static_cast<std::size_t>(ptr - buffer_.data());
 		return *this;
 	}
 
