@@ -12,10 +12,24 @@ dpkg -i packages-microsoft-prod.deb
 rm packages-microsoft-prod.deb
 add-apt-repository universe
 apt-get update
-apt-get install apt-transport-https
+apt-get install -y apt-transport-https python3-psutil
 apt-get update
-apt-get install dotnet-sdk-3.1
-su ubuntu -c "curl -sf -L https://static.rust-lang.org/rustup.sh | sh"
+apt-get install -y dotnet-sdk-3.1
+
+su ubuntu
+curl -sf -L https://static.rust-lang.org/rustup.sh | sh
+exit
+
+cd /tmp
+git clone https://github.com/giltene/wrk2
+cd wrk2
+make
+mv wrk /usr/local/bin/wrk2
+cd /tmp
+git clone https://github.com/wg/wrk
+cd wrk
+make
+mv wrk /usr/local/bin/wrk
 ```
 
 ## Generate benchmark results

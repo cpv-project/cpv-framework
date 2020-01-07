@@ -7,5 +7,6 @@ cd ${BUILDDIR}
 
 ./CPVFrameworkBenchmark \
 	--task-quota-ms=20 \
+	--smp=$(nproc) \
 	--reactor-backend epoll
 
