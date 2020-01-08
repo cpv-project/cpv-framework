@@ -200,15 +200,3 @@ TEST(Packet, getOrConvertToMultiple) {
 	}
 }
 
-TEST(Packet, batchAppend) {
-	cpv::Packet p;
-	auto& f = p.getOrConvertToMultiple();
-	f.append("abc");
-	std::size_t index = f.batchAppendBegin(5);
-	f.batchAppend("def", index);
-	f.batchAppend(cpv::SharedString::fromInt(1234567), index);
-	f.batchAppendEnd(index);
-	ASSERT_EQ(p.toString(), "abcdef1234567");
-	ASSERT_EQ(f.fragments.size(), 3U);
-}
-

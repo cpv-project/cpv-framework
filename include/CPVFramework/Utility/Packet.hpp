@@ -100,34 +100,6 @@ namespace cpv {
 				fragments.reserve(fragments.size() + additionSize);
 			}
 
-			/** Start batch append, please ensure additon size is enough */
-			CPV_INLINE std::size_t batchAppendBegin(std::size_t additionSize) {
-				std::size_t index = fragments.size();
-				fragments.resize(fragments.size() + additionSize);
-				return index;
-			}
-
-			/** Append string to fragments, won't check boundary in release mode */
-			CPV_INLINE void batchAppend(SharedString&& str, std::size_t& index) {
-				assert(index < fragments.size());
-				fragments[index++] = seastar::net::fragment({ str.data(), str.size() });
-				deleter.append(str.release());
-			}
-
-			/** Append static string to fragments, won't check boundary in release mode */
-			template <std::size_t Size>
-			CPV_INLINE void batchAppend(const char(&str)[Size], std::size_t& index) {
-				assert(index < fragments.size());
-				fragments[index++] = toFragment({ str, Size - 1 });
-				static_assert(Size >= 1, "static string should contains tailing zero");
-			}
-
-			/** End batch append */
-			CPV_INLINE void batchAppendEnd(std::size_t index) {
-				assert(index <= fragments.size());
-				fragments.resize(index);
-			}
-
 			/** Move content of fragments to packet */
 			CPV_INLINE seastar::net::packet release() {
 				// seastar::packet's ctor provides overload for std::vector but only takes moved one

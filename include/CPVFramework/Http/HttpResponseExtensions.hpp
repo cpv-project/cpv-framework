@@ -15,11 +15,11 @@ namespace cpv::extensions {
 		SharedString&& mimeType,
 		SharedString&& statusCode,
 		SharedString&& statusMessage) {
+		auto& headers = response.getHeaders();
 		response.setStatusCode(std::move(statusCode));
 		response.setStatusMessage(std::move(statusMessage));
-		response.setHeader(constants::ContentType, std::move(mimeType));
-		response.setHeader(constants::ContentLength,
-			SharedString::fromInt(sizeofString(text)));
+		headers.setContentType(std::move(mimeType));
+		headers.setContentLength(SharedString::fromInt(sizeofString(text)));
 		return writeAll(response.getBodyStream(), std::forward<T>(text));
 	}
 

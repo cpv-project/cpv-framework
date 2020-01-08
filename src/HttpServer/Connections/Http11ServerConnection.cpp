@@ -483,22 +483,21 @@ namespace cpv {
 		// append response headers to packet
 		// manipulate fragments vector directly to avoid variant and boundary checks
 		auto& fragments = packet.getOrConvertToMultiple();
-		std::size_t index = fragments.batchAppendBegin(getResponseHeadersFragmentsCount());
-		fragments.batchAppend(response.getVersion().share(), index);
-		fragments.batchAppend(constants::Space, index);
-		fragments.batchAppend(response.getStatusCode().share(), index);
-		fragments.batchAppend(constants::Space, index);
-		fragments.batchAppend(response.getStatusMessage().share(), index);
-		fragments.batchAppend(constants::CRLF, index);
-		responseHeaders.foreach([&fragments, &index]
+		fragments.reserveAddition(getResponseHeadersFragmentsCount());
+		fragments.append(response.getVersion().share());
+		fragments.append(constants::Space);
+		fragments.append(response.getStatusCode().share());
+		fragments.append(constants::Space);
+		fragments.append(response.getStatusMessage().share());
+		fragments.append(constants::CRLF);
+		responseHeaders.foreach([&fragments]
 			(const SharedString& key, const SharedString& value) {
-			fragments.batchAppend(key.share(), index);
-			fragments.batchAppend(constants::ColonSpace, index);
-			fragments.batchAppend(value.share(), index);
-			fragments.batchAppend(constants::CRLF, index);
+			fragments.append(key.share());
+			fragments.append(constants::ColonSpace);
+			fragments.append(value.share());
+			fragments.append(constants::CRLF);
 		});
-		fragments.batchAppend(constants::CRLF, index);
-		fragments.batchAppendEnd(index);
+		fragments.append(constants::CRLF);
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */
