@@ -9,25 +9,29 @@ cpv framework is a web framework written in c++ based on [seastar framework](htt
 
 seastar framework is a application framework that use the share nothing programming model, which isolate resources explicitly for each cpu core. cpv framework use this model too, a cpv application will initialize services on each cpu core, execute them on each cpu core and avoid sharing data between cpu cores, you don't need thread locks or atomic variables in cpv application because all code will be thread safe by design.
 
-In addition, cpv framework avoid memory copies by using `std::string_view` and scattered message (struct iovec) everywhere, you can get a string view of url path, query parameter, http header, and body content of request inside the original packet (there few cases require copy such as http header value splited in two packets, or encoded query parameter different from original), and you can construct a scattered message as http response body by using `cpv::Packet` (which uses struct iovec for multiple segments).
+In addition, cpv framework avoid memory copies by using reference counted slice of string (`cpv::SharedString`) and scattered message (`cpv::Packet`) everywhere. You can get a slice of url path, query parameter, http header, and body content of request from the original packet without allocate a new string and copy them (there few cases require copy such as http header value splited in two packets, or query parameter different after decoded), and you can construct a scattered message contains multiple non-continuous fragments as http response body (based on posix vectored I/O api).
 
 For more features, see the feature list and documents below.
 
 ## Features
 
 - Isolate resources explicitly between cpu cores
-- Avoid memory copies by using `std::string_view` and scattered messages everywhere
+- Avoid memory copies by using `cpv::SharedString` and `cpv::Packet` everywhere
 - Future promise based asynchronous interface
 - Dependency injection container
 - Modular design
 	- Modules decide what to do when application start and stop
 	- Modules register services to dependency injection container and retrive services from it
 - Http server
-	- Supports Http 1.0/1.1 (use [http-parser](https://github.com/nodejs/http-parser))
+	- Supports Http 1.0/1.1 (based on [http-parser](https://github.com/nodejs/http-parser))
 	- Supports pipeline
-	- Supports chained multiple request handlers (middleware style)
+	- Supports chaining multiple request handlers (middleware style)
 	- Supports full and wildcard url routing (by using routing handler)
 	- Provide stream interface for request body and response body
+	- Provide static file handler, supports pre compredded gzip, bytes range and If-Modified-Since detection
+- Serialization
+	- Provide json serializer and deserializer (based on [sajson](https://github.com/chadaustin/sajson))
+	- Provide http form serializer and deserializer
 
 You can also check the [roadmap](./docs/Roadmap.md) to see which features will be added in the next release.
 
@@ -167,6 +171,6 @@ You should follow these rules when contributing code, pull request or patch is w
 ## License
 
 LICENSE: MIT LICENSE<br/>
-Copyright © 2018-2019 303248153@github<br/>
+Copyright © 2018-2020 303248153@github<br/>
 If you have any license issue please contact 303248153@qq.com.
 
