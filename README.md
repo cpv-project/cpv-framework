@@ -141,6 +141,7 @@ curl -v http://localhost:8000
 - [Application and modules](./docs/ApplicationAndModules.md)
 - [Dependency injection container](./docs/DependencyInjectionContainer.md)
 - [Http server request handlers](./docs/HttpServerRequestHandlers.md)
+- [Serialization](./docs/Serialization.md)
 
 ## Examples
 
