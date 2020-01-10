@@ -340,22 +340,34 @@ For more information please check the document about [http server request handle
 
 ### [HttpServerRoutingModule](../include/CPVFramework/Application/Modules/HttpServerRoutingModule.hpp)
 
-This is a module used to adding request routing handler for http server, you can bind custom handlers for given method and path, example:
+This is a module used to adding request routing handler for http server, you can bind custom handlers for given method and path, for example:
 
 ``` c++
 application.add<cpv::HttpServerRoutingModule>(auto& module) {
+	using namespace cpv::extensions::http_context_parameters;
+
 	module.route(cpv::constants::GET, "/", [] (cpv::HttpContext& context) {
 		return cpv::extensions::reply(context.getResponse(), "index page");
 	});
-	module.route(cpv::constants::GET, "/get/*", std::make_tuple(1),
-		[] (cpv::HttpContext& context, std::string_view id) {
+
+	module.route(cpv::constants::GET, "/get/*/detail",
+		std::make_tuple(PathFragment(1)),
+		[] (cpv::HttpContext& context, cpv::SharedString id) {
 			return cpv::extensions::reply(context.getResponse(), id);
 		});
-	module.route(cpv::constants::GET, "/static/**", [] (cpv::HttpContext& context) {
-		return cpv::extensions::reply(context.getResponse(), context.getRequest().getUrl());
-	});
+
+	module.route(cpv::constants::GET, "/get-more/**",
+		[] (cpv::HttpContext& context) {
+			return cpv::extensions::reply(
+				context.getResponse(),
+				context.getRequest().getUrl());
+		});
+
+	module.routeStaticFile("/static", "./static");
 });
 ```
+
+##### route
 
 The `route` function has these overloads:
 
@@ -364,15 +376,32 @@ The `route` function has these overloads:
 - `route(method, path, func)`:
 	- `func` can be a lambda function that takes `cpv::HttpContext` and returns `seastar::future<>`
 - `route(method, path, params, func)`:
-	- `params` is a tuple contains parameters passed to `func`, the contents of tuple can be
-		- integer: means index of path fragments: `1` => `request.getUri().getPathFragment(1)`
-		- string: means key of query parameters: `"key"` => `request.getUri().getQueryParameter("key")`
-		- you can make it support more types by provide `cpv::extensions::getParameter(request, yourType)`
-	- `func` can be a lambda function that takes `cpv::HttpContext` and parameters retrived by `params`
+	- `params` is a tuple controls what parameters will be pass to `func`, for example
+		- `PathFragment(1)` => `context.getRequest().getUri().getPathFragment(1)`
+		- `Query("key")` => `context.getRequest().getUri().getQueryParameter("key")`
+		- `Service<MyService>()` => `context.getService<MyService>()`
+		- `JsonModel<MyModel>()` => `extensions::readBodyStreamAsJson<MyModel>(context.getRequest())`
+		- `FormModel<MyModel>()` => `extensions::readBodyStreamAsForm<MyModel>(context.getRequest())`
+		- you can make it support more types by provide `cpv::extensions::getParameter(context, yourType)`
+	- `func` can be a lambda function that takes `cpv::HttpContext` and parameters
 
-In these overloads, `method` means http request method like `"GET"` (same as `cpv::constants::GET`) or `"POST"` (same as `cpv::constants::POST`); `path` means the path of url part, path may contains `*` or `**` as path fragment (parts between `/`), `*` represents one arbitrary path fragment, `**` represents one or more arbitrary path fragments, `**` can only be used at the end of path.
+In these overloads, `method` means http request method like `"GET"` (same as `cpv::constants::GET`) or `"POST"` (same as `cpv::constants::POST`); `path` means the path of url part, path may contains `*` or `**` as path fragment (parts between `/`), `*` represents one arbitrary path fragment, `**` represents one or more arbitrary path fragments, `**` can only be used at the end of the path.
 
-For example, `/get/*/detail` matches `/get/123/detail` and `/get/321/detail` but not `/get/123/hidden/detail`, `/static/**` matches `/static/1.txt` and `/static/css/1.css` but not `/static` (`**` not represents zero path fragments).
+For example, `/get/*/detail` matches `/get/123/detail` and `/get/321/detail` but not `/get/123/some/detail`, `/get-more/**` matches `/get-more/a` and `/get-more/a/b` but not `/get-more` (`**` not represents zero path fragments).
 
-This module is designed for better performance but simple usage, since it's separated with http server module, you can roll your own routing handler and module for some special requirement.
+##### routeStaticFile
+
+The parameters of `routeStaticFile` is:
+
+```
+routeStaticFile(urlBase, pathBase, cacheControl="", maxCacheFileEntities=16, maxCacheFileSize=1048576)
+```
+
+The `cacheControl` parameter is for "Cache-Control" header, for example you can set it to "max-age=84600, public".
+
+The `maxCacheFileEntities` parameter controls how many files can be cache in memory to improve performance, you can set it to 0 to disable caching.
+
+The `maxCacheFileSize` parameter controls the maximum size (in bytes) of file that able to cache in memory.
+
+The static file handler supports pre compressed gzip files, for example if urlBase is `/static` and pathBase is `./static`, when client request `/static/1.txt`, the handler will search `./static/1.txt.gz` before `./static/1.txt` and return file contents if either of them exists. You can generate pre compressed gzip files by using tool `make-gzip.sh` under `tools` folder, just cd to static folder and execute the tool.
 

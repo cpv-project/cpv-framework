@@ -7,7 +7,7 @@ namespace cpv {
 	class HttpServerRequestStaticFileHandlerData;
 
 	/**
-	 * Request handler that return content of files.
+	 * Request handler that returns content of files.
 	 *
 	 * It will check whether url is starts with urlBase, and check whether file path is exists.
 	 * For example:

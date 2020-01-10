@@ -42,7 +42,7 @@ int main() {
 }
 ```
 
-Usually you don't need to construct a container by yourself, [Application](../include/CPVFramework/Application/Application.hpp) will construct it on each cpu core, and you can use the container instance provided by application from `handler` function of module or [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp).
+Usually you don't need to construct a container by yourself, [Application](../include/CPVFramework/Application/Application.hpp) will construct it on each cpu core, and you can resolve services by using convenient functions from [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp), see the example at the end of this document.
 
 ## Service lifetime
 
@@ -329,7 +329,7 @@ TService get(ServiceStorage& storage) const;
 
 The first overload will use the built-in storage inside container, which makes `StoragePersistent` has same effect as `Persistent`, the second overload allows user pass a custom service storage for services registered with `StoragePersistent` lifetime, service instances will store in this storage and reuse when the same storage is given.
 
-`StoragePersistent` is useful for services that want to share same instance for same http request, [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp) provides fresh service storage for each http request, and the storage will be destroyed after request finished.
+`StoragePersistent` is useful for services that want to share same instance for same http request, [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp) provides new service storage for each http request, and the storage will be destroyed after request finished.
 
 Example:
 
@@ -377,5 +377,52 @@ Example:
 	std::optional<seastar::shared_ptr<Service>> optionalService;
 	container.getMany(optionalService, storage);
 }
+```
+
+## Resolve service inside the http request handler
+
+If you want to resolve services inside the http request handler, you may want to use `getService` and `getManyServices` function from [HttpContext](../include/CPVFramework/HttpServer/HttpContext.hpp), because it will put `StoragePersistent` services inside the storage associated with the http request handling now.
+
+Example:
+
+``` c++
+application.add<cpv::HttpServerRoutingModule>(auto& module) {
+	using namespace cpv::extensions::http_context_parameters;
+
+	module.route(cpv::constants::GET, "/", [] (cpv::HttpContext& context) {
+		MyService myService = context.getService<MyService>();
+		return cpv::extensions::reply(context.getResponse(), myService.getMessage());
+	});
+
+	// same as /
+	module.route(cpv::constants::GET, "/abc",
+		std::make_tuple(Service<MyService>()),
+		[] (cpv::HttpContext& context, MyService myService) {
+			return cpv::extensions::reply(context.getResponse(), myService.getMessage());
+		});
+
+	module.route(cpv::constants::GET, "/many", [] (cpv::HttpContext& context) {
+		std::vector<OtherService> otherServices;
+		context.getManyServices(otherServices);
+		cpv::Packet p;
+		for (auto& service : otherServices) {
+			p.append(service.getMessage());
+		}
+		return cpv::extensions::reply(context.getResponse(), std::move(p));
+	});
+
+	// same as /many
+	module.route(cpv::constants::GET, "/many/abc",
+		std::make_tuple(Service<std::vector<OtherService>>()),
+		[] (cpv::HttpContext& context, std::vector<OtherService> otherServices) {
+			cpv::Packet p;
+			for (auto& service : otherServices) {
+				p.append(service.getMessage());
+			}
+			return cpv::extensions::reply(context.getResponse(), std::move(p));
+		});
+
+	module.routeStaticFile("/static", "./static");
+});
 ```
 

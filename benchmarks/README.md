@@ -34,7 +34,7 @@ mv wrk /usr/local/bin/wrk
 
 ## Generate benchmark results
 
-Use `devent-enter.sh` from `cpv-ops/local/scripts` to enter devent container with ubuntu, and run following command:
+Use `devent-enter.sh` from `cpv-ops/local/scripts` to enter devenv container, and run following command:
 
 ``` sh
 sh run_benchmarks.sh

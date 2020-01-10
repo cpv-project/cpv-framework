@@ -28,7 +28,7 @@ For more features, see the feature list and documents below.
 	- Supports chaining multiple request handlers (middleware style)
 	- Supports full and wildcard url routing (by using routing handler)
 	- Provide stream interface for request body and response body
-	- Provide static file handler, supports pre compredded gzip, bytes range and If-Modified-Since detection
+	- Provide static file handler, supports pre compressed gzip, bytes range, If-Modified-Since detection and lru memory cache
 - Serialization
 	- Provide json serializer and deserializer (based on [sajson](https://github.com/chadaustin/sajson))
 	- Provide http form serializer and deserializer
