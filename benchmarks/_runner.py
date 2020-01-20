@@ -65,7 +65,7 @@ BENCHMARK_TASKSETS = [
 ]
 BEST_OF_N = 3
 MARKDOWN_OUTPUT_PATH = "/tmp/cpv-benchmark-results.md"
-ONLY_CPV_FRAMEWORK = True
+ONLY_CPV_FRAMEWORK = False
 
 class BenchmarkRunner(object):
 	def __init__(self):
