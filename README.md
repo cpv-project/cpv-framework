@@ -7,7 +7,7 @@
 
 cpv framework is a web framework written in c++ based on [seastar framework](https://github.com/scylladb/seastar), it focus on high performance and modular design.
 
-seastar framework is a application framework that use the share nothing programming model, which isolate resources explicitly for each cpu core. cpv framework use this model too, a cpv application will initialize services on each cpu core, execute them on each cpu core and avoid sharing data between cpu cores, you don't need thread locks or atomic variables in cpv application because all code will be thread safe by design.
+seastar framework is an application framework that use the share nothing programming model, which isolate resources explicitly for each cpu core. cpv framework use this model too, a cpv application will initialize services on each cpu core, execute them on each cpu core and avoid sharing data between cpu cores, you don't need thread locks or atomic variables in cpv application because all code will be thread safe by design.
 
 In addition, cpv framework avoid memory copies by using reference counted slice of string (`cpv::SharedString`) and scattered message (`cpv::Packet`) everywhere. You can get a slice of url path, query parameter, http header, and body content of request from the original packet without allocate a new string and copy them (there few cases require copy such as http header value splited in two packets, or query parameter different after decoded), and you can construct a scattered message contains multiple non-continuous fragments as http response body (based on posix vectored I/O api).
 
