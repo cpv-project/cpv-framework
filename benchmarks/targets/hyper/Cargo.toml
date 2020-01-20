@@ -1,0 +1,10 @@
+[package]
+name = "hyper-benchmark"
+version = "1.0.0"
+authors = ["303248153 <303248153@qq.com>"]
+edition = "2018"
+
+[dependencies]
+hyper = "0.13.1"
+tokio = { version = "0.2", features = ["macros", "sync"] }
+log = "0.4"
