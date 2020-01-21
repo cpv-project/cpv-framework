@@ -424,14 +424,12 @@ namespace cpv {
 	/** (for reply loop) Get maximum fragments count for response headers */
 	std::size_t Http11ServerConnection::getResponseHeadersFragmentsCount() const {
 		// calculate fragments count
-		// +6: version, space, status code, space, status message, crlf
-		// +4: date header, colon + space, header value, crlf
-		// +4: server header, colon + space, header value, crlf
-		// +4: connection header, colon + space, header value, crlf
+		// +5: version, space, status code, space, status message
 		// + headers count * 4
-		// +1: crlf
+		// +1: crlfcrlf
+		// +1: reserved
 		auto& response = processingContext_.getResponse();
-		return 19 + response.getHeaders().maxSize() * 4;
+		return 7 + response.getHeaders().maxSize() * 4;
 	}
 	
 	/** (for reply loop) Append response headers to packet, please check responseHeadersAppended first */
@@ -481,7 +479,6 @@ namespace cpv {
 			}
 		}
 		// append response headers to packet
-		// manipulate fragments vector directly to avoid variant and boundary checks
 		auto& fragments = packet.getOrConvertToMultiple();
 		fragments.reserveAddition(getResponseHeadersFragmentsCount());
 		fragments.append(response.getVersion().share());
@@ -489,15 +486,8 @@ namespace cpv {
 		fragments.append(response.getStatusCode().share());
 		fragments.append(constants::Space);
 		fragments.append(response.getStatusMessage().share());
-		fragments.append(constants::CRLF);
-		responseHeaders.foreach([&fragments]
-			(const SharedString& key, const SharedString& value) {
-			fragments.append(key.share());
-			fragments.append(constants::ColonSpace);
-			fragments.append(value.share());
-			fragments.append(constants::CRLF);
-		});
-		fragments.append(constants::CRLF);
+		responseHeaders.appendToHttp1Packet(fragments);
+		fragments.append(constants::CRLFCRLF);
 	}
 	
 	/** (for reply loop) Determine whether keep connection or not by checking connection header */

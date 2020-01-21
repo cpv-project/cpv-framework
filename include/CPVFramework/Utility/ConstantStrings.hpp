@@ -30,6 +30,7 @@ namespace cpv::constants {
 	static const constexpr char ColonSlashSlash[] = "://";
 	static const constexpr char LF[] = "\n";
 	static const constexpr char CRLF[] = "\r\n";
+	static const constexpr char CRLFCRLF[] = "\r\n\r\n";
 	static const constexpr char True[] = "true";
 	static const constexpr char False[] = "false";
 	static const constexpr char Null[] = "null";

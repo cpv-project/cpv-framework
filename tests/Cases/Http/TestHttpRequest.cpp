@@ -120,6 +120,46 @@ TEST(HttpRequest, headersForeach) {
 		"AdditionC: TestAdditionC\r\n");
 }
 
+TEST(HttpRequest, headersAppendToHttp1Packet) {
+	cpv::HttpRequest request;
+	auto& headers = request.getHeaders();
+	headers.setHost("TestHost");
+	headers.setContentType("TestContentType");
+	headers.setContentLength("TestContentLength");
+	headers.setConnection("TestConnection");
+	headers.setPragma("TestPragma");
+	headers.setUpgradeInsecureRequests("TestUpgradeInsecureRequests");
+	headers.setDNT("TestDNT");
+	headers.setUserAgent("TestUserAgent");
+	headers.setAccept("TestAccept");
+	headers.setAcceptEncoding("TestAcceptEncoding");
+	headers.setAcceptLanguage("TestAcceptLanguage");
+	headers.setCookie("TestCookie");
+	headers.setXRequestedWith("TestXRequestedWith");
+	headers.setHeader("AdditionA", "TestAdditionA");
+	headers.setHeader("AdditionB", "TestAdditionB");
+	headers.setHeader("AdditionC", "TestAdditionC");
+	cpv::Packet packet;
+	headers.appendToHttp1Packet(packet.getOrConvertToMultiple());
+	ASSERT_EQ(packet.toString(),
+		"\r\nHost: TestHost\r\n"
+		"Content-Type: TestContentType\r\n"
+		"Content-Length: TestContentLength\r\n"
+		"Connection: TestConnection\r\n"
+		"Pragma: TestPragma\r\n"
+		"Upgrade-Insecure-Requests: TestUpgradeInsecureRequests\r\n"
+		"DNT: TestDNT\r\n"
+		"User-Agent: TestUserAgent\r\n"
+		"Accept: TestAccept\r\n"
+		"Accept-Encoding: TestAcceptEncoding\r\n"
+		"Accept-Language: TestAcceptLanguage\r\n"
+		"Cookie: TestCookie\r\n"
+		"X-Requested-With: TestXRequestedWith\r\n"
+		"AdditionA: TestAdditionA\r\n"
+		"AdditionB: TestAdditionB\r\n"
+		"AdditionC: TestAdditionC");
+}
+
 TEST(HttpRequest, headersNotConstructible) {
 	ASSERT_FALSE(std::is_constructible_v<cpv::HttpRequestHeaders>);
 	ASSERT_FALSE(std::is_copy_constructible_v<cpv::HttpRequestHeaders>);

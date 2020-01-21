@@ -35,6 +35,69 @@ namespace cpv {
 		}
 	}
 	
+	/** Append all headers to packet fragments for http 1 */
+	void HttpRequestHeaders::appendToHttp1Packet(Packet::MultipleFragments& fragments) {
+		namespace cs = constants::with_crlf_colonspace;
+		if (!host_.empty()) {
+			fragments.append(cs::Host);
+			fragments.append(host_.share());
+		}
+		if (!contentType_.empty()) {
+			fragments.append(cs::ContentType);
+			fragments.append(contentType_.share());
+		}
+		if (!contentLength_.empty()) {
+			fragments.append(cs::ContentLength);
+			fragments.append(contentLength_.share());
+		}
+		if (!connection_.empty()) {
+			fragments.append(cs::Connection);
+			fragments.append(connection_.share());
+		}
+		if (!pragma_.empty()) {
+			fragments.append(cs::Pragma);
+			fragments.append(pragma_.share());
+		}
+		if (!upgradeInsecureRequests_.empty()) {
+			fragments.append(cs::UpgradeInsecureRequests);
+			fragments.append(upgradeInsecureRequests_.share());
+		}
+		if (!dnt_.empty()) {
+			fragments.append(cs::DNT);
+			fragments.append(dnt_.share());
+		}
+		if (!userAgent_.empty()) {
+			fragments.append(cs::UserAgent);
+			fragments.append(userAgent_.share());
+		}
+		if (!accept_.empty()) {
+			fragments.append(cs::Accept);
+			fragments.append(accept_.share());
+		}
+		if (!acceptEncoding_.empty()) {
+			fragments.append(cs::AcceptEncoding);
+			fragments.append(acceptEncoding_.share());
+		}
+		if (!acceptLanguage_.empty()) {
+			fragments.append(cs::AcceptLanguage);
+			fragments.append(acceptLanguage_.share());
+		}
+		if (!cookie_.empty()) {
+			fragments.append(cs::Cookie);
+			fragments.append(cookie_.share());
+		}
+		if (!xRequestedWith_.empty()) {
+			fragments.append(cs::XRequestedWith);
+			fragments.append(xRequestedWith_.share());
+		}
+		for (auto& pair : remainHeaders_) {
+			fragments.append(constants::CRLF);
+			fragments.append(pair.first.share());
+			fragments.append(constants::ColonSpace);
+			fragments.append(pair.second.share());
+		}
+	}
+	
 	/** Get header value */
 	SharedString HttpRequestHeaders::getHeader(const SharedString& key) const {
 		auto it = Internal::FixedMembers.find(key);

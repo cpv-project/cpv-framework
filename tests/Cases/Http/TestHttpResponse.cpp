@@ -115,6 +115,44 @@ TEST(HttpResponse, headersForeach) {
 		"AdditionC: TestAdditionC\r\n");
 }
 
+TEST(HttpResponse, headersAppendToHttp1Packet) {
+	cpv::HttpResponse response;
+	auto& headers = response.getHeaders();
+	headers.setDate("TestDate");
+	headers.setContentType("TestContentType");
+	headers.setContentLength("TestContentLength");
+	headers.setContentEncoding("TestContentEncoding");
+	headers.setTransferEncoding("TestTransferEncoding");
+	headers.setConnection("TestConnection");
+	headers.setServer("TestServer");
+	headers.setVary("TestVary");
+	headers.setETag("TestETag");
+	headers.setCacheControl("TestCacheControl");
+	headers.setExpires("TestExpires");
+	headers.setLastModified("TestLastModified");
+	headers.setHeader("AdditionA", "TestAdditionA");
+	headers.setHeader("AdditionB", "TestAdditionB");
+	headers.setHeader("AdditionC", "TestAdditionC");
+	cpv::Packet packet;
+	headers.appendToHttp1Packet(packet.getOrConvertToMultiple());
+	ASSERT_EQ(packet.toString(),
+		"\r\nDate: TestDate\r\n"
+		"Content-Type: TestContentType\r\n"
+		"Content-Length: TestContentLength\r\n"
+		"Content-Encoding: TestContentEncoding\r\n"
+		"Transfer-Encoding: TestTransferEncoding\r\n"
+		"Connection: TestConnection\r\n"
+		"Server: TestServer\r\n"
+		"Vary: TestVary\r\n"
+		"ETag: TestETag\r\n"
+		"Cache-Control: TestCacheControl\r\n"
+		"Expires: TestExpires\r\n"
+		"Last-Modified: TestLastModified\r\n"
+		"AdditionA: TestAdditionA\r\n"
+		"AdditionB: TestAdditionB\r\n"
+		"AdditionC: TestAdditionC");
+}
+
 TEST(HttpResponse, additionHeaders) {
 	cpv::HttpResponse response;
 	auto& headers = response.getHeaders();

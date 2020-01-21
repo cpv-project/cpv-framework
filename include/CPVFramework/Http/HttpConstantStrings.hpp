@@ -101,7 +101,7 @@ namespace cpv::constants {
 	static const constexpr char GatewayTimeout[] = "Gateway Timeout";
 	static const constexpr char HttpVersionNotSupported[] = "HTTP Version Not Supported";
 	
-	// standard request fields
+	// standard request header fields
 	static const constexpr char AIM[] = "A-IM";
 	static const constexpr char Accept[] = "Accept";
 	static const constexpr char AcceptCharset[] = "Accept-Charset";
@@ -130,13 +130,13 @@ namespace cpv::constants {
 	static const constexpr char TE[] = "TE";
 	static const constexpr char UserAgent[] = "User-Agent";
 	
-	// non-standard request fields
+	// non-standard request header fields
 	static const constexpr char UpgradeInsecureRequests[] = "Upgrade-Insecure-Requests";
 	static const constexpr char XRequestedWith[] = "X-Requested-With";
 	static const constexpr char DNT[] = "DNT";
 	static const constexpr char XCsrfToken[] = "X-Csrf-Token";
 	
-	// standard response fields
+	// standard response header fields
 	static const constexpr char AccessControlAllowOrigin[] = "Access-Control-Allow-Origin";
 	static const constexpr char AccessControlAllowCredentials[] = "Access-Control-Allow-Credentials";
 	static const constexpr char AccessControlExposeHeaders[] = "Access-Control-Expose-Headers";
@@ -184,14 +184,42 @@ namespace cpv::constants {
 	static const constexpr char WWWAuthenticate[] = "WWW-Authenticate";
 	static const constexpr char XFrameOptions[] = "X-Frame-Options";
 	
-	// non-standard response fields
+	// non-standard response header fields
 	static const constexpr char Refresh[] = "Refresh";
 	
-	// standard response values
+	// standard response header values
 	static const constexpr char Chunked[] = "chunked";
 	static const constexpr char Keepalive[] = "keep-alive";
 	static const constexpr char Close[] = "close";
 	static const constexpr char TextPlainUtf8[] = "text/plain;charset=utf-8";
 	static const constexpr char ApplicationJsonUtf8[] = "application/json;charset=utf-8";
+
+	// reduce fragments for common headers
+	namespace with_crlf_colonspace {
+		// request header fields
+		static const constexpr char Host[] = "\r\nHost: ";
+		static const constexpr char ContentType[] = "\r\nContent-Type: ";
+		static const constexpr char ContentLength[] = "\r\nContent-Length: ";
+		static const constexpr char Connection[] = "\r\nConnection: ";
+		static const constexpr char Pragma[] = "\r\nPragma: ";
+		static const constexpr char UpgradeInsecureRequests[] = "\r\nUpgrade-Insecure-Requests: ";
+		static const constexpr char DNT[] = "\r\nDNT: ";
+		static const constexpr char UserAgent[] = "\r\nUser-Agent: ";
+		static const constexpr char Accept[] = "\r\nAccept: ";
+		static const constexpr char AcceptEncoding[] = "\r\nAccept-Encoding: ";
+		static const constexpr char AcceptLanguage[] = "\r\nAccept-Language: ";
+		static const constexpr char Cookie[] = "\r\nCookie: ";
+		static const constexpr char XRequestedWith[] = "\r\nX-Requested-With: ";
+		// response header fields
+		static const constexpr char Date[] = "\r\nDate: ";
+		static const constexpr char ContentEncoding[] = "\r\nContent-Encoding: ";
+		static const constexpr char TransferEncoding[] = "\r\nTransfer-Encoding: ";
+		static const constexpr char Server[] = "\r\nServer: ";
+		static const constexpr char Vary[] = "\r\nVary: ";
+		static const constexpr char ETag[] = "\r\nETag: ";
+		static const constexpr char CacheControl[] = "\r\nCache-Control: ";
+		static const constexpr char Expires[] = "\r\nExpires: ";
+		static const constexpr char LastModified[] = "\r\nLast-Modified: ";
+	}
 }
 

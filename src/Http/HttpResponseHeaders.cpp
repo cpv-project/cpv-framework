@@ -24,6 +24,71 @@ namespace cpv {
 		{ constants::LastModified, &HttpResponseHeaders::lastModified_ },
 	});
 	
+	/** Append all headers to packet fragments for http 1 */
+	void HttpResponseHeaders::appendToHttp1Packet(Packet::MultipleFragments& fragments) {
+		namespace cs = constants::with_crlf_colonspace;
+		if (!date_.empty()) {
+			fragments.append(cs::Date);
+			fragments.append(date_.share());
+		}
+		if (!contentType_.empty()) {
+			fragments.append(cs::ContentType);
+			fragments.append(contentType_.share());
+		}
+		if (!contentLength_.empty()) {
+			fragments.append(cs::ContentLength);
+			fragments.append(contentLength_.share());
+		}
+		if (!contentEncoding_.empty()) {
+			fragments.append(cs::ContentEncoding);
+			fragments.append(contentEncoding_.share());
+		}
+		if (!transferEncoding_.empty()) {
+			fragments.append(cs::TransferEncoding);
+			fragments.append(transferEncoding_.share());
+		}
+		if (!connection_.empty()) {
+			fragments.append(cs::Connection);
+			fragments.append(connection_.share());
+		}
+		if (!server_.empty()) {
+			fragments.append(cs::Server);
+			fragments.append(server_.share());
+		}
+		if (!vary_.empty()) {
+			fragments.append(cs::Vary);
+			fragments.append(vary_.share());
+		}
+		if (!etag_.empty()) {
+			fragments.append(cs::ETag);
+			fragments.append(etag_.share());
+		}
+		if (!cacheControl_.empty()) {
+			fragments.append(cs::CacheControl);
+			fragments.append(cacheControl_.share());
+		}
+		if (!expires_.empty()) {
+			fragments.append(cs::Expires);
+			fragments.append(expires_.share());
+		}
+		if (!lastModified_.empty()) {
+			fragments.append(cs::LastModified);
+			fragments.append(lastModified_.share());
+		}
+		for (auto& pair : remainHeaders_) {
+			fragments.append(constants::CRLF);
+			fragments.append(pair.first.share());
+			fragments.append(constants::ColonSpace);
+			fragments.append(pair.second.share());
+		}
+		for (auto& pair : additionHeaders_) {
+			fragments.append(constants::CRLF);
+			fragments.append(pair.first.share());
+			fragments.append(constants::ColonSpace);
+			fragments.append(pair.second.share());
+		}
+	}
+	
 	/** Set header value */
 	void HttpResponseHeaders::setHeader(SharedString&& key, SharedString&& value) {
 		auto it = Internal::FixedMembers.find(key);

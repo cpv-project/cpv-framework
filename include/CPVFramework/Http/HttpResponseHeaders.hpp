@@ -2,6 +2,7 @@
 #include <utility>
 #include "../Allocators/StackAllocator.hpp"
 #include "../Utility/SharedString.hpp"
+#include "../Utility/Packet.hpp"
 #include "./HttpConstantStrings.hpp"
 
 namespace cpv {
@@ -59,6 +60,12 @@ namespace cpv {
 				func(pair.first, pair.second);
 			}
 		}
+		
+		/**
+		 * Append all headers to packet fragments for http 1.
+		 * notice it will append crlf to begin but not to end.
+		 */
+		void appendToHttp1Packet(Packet::MultipleFragments& fragments);
 		
 		/** Set header value */
 		void setHeader(SharedString&& key, SharedString&& value);
