@@ -5,4 +5,8 @@ BUILDDIR=../../../build/seastar-httpd-benchmark
 
 cd ${BUILDDIR}
 
-./httpd
+./httpd \
+	--task-quota-ms=20 \
+	--smp=$(nproc) \
+	--reactor-backend=epoll
+
